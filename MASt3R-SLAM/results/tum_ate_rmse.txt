@@ -1,0 +1,108 @@
+datasets/tum/rgbd_dataset_freiburg1_360/
+Initialized new /home/tdieudonne/.evo/settings.json
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max      0.109108
+      mean      0.044588
+    median      0.041090
+       min      0.007928
+      rmse      0.048760
+       sse      0.116497
+       std      0.019733
+
+datasets/tum/rgbd_dataset_freiburg1_desk/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max      0.026635
+      mean      0.014167
+    median      0.012488
+       min      0.002337
+      rmse      0.016136
+       sse      0.003645
+       std      0.007724
+
+datasets/tum/rgbd_dataset_freiburg1_desk2/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max      0.050151
+      mean      0.021348
+    median      0.018647
+       min      0.005164
+      rmse      0.023552
+       sse      0.014423
+       std      0.009949
+
+datasets/tum/rgbd_dataset_freiburg1_floor/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max      0.059308
+      mean      0.020260
+    median      0.015755
+       min      0.002954
+      rmse      0.025024
+       sse      0.019412
+       std      0.014688
+
+datasets/tum/rgbd_dataset_freiburg1_plant/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max      0.034252
+      mean      0.018441
+    median      0.017360
+       min      0.009699
+      rmse      0.019557
+       sse      0.014917
+       std      0.006512
+
+datasets/tum/rgbd_dataset_freiburg1_room/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max      0.102597
+      mean      0.057192
+    median      0.055730
+       min      0.016727
+      rmse      0.061223
+       sse      0.191160
+       std      0.021849
+
+datasets/tum/rgbd_dataset_freiburg1_rpy/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max      0.046614
+      mean      0.024553
+    median      0.023137
+       min      0.004571
+      rmse      0.026552
+       sse      0.014805
+       std      0.010108
+
+datasets/tum/rgbd_dataset_freiburg1_teddy/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max      0.087681
+      mean      0.037160
+    median      0.034379
+       min      0.012937
+      rmse      0.040770
+       sse      0.061501
+       std      0.016773
+
+datasets/tum/rgbd_dataset_freiburg1_xyz/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max      0.014786
+      mean      0.008367
+    median      0.008126
+       min      0.004964
+      rmse      0.008852
+       sse      0.001175
+       std      0.002890

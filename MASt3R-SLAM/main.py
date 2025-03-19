@@ -274,12 +274,14 @@ if __name__ == "__main__":
             continue
 
         if mode == Mode.TRACKING:
+            # Tracks new frames and adds new keyframes if needed
             add_new_kf, match_info, try_reloc = tracker.track(frame)
             if try_reloc:
                 states.set_mode(Mode.RELOC)
             states.set_frame(frame)
 
         elif mode == Mode.RELOC:
+            # If tracking quality is low, perform relocalization using loop closure
             X, C = mast3r_inference_mono(model, frame)
             frame.update_pointmap(X, C)
             states.set_frame(frame)
