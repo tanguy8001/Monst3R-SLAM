@@ -88,6 +88,18 @@ class TUMDataset(MonocularDataset):
         W, H = 640, 480
         self.camera_intrinsics = Intrinsics.from_calib(self.img_size, W, H, calib)
 
+class BonnDataset(MonocularDataset):
+    def __init__(self, dataset_path):
+        super().__init__()
+        self.dataset_path = pathlib.Path(dataset_path)
+        rgb_list = self.dataset_path / "rgb.txt"
+        tstamp_rgb = np.loadtxt(rgb_list, delimiter=" ", dtype=np.unicode_, skiprows=0)
+        self.rgb_files = [self.dataset_path / f for f in tstamp_rgb[:, 1]]
+        self.timestamps = tstamp_rgb[:, 0]
+
+        calib = np.array([542.822841, 542.576870, 315.593520, 237.756098, 0.039903, -0.099343, -0.000730, -0.000144, 0.000000])
+        W, H = 640, 480
+        self.camera_intrinsics = Intrinsics.from_calib(self.img_size, W, H, calib)
 
 class EurocDataset(MonocularDataset):
     def __init__(self, dataset_path):
@@ -319,6 +331,8 @@ class Intrinsics:
 
 def load_dataset(dataset_path):
     split_dataset_type = dataset_path.split("/")
+    if "bonn" in split_dataset_type:
+        return BonnDataset(dataset_path)
     if "tum" in split_dataset_type:
         return TUMDataset(dataset_path)
     if "euroc" in split_dataset_type:
