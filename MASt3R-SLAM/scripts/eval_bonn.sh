@@ -1,32 +1,43 @@
 #!/bin/bash
+#SBATCH --account=3dv
+#SBATCH --partition=jobs
+#SBATCH --time=720
+#SBATCH --output=eval_bonn_%j.out
+
+cd /work/courses/3dv/24/MASt3R-SLAM
+source /home/tdieudonne/.bashrc
+conda activate slam
+
+echo "Starting evaluation of Bonn dataset at: $(date)"
+
 dataset_path="datasets/bonn/"
 datasets=(
     rgbd_bonn_removing_nonobstructing_box2
     rgbd_bonn_removing_obstructing_box
-    #rgbd_bonn_moving_nonobstructing_box2
-    #rgbd_bonn_crowd
-    #rgbd_bonn_kidnapping_box
-    #rgbd_bonn_balloon
-    #rgbd_bonn_placing_nonobstructing_box
-    #rgbd_bonn_synchronous
-    #rgbd_bonn_static_close_far
-    #rgbd_bonn_synchronous2
-    #rgbd_bonn_static
-    #rgbd_bonn_moving_nonobstructing_box
-    #rgbd_bonn_balloon_tracking
-    #rgbd_bonn_removing_nonobstructing_box
-    #rgbd_bonn_moving_obstructing_box
-    #rgbd_bonn_person_tracking
-    #rgbd_bonn_placing_nonobstructing_box2
-    #rgbd_bonn_crowd2
-    #rgbd_bonn_person_tracking2
-    #rgbd_bonn_crowd3
-    #rgbd_bonn_placing_nonobstructing_box3
-    #rgbd_bonn_balloon2
-    #rgbd_bonn_moving_obstructing_box2
-    #rgbd_bonn_balloon_tracking2
-    #rgbd_bonn_placing_obstructing_box
-    #rgbd_bonn_kidnapping_box2
+    rgbd_bonn_moving_nonobstructing_box2
+    rgbd_bonn_crowd
+    rgbd_bonn_kidnapping_box
+    rgbd_bonn_balloon
+    rgbd_bonn_placing_nonobstructing_box
+    rgbd_bonn_synchronous
+    rgbd_bonn_static_close_far
+    rgbd_bonn_synchronous2
+    rgbd_bonn_static
+    rgbd_bonn_moving_nonobstructing_box
+    rgbd_bonn_balloon_tracking
+    rgbd_bonn_removing_nonobstructing_box
+    rgbd_bonn_moving_obstructing_box
+    rgbd_bonn_person_tracking
+    rgbd_bonn_placing_nonobstructing_box2
+    rgbd_bonn_crowd2
+    rgbd_bonn_person_tracking2
+    rgbd_bonn_crowd3
+    rgbd_bonn_placing_nonobstructing_box3
+    rgbd_bonn_balloon2
+    rgbd_bonn_moving_obstructing_box2
+    rgbd_bonn_balloon_tracking2
+    rgbd_bonn_placing_obstructing_box
+    rgbd_bonn_kidnapping_box2
 )
 
 no_calib=false
