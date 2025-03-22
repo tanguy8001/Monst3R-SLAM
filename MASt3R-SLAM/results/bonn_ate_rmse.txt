@@ -1,0 +1,233 @@
+Starting metrics computation of Bonn dataset at: Sat Mar 22 12:45:59 CET 2025
+datasets/bonn/rgbd_bonn_removing_nonobstructing_box2/
+[ERROR] found no matching timestamps between datasets/bonn/rgbd_bonn_removing_nonobstructing_box2//groundtruth.txt and logs/bonn/calib/rgbd_bonn_removing_nonobstructing_box2/rgbd_bonn_removing_nonobstructing_box2.txt with max. time diff 0.01 (s) and time offset 0.0 (s)
+datasets/bonn/rgbd_bonn_removing_obstructing_box/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.071199
+      mean	0.033499
+    median	0.030928
+       min	0.007857
+      rmse	0.040249
+       sse	0.012960
+       std	0.022311
+
+datasets/bonn/rgbd_bonn_moving_nonobstructing_box2/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.029906
+      mean	0.020394
+    median	0.019007
+       min	0.013656
+      rmse	0.021268
+       sse	0.001809
+       std	0.006033
+
+datasets/bonn/rgbd_bonn_crowd/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.065424
+      mean	0.029500
+    median	0.026312
+       min	0.005440
+      rmse	0.033188
+       sse	0.025333
+       std	0.015205
+
+datasets/bonn/rgbd_bonn_kidnapping_box/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.016195
+      mean	0.009617
+    median	0.009311
+       min	0.003650
+      rmse	0.010608
+       sse	0.000450
+       std	0.004478
+
+datasets/bonn/rgbd_bonn_balloon/
+[ERROR] Degenerate covariance rank, Umeyama alignment is not possible
+datasets/bonn/rgbd_bonn_placing_nonobstructing_box/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.030768
+      mean	0.014017
+    median	0.011734
+       min	0.004677
+      rmse	0.016200
+       sse	0.001575
+       std	0.008123
+
+datasets/bonn/rgbd_bonn_synchronous/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.010561
+      mean	0.006760
+    median	0.006128
+       min	0.003128
+      rmse	0.007035
+       sse	0.001881
+       std	0.001949
+
+datasets/bonn/rgbd_bonn_static_close_far/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.013871
+      mean	0.008477
+    median	0.009279
+       min	0.002656
+      rmse	0.009044
+       sse	0.000818
+       std	0.003153
+
+datasets/bonn/rgbd_bonn_synchronous2/
+[ERROR] Degenerate covariance rank, Umeyama alignment is not possible
+datasets/bonn/rgbd_bonn_static/
+[ERROR] csv file logs/bonn/calib/rgbd_bonn_static/rgbd_bonn_static.txt does not exist
+datasets/bonn/rgbd_bonn_moving_nonobstructing_box/
+[ERROR] Degenerate covariance rank, Umeyama alignment is not possible
+datasets/bonn/rgbd_bonn_balloon_tracking/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.028159
+      mean	0.023665
+    median	0.021740
+       min	0.018662
+      rmse	0.023969
+       sse	0.002872
+       std	0.003802
+
+datasets/bonn/rgbd_bonn_removing_nonobstructing_box/
+[ERROR] found no matching timestamps between datasets/bonn/rgbd_bonn_removing_nonobstructing_box//groundtruth.txt and logs/bonn/calib/rgbd_bonn_removing_nonobstructing_box/rgbd_bonn_removing_nonobstructing_box.txt with max. time diff 0.01 (s) and time offset 0.0 (s)
+datasets/bonn/rgbd_bonn_moving_obstructing_box/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.170609
+      mean	0.022898
+    median	0.006194
+       min	0.000914
+      rmse	0.044710
+       sse	0.051973
+       std	0.038401
+
+datasets/bonn/rgbd_bonn_person_tracking/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.026763
+      mean	0.017932
+    median	0.015778
+       min	0.010411
+      rmse	0.018769
+       sse	0.001761
+       std	0.005543
+
+datasets/bonn/rgbd_bonn_placing_nonobstructing_box2/
+[ERROR] Degenerate covariance rank, Umeyama alignment is not possible
+datasets/bonn/rgbd_bonn_crowd2/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.039473
+      mean	0.014693
+    median	0.012409
+       min	0.004915
+      rmse	0.016584
+       sse	0.008251
+       std	0.007690
+
+datasets/bonn/rgbd_bonn_person_tracking2/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.021672
+      mean	0.012686
+    median	0.010274
+       min	0.003699
+      rmse	0.014316
+       sse	0.001025
+       std	0.006633
+
+datasets/bonn/rgbd_bonn_crowd3/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.022933
+      mean	0.016204
+    median	0.017589
+       min	0.007186
+      rmse	0.016976
+       sse	0.004611
+       std	0.005061
+
+datasets/bonn/rgbd_bonn_placing_nonobstructing_box3/
+[ERROR] Degenerate covariance rank, Umeyama alignment is not possible
+datasets/bonn/rgbd_bonn_balloon2/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.027497
+      mean	0.020046
+    median	0.018922
+       min	0.014844
+      rmse	0.020578
+       sse	0.001694
+       std	0.004646
+
+datasets/bonn/rgbd_bonn_moving_obstructing_box2/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.114076
+      mean	0.071087
+    median	0.068530
+       min	0.033212
+      rmse	0.078663
+       sse	0.024752
+       std	0.033684
+
+datasets/bonn/rgbd_bonn_balloon_tracking2/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.029536
+      mean	0.021336
+    median	0.017748
+       min	0.016723
+      rmse	0.022114
+       sse	0.001467
+       std	0.005813
+
+datasets/bonn/rgbd_bonn_placing_obstructing_box/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.233631
+      mean	0.122665
+    median	0.100084
+       min	0.056862
+      rmse	0.140746
+       sse	0.079237
+       std	0.069012
+
+datasets/bonn/rgbd_bonn_kidnapping_box2/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.015417
+      mean	0.011573
+    median	0.013397
+       min	0.004080
+      rmse	0.012460
+       sse	0.000621
+       std	0.004619
+

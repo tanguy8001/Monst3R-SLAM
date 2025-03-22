@@ -1,0 +1,56 @@
+| Dataset                                   | APE RMSE (m) | Error Description (if applicable)                                |
+|-------------------------------------------|--------------|------------------------------------------------------------------|
+| rgbd_bonn_removing_nonobstructing_box2    | N/A          | No matching timestamps between groundtruth and log files         |
+| rgbd_bonn_removing_obstructing_box        | 0.040249     |                                                                  |
+| rgbd_bonn_moving_nonobstructing_box2      | 0.021268     |                                                                  |
+| rgbd_bonn_crowd                           | 0.033188     |                                                                  |
+| rgbd_bonn_kidnapping_box                  | 0.010608     |                                                                  |
+| rgbd_bonn_balloon                         | N/A          | Degenerate covariance rank, Umeyama alignment not possible      |
+| rgbd_bonn_placing_nonobstructing_box      | 0.016200     |                                                                  |
+| rgbd_bonn_synchronous                     | 0.007035     |                                                                  |
+| rgbd_bonn_static_close_far                | 0.009044     |                                                                  |
+| rgbd_bonn_synchronous2                    | N/A          | Degenerate covariance rank, Umeyama alignment not possible      |
+| rgbd_bonn_static                          | N/A          | CSV file does not exist                                          |
+| rgbd_bonn_moving_nonobstructing_box       | N/A          | Degenerate covariance rank, Umeyama alignment not possible      |
+| rgbd_bonn_balloon_tracking                | 0.023969     |                                                                  |
+| rgbd_bonn_removing_nonobstructing_box     | N/A          | No matching timestamps between groundtruth and log files         |
+| rgbd_bonn_moving_obstructing_box          | 0.044710     |                                                                  |
+| rgbd_bonn_person_tracking                 | 0.018769     |                                                                  |
+| rgbd_bonn_placing_nonobstructing_box2     | N/A          | Degenerate covariance rank, Umeyama alignment not possible      |
+| rgbd_bonn_crowd2                          | 0.016584     |                                                                  |
+| rgbd_bonn_person_tracking2                | 0.014316     |                                                                  |
+| rgbd_bonn_crowd3                          | 0.016976     |                                                                  |
+| rgbd_bonn_placing_nonobstructing_box3     | N/A          | Degenerate covariance rank, Umeyama alignment not possible      |
+| rgbd_bonn_balloon2                        | 0.020578     |                                                                  |
+| rgbd_bonn_moving_obstructing_box2         | 0.078663     |                                                                  |
+| rgbd_bonn_balloon_tracking2               | 0.022114     |                                                                  |
+| rgbd_bonn_placing_obstructing_box         | 0.140746     |                                                                  |
+| rgbd_bonn_kidnapping_box2                 | 0.012460     |                                                                  |
+
+dataset,ate_rmse(m),error_explanation
+rgbd_bonn_removing_nonobstructing_box2,N/A,No matching timestamps between groundtruth and log file
+rgbd_bonn_removing_obstructing_box,0.040249,
+rgbd_bonn_moving_nonobstructing_box2,0.021268,
+rgbd_bonn_crowd,0.033188,
+rgbd_bonn_kidnapping_box,0.010608,
+rgbd_bonn_balloon,N/A,Degenerate covariance rank, Umeyama alignment not possible
+rgbd_bonn_placing_nonobstructing_box,0.016200,
+rgbd_bonn_synchronous,0.007035,
+rgbd_bonn_static_close_far,0.009044,
+rgbd_bonn_synchronous2,N/A,Degenerate covariance rank, Umeyama alignment not possible
+rgbd_bonn_static,N/A,CSV file missing (does not exist)
+rgbd_bonn_moving_nonobstructing_box,N/A,Degenerate covariance rank, Umeyama alignment not possible
+rgbd_bonn_balloon_tracking,0.023969,
+rgbd_bonn_removing_nonobstructing_box,N/A,No matching timestamps between groundtruth and log file
+rgbd_bonn_moving_obstructing_box,0.044710,
+rgbd_bonn_person_tracking,0.018769,
+rgbd_bonn_placing_nonobstructing_box2,N/A,Degenerate covariance rank, Umeyama alignment not possible
+rgbd_bonn_crowd2,0.016584,
+rgbd_bonn_person_tracking2,0.014316,
+rgbd_bonn_crowd3,0.016976,
+rgbd_bonn_placing_nonobstructing_box3,N/A,Degenerate covariance rank, Umeyama alignment not possible
+rgbd_bonn_balloon2,0.020578,
+rgbd_bonn_moving_obstructing_box2,0.078663,
+rgbd_bonn_balloon_tracking2,0.022114,
+rgbd_bonn_placing_obstructing_box,0.140746,
+rgbd_bonn_kidnapping_box2,0.012460,
