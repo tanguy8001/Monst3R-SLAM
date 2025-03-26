@@ -69,12 +69,25 @@ if [ "$print_only" = false ]; then
     done
 fi
 
+
 for dataset in ${datasets[@]}; do
     dataset_name="$dataset_path""$dataset"/
     echo ${dataset_name}
     if [ "$no_calib" = true ]; then
-        evo_ape tum $dataset_name/groundtruth.txt logs/bonn/no_calib/$dataset/$dataset.txt -as --align --pose_relation trans_part
+        python scripts/prepare_bonn.py --groundtruth_path $dataset_name/groundtruth.txt --estimated_path logs/bonn/no_calib/$dataset/$dataset.txt --output_path logs/bonn_transformed/no_calib/$dataset/$dataset.txt
     else
-        evo_ape tum $dataset_name/groundtruth.txt logs/bonn/calib/$dataset/$dataset.txt -as --align --pose_relation trans_part
+        python scripts/prepare_bonn.py --groundtruth_path $dataset_name/groundtruth.txt --estimated_path logs/bonn/calib/$dataset/$dataset.txt --output_path logs/bonn_transformed/calib/$dataset/$dataset.txt
+    fi
+done
+
+echo "🎉 All the estimated trajectories have been transformed and saved."
+
+for dataset in ${datasets[@]}; do
+    dataset_name="$dataset_path""$dataset"/
+    echo ${dataset_name}
+    if [ "$no_calib" = true ]; then
+        evo_ape tum $dataset_name/groundtruth.txt logs/bonn_transformed/no_calib/$dataset/$dataset.txt -as --align --pose_relation trans_part
+    else
+        evo_ape tum $dataset_name/groundtruth.txt logs/bonn_transformed/calib/$dataset/$dataset.txt -as --align --pose_relation trans_part
     fi
 done

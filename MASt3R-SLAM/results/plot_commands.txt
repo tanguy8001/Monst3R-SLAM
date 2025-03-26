@@ -1,1 +1,1 @@
-evo_ape tum datasets/tum/rgbd_dataset_freiburg1_desk/groundtruth.txt logs/tum/calib/rgbd_dataset_freiburg1_desk/rgbd_dataset_freiburg1_desk.txt -va --plot --plot_mode xz --save_results results/test.zip --save_plot results/test.pdf
+evo_ape tum datasets/tum/rgbd_bonn_balloon/groundtruth.txt logs/bonn/calib/rgbd_bonn_balloon.txt -as --plot --plot_mode xz --save_results results/test.zip --save_plot results/test.pdf

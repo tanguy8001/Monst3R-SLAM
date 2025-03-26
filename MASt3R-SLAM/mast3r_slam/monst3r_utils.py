@@ -5,19 +5,19 @@ import einops
 
 import mast3r.utils.path_to_dust3r  # noqa
 from dust3r.utils.image import ImgNorm
-from mast3r.model import AsymmetricMASt3R
+from dust3r.model import AsymmetricCroCo3DStereo
 from mast3r_slam.retrieval_database import RetrievalDatabase
 from mast3r_slam.config import config
 import mast3r_slam.matching as matching
 
 
-def load_mast3r(path=None, device="cuda"):
+def load_monst3r(path=None, device="cuda"):
     weights_path = (
-        "checkpoints/MASt3R_ViTLarge_BaseDecoder_512_catmlpdpt_metric.pth"
+        "/work/courses/3dv/24/monst3r/checkpoints/MonST3R_PO-TA-S-W_ViTLarge_BaseDecoder_512_dpt.pth"
         if path is None
         else path
     )
-    model = AsymmetricMASt3R.from_pretrained(weights_path).to(device)
+    model = AsymmetricCroCo3DStereo.from_pretrained(weights_path).to(device)
     return model
 
 
@@ -30,8 +30,7 @@ def load_retriever(mast3r_model, retriever_path=None, device="cuda"):
     retriever = RetrievalDatabase(retriever_path, backbone=mast3r_model, device=device)
     return retriever
 
-# Process features through the decoder and downstream head, 
-# Get pts3d, descs, confs, desc_confs
+
 @torch.inference_mode
 def decoder(model, feat1, feat2, pos1, pos2, shape1, shape2):
     dec1, dec2 = model._decoder(feat1, pos1, feat2, pos2)
@@ -52,9 +51,9 @@ def downsample(X, C, D, Q):
         Q = Q[..., ::downsample, ::downsample].contiguous()
     return X, C, D, Q
 
-# Symmetric inference
+
 @torch.inference_mode
-def mast3r_symmetric_inference(model, frame_i, frame_j):
+def monst3r_symmetric_inference(model, frame_i, frame_j):
     if frame_i.feat is None:
         frame_i.feat, frame_i.pos, _ = model._encode_image(
             frame_i.img, frame_i.img_true_shape
@@ -79,10 +78,10 @@ def mast3r_symmetric_inference(model, frame_i, frame_j):
     X, C, D, Q = downsample(X, C, D, Q)
     return X, C, D, Q
 
-# Batch processing of symmetric inference
+
 # NOTE: Assumes img shape the same
 @torch.inference_mode
-def mast3r_decode_symmetric_batch(
+def monst3r_decode_symmetric_batch(
     model, feat_i, pos_i, feat_j, pos_j, shape_i, shape_j
 ):
     B = feat_i.shape[0]
@@ -115,9 +114,9 @@ def mast3r_decode_symmetric_batch(
     X, C, D, Q = downsample(X, C, D, Q)
     return X, C, D, Q
 
-# Mono inference
+
 @torch.inference_mode
-def mast3r_inference_mono(model, frame):
+def monst3r_inference_mono(model, frame):
     if frame.feat is None:
         frame.feat, frame.pos, _ = model._encode_image(frame.img, frame.img_true_shape)
 
@@ -140,8 +139,8 @@ def mast3r_inference_mono(model, frame):
     return Xii, Cii
 
 
-def mast3r_match_symmetric(model, feat_i, pos_i, feat_j, pos_j, shape_i, shape_j):
-    X, C, D, Q = mast3r_decode_symmetric_batch(
+def monst3r_match_symmetric(model, feat_i, pos_i, feat_j, pos_j, shape_i, shape_j):
+    X, C, D, Q = monst3r_decode_symmetric_batch(
         model, feat_i, pos_i, feat_j, pos_j, shape_i, shape_j
     )
 
@@ -182,7 +181,7 @@ def mast3r_match_symmetric(model, feat_i, pos_i, feat_j, pos_j, shape_i, shape_j
 
 
 @torch.inference_mode
-def mast3r_asymmetric_inference(model, frame_i, frame_j):
+def monst3r_asymmetric_inference(model, frame_i, frame_j):
     if frame_i.feat is None:
         frame_i.feat, frame_i.pos, _ = model._encode_image(
             frame_i.img, frame_i.img_true_shape
@@ -206,10 +205,9 @@ def mast3r_asymmetric_inference(model, frame_i, frame_j):
     X, C, D, Q = downsample(X, C, D, Q)
     return X, C, D, Q
 
-# Output index correspondences between keypoints, and their validity masks
-# idx_i2j_init: initial index correspondence from previous frame
-def mast3r_match_asymmetric(model, frame_i, frame_j, idx_i2j_init=None):
-    X, C, D, Q = mast3r_asymmetric_inference(model, frame_i, frame_j)
+
+def monst3r_match_asymmetric(model, frame_i, frame_j, idx_i2j_init=None):
+    X, C, D, Q = monst3r_asymmetric_inference(model, frame_i, frame_j)
 
     b, h, w = X.shape[:-1]
     # 2 outputs per inference

@@ -14,11 +14,11 @@ from mast3r_slam.config import load_config, config, set_global_config
 from mast3r_slam.dataloader import Intrinsics, load_dataset
 import mast3r_slam.evaluate as eval
 from mast3r_slam.frame import Mode, SharedKeyframes, SharedStates, create_frame
-from mast3r_slam.mast3r_utils import (
-    load_mast3r,
+from mast3r_slam.monst3r_utils import (
+    load_monst3r,
     load_retriever,
-    mast3r_inference_mono,
-)
+    monst3r_inference_mono,
+) 
 from mast3r_slam.multiprocess_utils import new_queue, try_get_msg
 from mast3r_slam.tracker import FrameTracker
 from mast3r_slam.visualization import WindowMsg, run_visualization
@@ -196,7 +196,7 @@ if __name__ == "__main__":
         )
         viz.start()
 
-    model = load_mast3r(device=device)
+    model = load_monst3r(device=device)
     model.share_memory()
 
     has_calib = dataset.has_calib()
@@ -267,7 +267,7 @@ if __name__ == "__main__":
 
         if mode == Mode.INIT:
             # Initialize via mono inference, and encoded features neeed for database
-            X_init, C_init = mast3r_inference_mono(model, frame)
+            X_init, C_init = monst3r_inference_mono(model, frame)
             frame.update_pointmap(X_init, C_init)
             keyframes.append(frame)
             states.queue_global_optimization(len(keyframes) - 1)
@@ -285,7 +285,7 @@ if __name__ == "__main__":
 
         elif mode == Mode.RELOC:
             # If tracking quality is low, perform relocalization using loop closure
-            X, C = mast3r_inference_mono(model, frame)
+            X, C = monst3r_inference_mono(model, frame)
             frame.update_pointmap(X, C)
             states.set_frame(frame)
             states.queue_reloc()

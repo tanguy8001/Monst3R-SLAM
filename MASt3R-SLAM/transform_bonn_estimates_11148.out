@@ -1,0 +1,309 @@
+Starting transformation of Bonn dataset estimates at: Wed Mar 26 10:48:07 CET 2025
+datasets/bonn/rgbd_bonn_removing_nonobstructing_box2/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_removing_nonobstructing_box2/rgbd_bonn_removing_nonobstructing_box2.txt -> logs/bonn_transformed/calib/rgbd_bonn_removing_nonobstructing_box2/rgbd_bonn_removing_nonobstructing_box2.txt
+datasets/bonn/rgbd_bonn_removing_obstructing_box/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_removing_obstructing_box/rgbd_bonn_removing_obstructing_box.txt -> logs/bonn_transformed/calib/rgbd_bonn_removing_obstructing_box/rgbd_bonn_removing_obstructing_box.txt
+datasets/bonn/rgbd_bonn_moving_nonobstructing_box2/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_moving_nonobstructing_box2/rgbd_bonn_moving_nonobstructing_box2.txt -> logs/bonn_transformed/calib/rgbd_bonn_moving_nonobstructing_box2/rgbd_bonn_moving_nonobstructing_box2.txt
+datasets/bonn/rgbd_bonn_crowd/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_crowd/rgbd_bonn_crowd.txt -> logs/bonn_transformed/calib/rgbd_bonn_crowd/rgbd_bonn_crowd.txt
+datasets/bonn/rgbd_bonn_kidnapping_box/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_kidnapping_box/rgbd_bonn_kidnapping_box.txt -> logs/bonn_transformed/calib/rgbd_bonn_kidnapping_box/rgbd_bonn_kidnapping_box.txt
+datasets/bonn/rgbd_bonn_balloon/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_balloon/rgbd_bonn_balloon.txt -> logs/bonn_transformed/calib/rgbd_bonn_balloon/rgbd_bonn_balloon.txt
+datasets/bonn/rgbd_bonn_placing_nonobstructing_box/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_placing_nonobstructing_box/rgbd_bonn_placing_nonobstructing_box.txt -> logs/bonn_transformed/calib/rgbd_bonn_placing_nonobstructing_box/rgbd_bonn_placing_nonobstructing_box.txt
+datasets/bonn/rgbd_bonn_synchronous/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_synchronous/rgbd_bonn_synchronous.txt -> logs/bonn_transformed/calib/rgbd_bonn_synchronous/rgbd_bonn_synchronous.txt
+datasets/bonn/rgbd_bonn_static_close_far/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_static_close_far/rgbd_bonn_static_close_far.txt -> logs/bonn_transformed/calib/rgbd_bonn_static_close_far/rgbd_bonn_static_close_far.txt
+datasets/bonn/rgbd_bonn_synchronous2/
+Traceback (most recent call last):
+  File "/work/courses/3dv/24/MASt3R-SLAM/scripts/prepare_bonn.py", line 59, in <module>
+    convert_bonn(args.groundtruth_path, args.estimated_path, args.output_path)
+  File "/work/courses/3dv/24/MASt3R-SLAM/scripts/prepare_bonn.py", line 28, in convert_bonn
+    timestamp = pose[0]
+                ~~~~^^^
+IndexError: invalid index to scalar variable.
+datasets/bonn/rgbd_bonn_static/
+Traceback (most recent call last):
+  File "/work/courses/3dv/24/MASt3R-SLAM/scripts/prepare_bonn.py", line 59, in <module>
+    convert_bonn(args.groundtruth_path, args.estimated_path, args.output_path)
+  File "/work/courses/3dv/24/MASt3R-SLAM/scripts/prepare_bonn.py", line 17, in convert_bonn
+    estimated_poses = np.loadtxt(estimated_path)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/tdieudonne/miniconda3/envs/slam/lib/python3.11/site-packages/numpy/lib/npyio.py", line 1373, in loadtxt
+    arr = _read(fname, dtype=dtype, comment=comment, delimiter=delimiter,
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/tdieudonne/miniconda3/envs/slam/lib/python3.11/site-packages/numpy/lib/npyio.py", line 992, in _read
+    fh = np.lib._datasource.open(fname, 'rt', encoding=encoding)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/tdieudonne/miniconda3/envs/slam/lib/python3.11/site-packages/numpy/lib/_datasource.py", line 193, in open
+    return ds.open(path, mode, encoding=encoding, newline=newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/tdieudonne/miniconda3/envs/slam/lib/python3.11/site-packages/numpy/lib/_datasource.py", line 533, in open
+    raise FileNotFoundError(f"{path} not found.")
+FileNotFoundError: logs/bonn/calib/rgbd_bonn_static/rgbd_bonn_static.txt not found.
+datasets/bonn/rgbd_bonn_moving_nonobstructing_box/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_moving_nonobstructing_box/rgbd_bonn_moving_nonobstructing_box.txt -> logs/bonn_transformed/calib/rgbd_bonn_moving_nonobstructing_box/rgbd_bonn_moving_nonobstructing_box.txt
+datasets/bonn/rgbd_bonn_balloon_tracking/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_balloon_tracking/rgbd_bonn_balloon_tracking.txt -> logs/bonn_transformed/calib/rgbd_bonn_balloon_tracking/rgbd_bonn_balloon_tracking.txt
+datasets/bonn/rgbd_bonn_removing_nonobstructing_box/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_removing_nonobstructing_box/rgbd_bonn_removing_nonobstructing_box.txt -> logs/bonn_transformed/calib/rgbd_bonn_removing_nonobstructing_box/rgbd_bonn_removing_nonobstructing_box.txt
+datasets/bonn/rgbd_bonn_moving_obstructing_box/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_moving_obstructing_box/rgbd_bonn_moving_obstructing_box.txt -> logs/bonn_transformed/calib/rgbd_bonn_moving_obstructing_box/rgbd_bonn_moving_obstructing_box.txt
+datasets/bonn/rgbd_bonn_person_tracking/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_person_tracking/rgbd_bonn_person_tracking.txt -> logs/bonn_transformed/calib/rgbd_bonn_person_tracking/rgbd_bonn_person_tracking.txt
+datasets/bonn/rgbd_bonn_placing_nonobstructing_box2/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_placing_nonobstructing_box2/rgbd_bonn_placing_nonobstructing_box2.txt -> logs/bonn_transformed/calib/rgbd_bonn_placing_nonobstructing_box2/rgbd_bonn_placing_nonobstructing_box2.txt
+datasets/bonn/rgbd_bonn_crowd2/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_crowd2/rgbd_bonn_crowd2.txt -> logs/bonn_transformed/calib/rgbd_bonn_crowd2/rgbd_bonn_crowd2.txt
+datasets/bonn/rgbd_bonn_person_tracking2/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_person_tracking2/rgbd_bonn_person_tracking2.txt -> logs/bonn_transformed/calib/rgbd_bonn_person_tracking2/rgbd_bonn_person_tracking2.txt
+datasets/bonn/rgbd_bonn_crowd3/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_crowd3/rgbd_bonn_crowd3.txt -> logs/bonn_transformed/calib/rgbd_bonn_crowd3/rgbd_bonn_crowd3.txt
+datasets/bonn/rgbd_bonn_placing_nonobstructing_box3/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_placing_nonobstructing_box3/rgbd_bonn_placing_nonobstructing_box3.txt -> logs/bonn_transformed/calib/rgbd_bonn_placing_nonobstructing_box3/rgbd_bonn_placing_nonobstructing_box3.txt
+datasets/bonn/rgbd_bonn_balloon2/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_balloon2/rgbd_bonn_balloon2.txt -> logs/bonn_transformed/calib/rgbd_bonn_balloon2/rgbd_bonn_balloon2.txt
+datasets/bonn/rgbd_bonn_moving_obstructing_box2/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_moving_obstructing_box2/rgbd_bonn_moving_obstructing_box2.txt -> logs/bonn_transformed/calib/rgbd_bonn_moving_obstructing_box2/rgbd_bonn_moving_obstructing_box2.txt
+datasets/bonn/rgbd_bonn_balloon_tracking2/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_balloon_tracking2/rgbd_bonn_balloon_tracking2.txt -> logs/bonn_transformed/calib/rgbd_bonn_balloon_tracking2/rgbd_bonn_balloon_tracking2.txt
+datasets/bonn/rgbd_bonn_placing_obstructing_box/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_placing_obstructing_box/rgbd_bonn_placing_obstructing_box.txt -> logs/bonn_transformed/calib/rgbd_bonn_placing_obstructing_box/rgbd_bonn_placing_obstructing_box.txt
+datasets/bonn/rgbd_bonn_kidnapping_box2/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_kidnapping_box2/rgbd_bonn_kidnapping_box2.txt -> logs/bonn_transformed/calib/rgbd_bonn_kidnapping_box2/rgbd_bonn_kidnapping_box2.txt
+🎉 All the estimated trajectories have been transformed and saved.
+datasets/bonn/rgbd_bonn_removing_nonobstructing_box2/
+[ERROR] found no matching timestamps between datasets/bonn/rgbd_bonn_removing_nonobstructing_box2//groundtruth.txt and logs/bonn_transformed/calib/rgbd_bonn_removing_nonobstructing_box2/rgbd_bonn_removing_nonobstructing_box2.txt with max. time diff 0.01 (s) and time offset 0.0 (s)
+datasets/bonn/rgbd_bonn_removing_obstructing_box/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.071193
+      mean	0.033498
+    median	0.030928
+       min	0.007856
+      rmse	0.040247
+       sse	0.012959
+       std	0.022310
+
+datasets/bonn/rgbd_bonn_moving_nonobstructing_box2/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.029903
+      mean	0.020393
+    median	0.019006
+       min	0.013658
+      rmse	0.021266
+       sse	0.001809
+       std	0.006031
+
+datasets/bonn/rgbd_bonn_crowd/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.065423
+      mean	0.029500
+    median	0.026312
+       min	0.005439
+      rmse	0.033188
+       sse	0.025333
+       std	0.015205
+
+datasets/bonn/rgbd_bonn_kidnapping_box/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.016197
+      mean	0.009619
+    median	0.009313
+       min	0.003654
+      rmse	0.010611
+       sse	0.000450
+       std	0.004478
+
+datasets/bonn/rgbd_bonn_balloon/
+[ERROR] Degenerate covariance rank, Umeyama alignment is not possible
+datasets/bonn/rgbd_bonn_placing_nonobstructing_box/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.030767
+      mean	0.014016
+    median	0.011733
+       min	0.004677
+      rmse	0.016200
+       sse	0.001575
+       std	0.008123
+
+datasets/bonn/rgbd_bonn_synchronous/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.010561
+      mean	0.006760
+    median	0.006128
+       min	0.003128
+      rmse	0.007035
+       sse	0.001881
+       std	0.001949
+
+datasets/bonn/rgbd_bonn_static_close_far/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.013867
+      mean	0.008475
+    median	0.009274
+       min	0.002657
+      rmse	0.009042
+       sse	0.000818
+       std	0.003153
+
+datasets/bonn/rgbd_bonn_synchronous2/
+[ERROR] csv file logs/bonn_transformed/calib/rgbd_bonn_synchronous2/rgbd_bonn_synchronous2.txt does not exist
+datasets/bonn/rgbd_bonn_static/
+[ERROR] csv file logs/bonn_transformed/calib/rgbd_bonn_static/rgbd_bonn_static.txt does not exist
+datasets/bonn/rgbd_bonn_moving_nonobstructing_box/
+[ERROR] Degenerate covariance rank, Umeyama alignment is not possible
+datasets/bonn/rgbd_bonn_balloon_tracking/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.028160
+      mean	0.023670
+    median	0.021749
+       min	0.018664
+      rmse	0.023973
+       sse	0.002874
+       std	0.003803
+
+datasets/bonn/rgbd_bonn_removing_nonobstructing_box/
+[ERROR] found no matching timestamps between datasets/bonn/rgbd_bonn_removing_nonobstructing_box//groundtruth.txt and logs/bonn_transformed/calib/rgbd_bonn_removing_nonobstructing_box/rgbd_bonn_removing_nonobstructing_box.txt with max. time diff 0.01 (s) and time offset 0.0 (s)
+datasets/bonn/rgbd_bonn_moving_obstructing_box/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.170604
+      mean	0.022898
+    median	0.006193
+       min	0.000916
+      rmse	0.044709
+       sse	0.051972
+       std	0.038400
+
+datasets/bonn/rgbd_bonn_person_tracking/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.026755
+      mean	0.017938
+    median	0.015793
+       min	0.010418
+      rmse	0.018773
+       sse	0.001762
+       std	0.005537
+
+datasets/bonn/rgbd_bonn_placing_nonobstructing_box2/
+[ERROR] Degenerate covariance rank, Umeyama alignment is not possible
+datasets/bonn/rgbd_bonn_crowd2/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.039474
+      mean	0.014693
+    median	0.012409
+       min	0.004913
+      rmse	0.016584
+       sse	0.008251
+       std	0.007691
+
+datasets/bonn/rgbd_bonn_person_tracking2/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.021672
+      mean	0.012680
+    median	0.010274
+       min	0.003684
+      rmse	0.014314
+       sse	0.001024
+       std	0.006640
+
+datasets/bonn/rgbd_bonn_crowd3/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.022935
+      mean	0.016205
+    median	0.017593
+       min	0.007184
+      rmse	0.016977
+       sse	0.004612
+       std	0.005062
+
+datasets/bonn/rgbd_bonn_placing_nonobstructing_box3/
+[ERROR] Degenerate covariance rank, Umeyama alignment is not possible
+datasets/bonn/rgbd_bonn_balloon2/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.027504
+      mean	0.020050
+    median	0.018922
+       min	0.014851
+      rmse	0.020581
+       sse	0.001694
+       std	0.004647
+
+datasets/bonn/rgbd_bonn_moving_obstructing_box2/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.114079
+      mean	0.071093
+    median	0.068536
+       min	0.033221
+      rmse	0.078667
+       sse	0.024754
+       std	0.033679
+
+datasets/bonn/rgbd_bonn_balloon_tracking2/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.029537
+      mean	0.021337
+    median	0.017749
+       min	0.016724
+      rmse	0.022114
+       sse	0.001467
+       std	0.005814
+
+datasets/bonn/rgbd_bonn_placing_obstructing_box/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.233631
+      mean	0.122666
+    median	0.100084
+       min	0.056863
+      rmse	0.140746
+       sse	0.079238
+       std	0.069011
+
+datasets/bonn/rgbd_bonn_kidnapping_box2/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.015416
+      mean	0.011570
+    median	0.013394
+       min	0.004078
+      rmse	0.012458
+       sse	0.000621
+       std	0.004619
+
