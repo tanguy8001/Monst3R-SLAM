@@ -325,3 +325,50 @@ class SharedKeyframes:
         assert config["use_calib"]
         with self.lock:
             return self.K
+
+
+class SharedFramePoses:
+    def __init__(self, manager, buffer=10000, dtype=torch.float32, device="cuda"):
+        self.lock = manager.RLock()
+        self.n_size = manager.Value("i", 0)
+
+        self.buffer = buffer
+        self.dtype = dtype
+        self.device = device
+
+        # fmt:off
+        self.frame_ids = torch.zeros(buffer, device=device, dtype=torch.int).share_memory_()
+        # Store timestamps as strings on CPU to handle all timestamp formats
+        self.timestamps = manager.list([None] * buffer)
+        self.T_WC = torch.zeros(buffer, 1, lietorch.Sim3.embedded_dim, device=device, dtype=dtype).share_memory_()
+        # fmt: on
+
+    def __len__(self):
+        with self.lock:
+            return self.n_size.value
+
+    def add_pose(self, frame_id, timestamp, T_WC):
+        with self.lock:
+            idx = self.n_size.value
+            if idx >= self.buffer:
+                # Increase buffer if needed
+                new_buffer = self.buffer * 2
+                new_frame_ids = torch.zeros(new_buffer, device=self.device, dtype=torch.int).share_memory_()
+                new_T_WC = torch.zeros(new_buffer, 1, lietorch.Sim3.embedded_dim, device=self.device, dtype=self.dtype).share_memory_()
+                
+                # Copy data
+                new_frame_ids[:self.buffer] = self.frame_ids
+                new_T_WC[:self.buffer] = self.T_WC
+                
+                # Extend timestamps list
+                new_timestamps = self.timestamps + [None] * (new_buffer - self.buffer)
+                
+                self.frame_ids = new_frame_ids
+                self.timestamps = new_timestamps
+                self.T_WC = new_T_WC
+                self.buffer = new_buffer
+            
+            self.frame_ids[idx] = frame_id
+            self.timestamps[idx] = str(timestamp)  # Store timestamp as string
+            self.T_WC[idx] = T_WC.data
+            self.n_size.value += 1

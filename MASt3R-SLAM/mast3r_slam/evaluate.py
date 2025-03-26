@@ -9,6 +9,7 @@ from mast3r_slam.lietorch_utils import as_SE3
 from mast3r_slam.config import config
 from mast3r_slam.geometry import constrain_points_to_ray
 from plyfile import PlyData, PlyElement
+import lietorch
 
 
 def prepare_savedir(args, dataset):
@@ -104,3 +105,37 @@ def save_ply(filename, points, colors):
     vertex_element = PlyElement.describe(pcd, "vertex")
     ply_data = PlyData([vertex_element], text=False)
     ply_data.write(filename)
+
+
+def save_full_traj(
+    logdir,
+    logfile,
+    all_frames,
+    intrinsics: Optional[Intrinsics] = None,
+):
+    # log
+    logdir = pathlib.Path(logdir)
+    logdir.mkdir(exist_ok=True, parents=True)
+    logfile = logdir / logfile
+    
+    # Get all entries and sort them by frame_id
+    entries = []
+    for i in range(len(all_frames)):
+        frame_id = int(all_frames.frame_ids[i].item())
+        timestamp = all_frames.timestamps[i]  # Already a string
+        T_WC_data = all_frames.T_WC[i]
+        if intrinsics is None:
+            T_WC = as_SE3(lietorch.Sim3(T_WC_data))
+        else:
+            T_WC = intrinsics.refine_pose_with_calibration(all_frames[i])
+        x, y, z, qx, qy, qz, qw = T_WC.data.cpu().numpy().reshape(-1)
+        entries.append((frame_id, timestamp, x, y, z, qx, qy, qz, qw))
+    
+    # Sort by frame_id to ensure consistent ordering
+    entries.sort(key=lambda entry: entry[0])
+    
+    # Write sorted entries to file
+    with open(logfile, "w") as f:
+        for entry in entries:
+            _, timestamp, x, y, z, qx, qy, qz, qw = entry
+            f.write(f"{timestamp} {x} {y} {z} {qx} {qy} {qz} {qw}\n")

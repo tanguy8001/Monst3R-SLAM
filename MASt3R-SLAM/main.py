@@ -13,7 +13,7 @@ from mast3r_slam.global_opt import FactorGraph
 from mast3r_slam.config import load_config, config, set_global_config
 from mast3r_slam.dataloader import Intrinsics, load_dataset
 import mast3r_slam.evaluate as eval
-from mast3r_slam.frame import Mode, SharedKeyframes, SharedStates, create_frame
+from mast3r_slam.frame import Mode, SharedKeyframes, SharedStates, create_frame, SharedFramePoses
 from mast3r_slam.mast3r_utils import (
     load_mast3r,
     load_retriever,
@@ -25,7 +25,7 @@ from mast3r_slam.visualization import WindowMsg, run_visualization
 import torch.multiprocessing as mp
 
 # If tracking fails, we try to relocalize using loop closure
-def relocalization(frame, keyframes, factor_graph, retrieval_database):
+def relocalization(frame, keyframes, factor_graph, retrieval_database, all_frames=None):
     # we are adding and then removing from the keyframe, so we need to be careful.
     # The lock slows viz down but safer this way...
     with keyframes.lock:
@@ -71,10 +71,13 @@ def relocalization(frame, keyframes, factor_graph, retrieval_database):
                 factor_graph.solve_GN_calib()
             else:
                 factor_graph.solve_GN_rays()
+            # Update the frame pose in all_frames if provided
+            if all_frames is not None:
+                frame.T_WC = lietorch.Sim3(keyframes.T_WC[n_kf - 1])
         return successful_loop_closure
 
 
-def run_backend(cfg, model, states, keyframes, K):
+def run_backend(cfg, model, states, keyframes, K, all_frames=None):
     set_global_config(cfg)
 
     device = keyframes.device
@@ -89,7 +92,7 @@ def run_backend(cfg, model, states, keyframes, K):
             continue
         if mode == Mode.RELOC:
             frame = states.get_frame()
-            success = relocalization(frame, keyframes, factor_graph, retrieval_database)
+            success = relocalization(frame, keyframes, factor_graph, retrieval_database, all_frames)
             if success:
                 states.set_mode(Mode.TRACKING)
             states.dequeue_reloc()
@@ -188,6 +191,7 @@ if __name__ == "__main__":
 
     keyframes = SharedKeyframes(manager, h, w)
     states = SharedStates(manager, h, w)
+    all_frames = SharedFramePoses(manager)
 
     if not args.no_viz:
         viz = mp.Process(
@@ -225,7 +229,7 @@ if __name__ == "__main__":
     tracker = FrameTracker(model, keyframes, device)
     last_msg = WindowMsg()
 
-    backend = mp.Process(target=run_backend, args=(config, model, states, keyframes, K))
+    backend = mp.Process(target=run_backend, args=(config, model, states, keyframes, K, all_frames))
     backend.start()
 
     i = 0
@@ -257,7 +261,7 @@ if __name__ == "__main__":
         if save_frames:
             frames.append(img)
 
-        # get frames last camera pose
+        # Get frames last camera pose
         T_WC = (
             lietorch.Sim3.Identity(1, device=device)
             if i == 0
@@ -273,6 +277,8 @@ if __name__ == "__main__":
             states.queue_global_optimization(len(keyframes) - 1)
             states.set_mode(Mode.TRACKING)
             states.set_frame(frame)
+            # Store the frame in all_frames
+            all_frames.add_pose(i, timestamp, frame.T_WC)
             i += 1
             continue
 
@@ -282,6 +288,8 @@ if __name__ == "__main__":
             if try_reloc:
                 states.set_mode(Mode.RELOC)
             states.set_frame(frame)
+            # Store the frame in all_frames after tracking (pose has been updated)
+            all_frames.add_pose(i, timestamp, frame.T_WC)
 
         elif mode == Mode.RELOC:
             # If tracking quality is low, perform relocalization using loop closure
@@ -289,6 +297,8 @@ if __name__ == "__main__":
             frame.update_pointmap(X, C)
             states.set_frame(frame)
             states.queue_reloc()
+            # Store the frame in all_frames
+            all_frames.add_pose(i, timestamp, frame.T_WC)
             # In single threaded mode, make sure relocalization happen for every frame
             while config["single_thread"]:
                 with states.lock:
@@ -316,7 +326,10 @@ if __name__ == "__main__":
 
     if dataset.save_results:
         save_dir, seq_name = eval.prepare_savedir(args, dataset)
-        eval.save_traj(save_dir, f"{seq_name}.txt", dataset.timestamps, keyframes)
+        # Save keyframe trajectory (for backward compatibility)
+        eval.save_traj(save_dir, f"{seq_name}_keyframes.txt", dataset.timestamps, keyframes)
+        # Save full trajectory with all frames
+        eval.save_full_traj(save_dir, f"{seq_name}.txt", all_frames)
         eval.save_reconstruction(
             save_dir,
             f"{seq_name}.ply",

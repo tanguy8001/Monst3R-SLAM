@@ -12,8 +12,8 @@ echo "Starting evaluation of Bonn dataset at: $(date)"
 
 dataset_path="datasets/bonn/"
 datasets=(
-    rgbd_bonn_removing_nonobstructing_box2
-    #rgbd_bonn_removing_obstructing_box
+    #rgbd_bonn_removing_nonobstructing_box2
+    rgbd_bonn_removing_obstructing_box
     #rgbd_bonn_moving_nonobstructing_box2
     #rgbd_bonn_crowd
     #rgbd_bonn_kidnapping_box
