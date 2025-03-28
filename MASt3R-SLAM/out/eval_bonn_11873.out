@@ -1,0 +1,428 @@
+Starting evaluation of Bonn dataset at: Fri Mar 28 11:56:18 CET 2025
+datasets/bonn/rgbd_bonn_removing_nonobstructing_box2/
+{'use_calib': True, 'single_thread': True, 'dataset': {'subsample': 1, 'img_downsample': 1, 'center_principle_point': True}, 'matching': {'max_iter': 10, 'lambda_init': 1e-08, 'convergence_thresh': 1e-06, 'dist_thresh': 0.1, 'radius': 3, 'dilation_max': 5}, 'tracking': {'min_match_frac': 0.05, 'max_iters': 50, 'C_conf': 0.0, 'Q_conf': 1.5, 'rel_error': 0.001, 'delta_norm': 0.001, 'huber': 1.345, 'match_frac_thresh': 0.333, 'sigma_ray': 0.003, 'sigma_dist': 10.0, 'sigma_pixel': 1.0, 'sigma_depth': 10.0, 'sigma_point': 0.05, 'pixel_border': -10, 'depth_eps': 1e-06, 'filtering_mode': 'weighted_pointmap', 'filtering_score': 'median'}, 'local_opt': {'pin': 1, 'window_size': 1000000.0, 'C_conf': 0.0, 'Q_conf': 1.5, 'min_match_frac': 0.1, 'pixel_border': -10, 'depth_eps': 1e-06, 'max_iters': 10, 'sigma_ray': 0.003, 'sigma_dist': 10.0, 'sigma_pixel': 1.0, 'sigma_depth': 10.0, 'sigma_point': 0.05, 'delta_norm': 1e-08, 'use_cuda': True}, 'retrieval': {'k': 3, 'min_thresh': 0.005}, 'reloc': {'min_match_frac': 0.3, 'strict': True}, 'inherit': 'config/base.yaml'}
+/work/courses/3dv/24/MASt3R-SLAM/thirdparty/mast3r/mast3r/model.py:24: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  ckpt = torch.load(model_path, map_location='cpu')
+... loading model from checkpoints/MASt3R_ViTLarge_BaseDecoder_512_catmlpdpt_metric.pth
+instantiating : AsymmetricMASt3R(enc_depth=24, dec_depth=12, enc_embed_dim=1024, dec_embed_dim=768, enc_num_heads=16, dec_num_heads=12, pos_embed='RoPE100',img_size=(512, 512), head_type='catmlp+dpt', output_mode='pts3d+desc24', depth_mode=('exp', -inf, inf), conf_mode=('exp', 1, inf), patch_embed_cls='PatchEmbedDust3R', two_confs=True, desc_conf_mode=('exp', 0, inf), landscape_only=False)
+<All keys matched successfully>
+/work/courses/3dv/24/MASt3R-SLAM/mast3r_slam/frame.py:116: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /opt/conda/conda-bld/pytorch_1729647429097/work/torch/csrc/utils/tensor_numpy.cpp:206.)
+  uimg = torch.from_numpy(img["unnormalized_img"]) / 255.0
+/work/courses/3dv/24/MASt3R-SLAM/thirdparty/mast3r/mast3r/retrieval/processor.py:70: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  ckpt = torch.load(modelname, 'cpu')  # TODO from pretrained to download it automatically
+Loading retrieval model from checkpoints/MASt3R_ViTLarge_BaseDecoder_512_catmlpdpt_metric_retrieval_trainingfree.pth
+FPS: 2.1740997681543006
+FPS: 2.2361030324864877
+FPS: 2.255362267491325
+FPS: 2.2703001080596796
+FPS: 2.282149033104023
+FPS: 2.290859361403968
+FPS: 2.2960396744124623
+FPS: 2.274986896258197
+FPS: 2.2787560405381195
+FPS: 2.2806494969068254
+FPS: 2.2835107329178355
+FPS: 2.2867774872206015
+FPS: 2.2891233453549895
+FPS: 2.289349074175338
+FPS: 2.2896095663064124
+FPS: 2.2897216763150885
+FPS: 2.290892434001596
+FPS: 2.290578668574984
+FPS: 2.290400017078893
+FPS: 2.289234995271618
+FPS: 2.289345198499854
+FPS: 2.289720454737563
+FPS: 2.289880625909207
+FPS: 2.2908395573937637
+FPS: 2.292500873268025
+FPS: 2.2927945190173014
+FPS: 2.292684639798025
+FPS: 2.2912004844255116
+FPS: 2.2908153350339115
+FPS: 2.2924057034235794
+done
+datasets/bonn/rgbd_bonn_removing_obstructing_box/
+{'use_calib': True, 'single_thread': True, 'dataset': {'subsample': 1, 'img_downsample': 1, 'center_principle_point': True}, 'matching': {'max_iter': 10, 'lambda_init': 1e-08, 'convergence_thresh': 1e-06, 'dist_thresh': 0.1, 'radius': 3, 'dilation_max': 5}, 'tracking': {'min_match_frac': 0.05, 'max_iters': 50, 'C_conf': 0.0, 'Q_conf': 1.5, 'rel_error': 0.001, 'delta_norm': 0.001, 'huber': 1.345, 'match_frac_thresh': 0.333, 'sigma_ray': 0.003, 'sigma_dist': 10.0, 'sigma_pixel': 1.0, 'sigma_depth': 10.0, 'sigma_point': 0.05, 'pixel_border': -10, 'depth_eps': 1e-06, 'filtering_mode': 'weighted_pointmap', 'filtering_score': 'median'}, 'local_opt': {'pin': 1, 'window_size': 1000000.0, 'C_conf': 0.0, 'Q_conf': 1.5, 'min_match_frac': 0.1, 'pixel_border': -10, 'depth_eps': 1e-06, 'max_iters': 10, 'sigma_ray': 0.003, 'sigma_dist': 10.0, 'sigma_pixel': 1.0, 'sigma_depth': 10.0, 'sigma_point': 0.05, 'delta_norm': 1e-08, 'use_cuda': True}, 'retrieval': {'k': 3, 'min_thresh': 0.005}, 'reloc': {'min_match_frac': 0.3, 'strict': True}, 'inherit': 'config/base.yaml'}
+/work/courses/3dv/24/MASt3R-SLAM/thirdparty/mast3r/mast3r/model.py:24: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  ckpt = torch.load(model_path, map_location='cpu')
+... loading model from checkpoints/MASt3R_ViTLarge_BaseDecoder_512_catmlpdpt_metric.pth
+instantiating : AsymmetricMASt3R(enc_depth=24, dec_depth=12, enc_embed_dim=1024, dec_embed_dim=768, enc_num_heads=16, dec_num_heads=12, pos_embed='RoPE100',img_size=(512, 512), head_type='catmlp+dpt', output_mode='pts3d+desc24', depth_mode=('exp', -inf, inf), conf_mode=('exp', 1, inf), patch_embed_cls='PatchEmbedDust3R', two_confs=True, desc_conf_mode=('exp', 0, inf), landscape_only=False)
+<All keys matched successfully>
+/work/courses/3dv/24/MASt3R-SLAM/mast3r_slam/frame.py:116: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /opt/conda/conda-bld/pytorch_1729647429097/work/torch/csrc/utils/tensor_numpy.cpp:206.)
+  uimg = torch.from_numpy(img["unnormalized_img"]) / 255.0
+/work/courses/3dv/24/MASt3R-SLAM/thirdparty/mast3r/mast3r/retrieval/processor.py:70: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  ckpt = torch.load(modelname, 'cpu')  # TODO from pretrained to download it automatically
+Loading retrieval model from checkpoints/MASt3R_ViTLarge_BaseDecoder_512_catmlpdpt_metric_retrieval_trainingfree.pth
+Database retrieval 5 :  {3}
+Database retrieval 6 :  {3, 4}
+Database retrieval 7 :  {4, 5}
+Database retrieval 8 :  {5, 6}
+FPS: 2.1546091046338787
+FPS: 2.2158188489650117
+FPS: 2.2427590841096983
+FPS: 2.2536207072959162
+FPS: 2.220736371398414
+FPS: 2.2315469787847264
+FPS: 2.2428057830250547
+FPS: 2.2529026763878255
+FPS: 2.2407303978600197
+FPS: 2.2400395095673082
+FPS: 2.238087286276555
+FPS: 2.2393835073913637
+FPS: 2.2426371384963586
+FPS: 2.245217503006158
+FPS: 2.2478050734681907
+FPS: 2.2500588533961303
+FPS: 2.251586852169602
+FPS: 2.2507448433612134
+FPS: 2.2509641518479926
+FPS: 2.1987420779815587
+FPS: 2.187221706553126
+FPS: 2.190515027967094
+FPS: 2.194189902142945
+FPS: 2.1914673602172274
+FPS: 2.1937148480452313
+FPS: 2.1954434087450334
+FPS: 2.195859532182816
+FPS: 2.1995393811784374
+FPS: 2.200679672928661
+FPS: 2.202856735175364
+FPS: 2.2067317022392205
+FPS: 2.210555686170282
+done
+datasets/bonn/rgbd_bonn_moving_nonobstructing_box2/
+{'use_calib': True, 'single_thread': True, 'dataset': {'subsample': 1, 'img_downsample': 1, 'center_principle_point': True}, 'matching': {'max_iter': 10, 'lambda_init': 1e-08, 'convergence_thresh': 1e-06, 'dist_thresh': 0.1, 'radius': 3, 'dilation_max': 5}, 'tracking': {'min_match_frac': 0.05, 'max_iters': 50, 'C_conf': 0.0, 'Q_conf': 1.5, 'rel_error': 0.001, 'delta_norm': 0.001, 'huber': 1.345, 'match_frac_thresh': 0.333, 'sigma_ray': 0.003, 'sigma_dist': 10.0, 'sigma_pixel': 1.0, 'sigma_depth': 10.0, 'sigma_point': 0.05, 'pixel_border': -10, 'depth_eps': 1e-06, 'filtering_mode': 'weighted_pointmap', 'filtering_score': 'median'}, 'local_opt': {'pin': 1, 'window_size': 1000000.0, 'C_conf': 0.0, 'Q_conf': 1.5, 'min_match_frac': 0.1, 'pixel_border': -10, 'depth_eps': 1e-06, 'max_iters': 10, 'sigma_ray': 0.003, 'sigma_dist': 10.0, 'sigma_pixel': 1.0, 'sigma_depth': 10.0, 'sigma_point': 0.05, 'delta_norm': 1e-08, 'use_cuda': True}, 'retrieval': {'k': 3, 'min_thresh': 0.005}, 'reloc': {'min_match_frac': 0.3, 'strict': True}, 'inherit': 'config/base.yaml'}
+/work/courses/3dv/24/MASt3R-SLAM/thirdparty/mast3r/mast3r/model.py:24: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  ckpt = torch.load(model_path, map_location='cpu')
+... loading model from checkpoints/MASt3R_ViTLarge_BaseDecoder_512_catmlpdpt_metric.pth
+instantiating : AsymmetricMASt3R(enc_depth=24, dec_depth=12, enc_embed_dim=1024, dec_embed_dim=768, enc_num_heads=16, dec_num_heads=12, pos_embed='RoPE100',img_size=(512, 512), head_type='catmlp+dpt', output_mode='pts3d+desc24', depth_mode=('exp', -inf, inf), conf_mode=('exp', 1, inf), patch_embed_cls='PatchEmbedDust3R', two_confs=True, desc_conf_mode=('exp', 0, inf), landscape_only=False)
+<All keys matched successfully>
+/work/courses/3dv/24/MASt3R-SLAM/thirdparty/mast3r/mast3r/retrieval/processor.py:70: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  ckpt = torch.load(modelname, 'cpu')  # TODO from pretrained to download it automatically
+/work/courses/3dv/24/MASt3R-SLAM/mast3r_slam/frame.py:116: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /opt/conda/conda-bld/pytorch_1729647429097/work/torch/csrc/utils/tensor_numpy.cpp:206.)
+  uimg = torch.from_numpy(img["unnormalized_img"]) / 255.0
+Loading retrieval model from checkpoints/MASt3R_ViTLarge_BaseDecoder_512_catmlpdpt_metric_retrieval_trainingfree.pth
+Database retrieval 6 :  {3, 4}
+Database retrieval 7 :  {3, 5}
+Database retrieval 8 :  {6}
+Database retrieval 9 :  {6, 7}
+Database retrieval 10 :  {2, 3}
+Database retrieval 11 :  {3, 4, 6}
+FPS: 2.1342695440659183
+FPS: 2.1539287542384424
+FPS: 2.1954457149466715
+FPS: 2.2241516819482565
+FPS: 2.2114631183088846
+FPS: 2.208164824485644
+FPS: 2.2221349428651433
+FPS: 2.217480190097872
+FPS: 2.2236775782058884
+FPS: 2.23021983976431
+FPS: 2.23450613031575
+FPS: 2.2307807654170575
+FPS: 2.2301475891427294
+FPS: 2.233219758960043
+FPS: 2.237697386989961
+FPS: 2.2404863611225054
+FPS: 2.2415019007531702
+FPS: 2.2096757887222083
+FPS: 2.1817750366035096
+FPS: 2.1874776459643153
+FPS: 2.192348854002588
+FPS: 2.183033486653763
+FPS: 2.1864430695554518
+FPS: 2.189900801742567
+FPS: 2.1935591987880767
+FPS: 2.1971145546837296
+FPS: 2.185012934680673
+FPS: 2.1870793945262217
+FPS: 2.189281735218455
+FPS: 2.191739623548155
+FPS: 2.1938021511075863
+done
+datasets/bonn/rgbd_bonn_crowd/
+{'use_calib': True, 'single_thread': True, 'dataset': {'subsample': 1, 'img_downsample': 1, 'center_principle_point': True}, 'matching': {'max_iter': 10, 'lambda_init': 1e-08, 'convergence_thresh': 1e-06, 'dist_thresh': 0.1, 'radius': 3, 'dilation_max': 5}, 'tracking': {'min_match_frac': 0.05, 'max_iters': 50, 'C_conf': 0.0, 'Q_conf': 1.5, 'rel_error': 0.001, 'delta_norm': 0.001, 'huber': 1.345, 'match_frac_thresh': 0.333, 'sigma_ray': 0.003, 'sigma_dist': 10.0, 'sigma_pixel': 1.0, 'sigma_depth': 10.0, 'sigma_point': 0.05, 'pixel_border': -10, 'depth_eps': 1e-06, 'filtering_mode': 'weighted_pointmap', 'filtering_score': 'median'}, 'local_opt': {'pin': 1, 'window_size': 1000000.0, 'C_conf': 0.0, 'Q_conf': 1.5, 'min_match_frac': 0.1, 'pixel_border': -10, 'depth_eps': 1e-06, 'max_iters': 10, 'sigma_ray': 0.003, 'sigma_dist': 10.0, 'sigma_pixel': 1.0, 'sigma_depth': 10.0, 'sigma_point': 0.05, 'delta_norm': 1e-08, 'use_cuda': True}, 'retrieval': {'k': 3, 'min_thresh': 0.005}, 'reloc': {'min_match_frac': 0.3, 'strict': True}, 'inherit': 'config/base.yaml'}
+/work/courses/3dv/24/MASt3R-SLAM/thirdparty/mast3r/mast3r/model.py:24: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  ckpt = torch.load(model_path, map_location='cpu')
+... loading model from checkpoints/MASt3R_ViTLarge_BaseDecoder_512_catmlpdpt_metric.pth
+instantiating : AsymmetricMASt3R(enc_depth=24, dec_depth=12, enc_embed_dim=1024, dec_embed_dim=768, enc_num_heads=16, dec_num_heads=12, pos_embed='RoPE100',img_size=(512, 512), head_type='catmlp+dpt', output_mode='pts3d+desc24', depth_mode=('exp', -inf, inf), conf_mode=('exp', 1, inf), patch_embed_cls='PatchEmbedDust3R', two_confs=True, desc_conf_mode=('exp', 0, inf), landscape_only=False)
+<All keys matched successfully>
+/work/courses/3dv/24/MASt3R-SLAM/thirdparty/mast3r/mast3r/retrieval/processor.py:70: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  ckpt = torch.load(modelname, 'cpu')  # TODO from pretrained to download it automatically
+/work/courses/3dv/24/MASt3R-SLAM/mast3r_slam/frame.py:116: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /opt/conda/conda-bld/pytorch_1729647429097/work/torch/csrc/utils/tensor_numpy.cpp:206.)
+  uimg = torch.from_numpy(img["unnormalized_img"]) / 255.0
+Loading retrieval model from checkpoints/MASt3R_ViTLarge_BaseDecoder_512_catmlpdpt_metric_retrieval_trainingfree.pth
+Database retrieval 4 :  {2}
+Database retrieval 5 :  {2, 3}
+Database retrieval 6 :  {3, 4}
+Database retrieval 7 :  {4, 5}
+Database retrieval 8 :  {5, 6}
+Database retrieval 9 :  {1, 3}
+Database retrieval 10 :  {2, 3, 5}
+Database retrieval 11 :  {1, 6}
+Database retrieval 12 :  {5, 6}
+Database retrieval 13 :  {11, 5}
+Database retrieval 14 :  {11, 12}
+Database retrieval 15 :  {12, 13}
+Database retrieval 16 :  {13, 14}
+Database retrieval 17 :  {14, 15}
+Database retrieval 18 :  {16, 9, 10}
+Database retrieval 19 :  {9, 17, 15}
+Database retrieval 20 :  {16, 15}
+Database retrieval 21 :  {16, 15}
+Database retrieval 22 :  {16, 20}
+Database retrieval 23 :  {20, 21}
+Database retrieval 24 :  {21, 22}
+Database retrieval 25 :  {22, 23}
+Database retrieval 26 :  {24, 23}
+Database retrieval 27 :  {24, 25}
+Database retrieval 28 :  {25, 26}
+Database retrieval 29 :  {26, 27}
+Database retrieval 30 :  {11, 28}
+Database retrieval 31 :  {11, 29}
+Database retrieval 32 :  {11, 30}
+Database retrieval 33 :  {30, 31}
+Database retrieval 34 :  {32, 31}
+Database retrieval 35 :  {32, 33}
+Database retrieval 36 :  {33, 34}
+Database retrieval 37 :  {0, 1, 10}
+Database retrieval 38 :  {1, 9}
+FPS: 2.1183666297564696
+FPS: 2.213168155926605
+FPS: 2.1821637156928966
+FPS: 2.208960272976944
+FPS: 2.2305834102904467
+FPS: 2.236966792852312
+FPS: 2.233659448727035
+FPS: 2.2374193077064986
+FPS: 2.2395153666481424
+FPS: 2.2413788131198253
+FPS: 2.102130178692946
+FPS: 2.1143914321161397
+FPS: 2.1028468300346734
+FPS: 2.091138033892079
+FPS: 1.996953134680505
+FPS: 1.994936333253631
+FPS: 2.009635778238535
+FPS: 2.0036325827745056
+FPS: 1.9981971292702856
+FPS: 1.8844378335519383
+FPS: 1.819983828745525
+FPS: 1.8351071939736605
+FPS: 1.8510074929401228
+FPS: 1.8526083148321297
+FPS: 1.866010984585754
+FPS: 1.8686726977545232
+FPS: 1.8817763988200167
+FPS: 1.8935337606146658
+FPS: 1.903883925064975
+FPS: 1.914515825753144
+done
+datasets/bonn/rgbd_bonn_kidnapping_box/
+{'use_calib': True, 'single_thread': True, 'dataset': {'subsample': 1, 'img_downsample': 1, 'center_principle_point': True}, 'matching': {'max_iter': 10, 'lambda_init': 1e-08, 'convergence_thresh': 1e-06, 'dist_thresh': 0.1, 'radius': 3, 'dilation_max': 5}, 'tracking': {'min_match_frac': 0.05, 'max_iters': 50, 'C_conf': 0.0, 'Q_conf': 1.5, 'rel_error': 0.001, 'delta_norm': 0.001, 'huber': 1.345, 'match_frac_thresh': 0.333, 'sigma_ray': 0.003, 'sigma_dist': 10.0, 'sigma_pixel': 1.0, 'sigma_depth': 10.0, 'sigma_point': 0.05, 'pixel_border': -10, 'depth_eps': 1e-06, 'filtering_mode': 'weighted_pointmap', 'filtering_score': 'median'}, 'local_opt': {'pin': 1, 'window_size': 1000000.0, 'C_conf': 0.0, 'Q_conf': 1.5, 'min_match_frac': 0.1, 'pixel_border': -10, 'depth_eps': 1e-06, 'max_iters': 10, 'sigma_ray': 0.003, 'sigma_dist': 10.0, 'sigma_pixel': 1.0, 'sigma_depth': 10.0, 'sigma_point': 0.05, 'delta_norm': 1e-08, 'use_cuda': True}, 'retrieval': {'k': 3, 'min_thresh': 0.005}, 'reloc': {'min_match_frac': 0.3, 'strict': True}, 'inherit': 'config/base.yaml'}
+/work/courses/3dv/24/MASt3R-SLAM/thirdparty/mast3r/mast3r/model.py:24: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  ckpt = torch.load(model_path, map_location='cpu')
+... loading model from checkpoints/MASt3R_ViTLarge_BaseDecoder_512_catmlpdpt_metric.pth
+instantiating : AsymmetricMASt3R(enc_depth=24, dec_depth=12, enc_embed_dim=1024, dec_embed_dim=768, enc_num_heads=16, dec_num_heads=12, pos_embed='RoPE100',img_size=(512, 512), head_type='catmlp+dpt', output_mode='pts3d+desc24', depth_mode=('exp', -inf, inf), conf_mode=('exp', 1, inf), patch_embed_cls='PatchEmbedDust3R', two_confs=True, desc_conf_mode=('exp', 0, inf), landscape_only=False)
+<All keys matched successfully>
+/work/courses/3dv/24/MASt3R-SLAM/mast3r_slam/frame.py:116: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /opt/conda/conda-bld/pytorch_1729647429097/work/torch/csrc/utils/tensor_numpy.cpp:206.)
+  uimg = torch.from_numpy(img["unnormalized_img"]) / 255.0
+/work/courses/3dv/24/MASt3R-SLAM/thirdparty/mast3r/mast3r/retrieval/processor.py:70: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  ckpt = torch.load(modelname, 'cpu')  # TODO from pretrained to download it automatically
+Loading retrieval model from checkpoints/MASt3R_ViTLarge_BaseDecoder_512_catmlpdpt_metric_retrieval_trainingfree.pth
+Database retrieval 3 :  {0, 1}
+Database retrieval 4 :  {0}
+Database retrieval 5 :  {0, 1, 3}
+Database retrieval 6 :  {1, 2}
+FPS: 2.0998003031389905
+FPS: 2.188407688785832
+FPS: 2.2261715007953153
+FPS: 2.2446182868839437
+FPS: 2.255145542229101
+FPS: 2.232988947979074
+FPS: 2.23750956313337
+FPS: 2.229950480216606
+FPS: 2.235370801009209
+FPS: 2.239843822820076
+FPS: 2.2439451746663974
+FPS: 2.244213302881559
+FPS: 2.2474052515847216
+FPS: 2.2288105791642283
+FPS: 2.2340935677835576
+FPS: 2.238916067725536
+FPS: 2.231869978146571
+FPS: 2.2352015715724187
+FPS: 2.2362352663761587
+FPS: 2.2361981585944313
+FPS: 2.238510801906097
+FPS: 2.2400690194605644
+FPS: 2.2415180901035896
+FPS: 2.2413542429602287
+FPS: 2.2280901485055367
+FPS: 2.2307836861965455
+FPS: 2.2237335869711594
+FPS: 2.225289457312843
+FPS: 2.227201737282605
+FPS: 2.2281477366922724
+FPS: 2.2281868797991993
+FPS: 2.2274153716526865
+FPS: 2.226482855477661
+FPS: 2.225743349915212
+FPS: 2.2244775394300107
+FPS: 2.224987612592932
+done
+datasets/bonn/rgbd_bonn_balloon/
+{'use_calib': True, 'single_thread': True, 'dataset': {'subsample': 1, 'img_downsample': 1, 'center_principle_point': True}, 'matching': {'max_iter': 10, 'lambda_init': 1e-08, 'convergence_thresh': 1e-06, 'dist_thresh': 0.1, 'radius': 3, 'dilation_max': 5}, 'tracking': {'min_match_frac': 0.05, 'max_iters': 50, 'C_conf': 0.0, 'Q_conf': 1.5, 'rel_error': 0.001, 'delta_norm': 0.001, 'huber': 1.345, 'match_frac_thresh': 0.333, 'sigma_ray': 0.003, 'sigma_dist': 10.0, 'sigma_pixel': 1.0, 'sigma_depth': 10.0, 'sigma_point': 0.05, 'pixel_border': -10, 'depth_eps': 1e-06, 'filtering_mode': 'weighted_pointmap', 'filtering_score': 'median'}, 'local_opt': {'pin': 1, 'window_size': 1000000.0, 'C_conf': 0.0, 'Q_conf': 1.5, 'min_match_frac': 0.1, 'pixel_border': -10, 'depth_eps': 1e-06, 'max_iters': 10, 'sigma_ray': 0.003, 'sigma_dist': 10.0, 'sigma_pixel': 1.0, 'sigma_depth': 10.0, 'sigma_point': 0.05, 'delta_norm': 1e-08, 'use_cuda': True}, 'retrieval': {'k': 3, 'min_thresh': 0.005}, 'reloc': {'min_match_frac': 0.3, 'strict': True}, 'inherit': 'config/base.yaml'}
+/work/courses/3dv/24/MASt3R-SLAM/thirdparty/mast3r/mast3r/model.py:24: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  ckpt = torch.load(model_path, map_location='cpu')
+... loading model from checkpoints/MASt3R_ViTLarge_BaseDecoder_512_catmlpdpt_metric.pth
+instantiating : AsymmetricMASt3R(enc_depth=24, dec_depth=12, enc_embed_dim=1024, dec_embed_dim=768, enc_num_heads=16, dec_num_heads=12, pos_embed='RoPE100',img_size=(512, 512), head_type='catmlp+dpt', output_mode='pts3d+desc24', depth_mode=('exp', -inf, inf), conf_mode=('exp', 1, inf), patch_embed_cls='PatchEmbedDust3R', two_confs=True, desc_conf_mode=('exp', 0, inf), landscape_only=False)
+<All keys matched successfully>
+/work/courses/3dv/24/MASt3R-SLAM/thirdparty/mast3r/mast3r/retrieval/processor.py:70: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  ckpt = torch.load(modelname, 'cpu')  # TODO from pretrained to download it automatically
+/work/courses/3dv/24/MASt3R-SLAM/mast3r_slam/frame.py:116: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /opt/conda/conda-bld/pytorch_1729647429097/work/torch/csrc/utils/tensor_numpy.cpp:206.)
+  uimg = torch.from_numpy(img["unnormalized_img"]) / 255.0
+Loading retrieval model from checkpoints/MASt3R_ViTLarge_BaseDecoder_512_catmlpdpt_metric_retrieval_trainingfree.pth
+Database retrieval 2 :  {0}
+Database retrieval 4 :  {1, 2}
+Database retrieval 5 :  {0, 1}
+FPS: 2.102976227712253
+FPS: 2.167111823562693
+FPS: 2.191975546976892
+FPS: 2.2086853459363796
+FPS: 2.2153642187066516
+FPS: 2.2223588977825797
+FPS: 2.1765783981402236
+FPS: 2.1738827890022825
+FPS: 2.1829244876675267
+FPS: 2.1602479533563375
+FPS: 2.1464108509389512
+FPS: 2.158948130054826
+FPS: 2.169874003032101
+FPS: 2.179610694472584
+done
+datasets/bonn/rgbd_bonn_placing_nonobstructing_box/
+{'use_calib': True, 'single_thread': True, 'dataset': {'subsample': 1, 'img_downsample': 1, 'center_principle_point': True}, 'matching': {'max_iter': 10, 'lambda_init': 1e-08, 'convergence_thresh': 1e-06, 'dist_thresh': 0.1, 'radius': 3, 'dilation_max': 5}, 'tracking': {'min_match_frac': 0.05, 'max_iters': 50, 'C_conf': 0.0, 'Q_conf': 1.5, 'rel_error': 0.001, 'delta_norm': 0.001, 'huber': 1.345, 'match_frac_thresh': 0.333, 'sigma_ray': 0.003, 'sigma_dist': 10.0, 'sigma_pixel': 1.0, 'sigma_depth': 10.0, 'sigma_point': 0.05, 'pixel_border': -10, 'depth_eps': 1e-06, 'filtering_mode': 'weighted_pointmap', 'filtering_score': 'median'}, 'local_opt': {'pin': 1, 'window_size': 1000000.0, 'C_conf': 0.0, 'Q_conf': 1.5, 'min_match_frac': 0.1, 'pixel_border': -10, 'depth_eps': 1e-06, 'max_iters': 10, 'sigma_ray': 0.003, 'sigma_dist': 10.0, 'sigma_pixel': 1.0, 'sigma_depth': 10.0, 'sigma_point': 0.05, 'delta_norm': 1e-08, 'use_cuda': True}, 'retrieval': {'k': 3, 'min_thresh': 0.005}, 'reloc': {'min_match_frac': 0.3, 'strict': True}, 'inherit': 'config/base.yaml'}
+/work/courses/3dv/24/MASt3R-SLAM/thirdparty/mast3r/mast3r/model.py:24: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  ckpt = torch.load(model_path, map_location='cpu')
+... loading model from checkpoints/MASt3R_ViTLarge_BaseDecoder_512_catmlpdpt_metric.pth
+instantiating : AsymmetricMASt3R(enc_depth=24, dec_depth=12, enc_embed_dim=1024, dec_embed_dim=768, enc_num_heads=16, dec_num_heads=12, pos_embed='RoPE100',img_size=(512, 512), head_type='catmlp+dpt', output_mode='pts3d+desc24', depth_mode=('exp', -inf, inf), conf_mode=('exp', 1, inf), patch_embed_cls='PatchEmbedDust3R', two_confs=True, desc_conf_mode=('exp', 0, inf), landscape_only=False)
+<All keys matched successfully>
+/work/courses/3dv/24/MASt3R-SLAM/thirdparty/mast3r/mast3r/retrieval/processor.py:70: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  ckpt = torch.load(modelname, 'cpu')  # TODO from pretrained to download it automatically
+/work/courses/3dv/24/MASt3R-SLAM/mast3r_slam/frame.py:116: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /opt/conda/conda-bld/pytorch_1729647429097/work/torch/csrc/utils/tensor_numpy.cpp:206.)
+  uimg = torch.from_numpy(img["unnormalized_img"]) / 255.0
+Loading retrieval model from checkpoints/MASt3R_ViTLarge_BaseDecoder_512_catmlpdpt_metric_retrieval_trainingfree.pth
+Database retrieval 4 :  {2}
+Database retrieval 5 :  {1, 3}
+Database retrieval 7 :  {1, 4, 5}
+Database retrieval 8 :  {1, 5}
+FPS: 2.1318588034439885
+FPS: 2.2218982360489115
+FPS: 2.1842890671184434
+FPS: 2.2038363475519063
+FPS: 2.22308785192983
+FPS: 2.2341210000027254
+FPS: 2.246163628920412
+FPS: 2.2577837107342558
+FPS: 2.2117310592859685
+FPS: 2.188821135136111
+FPS: 2.1872029152905696
+FPS: 2.194001561036431
+FPS: 2.200530910936494
+FPS: 2.178342475374104
+FPS: 2.1843458992635654
+FPS: 2.186487485170788
+FPS: 2.174193575213714
+FPS: 2.1783721811861456
+FPS: 2.184629771243493
+FPS: 2.189241070109041
+FPS: 2.1934305848379467
+FPS: 2.1962136997056736
+FPS: 2.1995924324911877
+FPS: 2.203457259943443
+done
+datasets/bonn/rgbd_bonn_synchronous/
+{'use_calib': True, 'single_thread': True, 'dataset': {'subsample': 1, 'img_downsample': 1, 'center_principle_point': True}, 'matching': {'max_iter': 10, 'lambda_init': 1e-08, 'convergence_thresh': 1e-06, 'dist_thresh': 0.1, 'radius': 3, 'dilation_max': 5}, 'tracking': {'min_match_frac': 0.05, 'max_iters': 50, 'C_conf': 0.0, 'Q_conf': 1.5, 'rel_error': 0.001, 'delta_norm': 0.001, 'huber': 1.345, 'match_frac_thresh': 0.333, 'sigma_ray': 0.003, 'sigma_dist': 10.0, 'sigma_pixel': 1.0, 'sigma_depth': 10.0, 'sigma_point': 0.05, 'pixel_border': -10, 'depth_eps': 1e-06, 'filtering_mode': 'weighted_pointmap', 'filtering_score': 'median'}, 'local_opt': {'pin': 1, 'window_size': 1000000.0, 'C_conf': 0.0, 'Q_conf': 1.5, 'min_match_frac': 0.1, 'pixel_border': -10, 'depth_eps': 1e-06, 'max_iters': 10, 'sigma_ray': 0.003, 'sigma_dist': 10.0, 'sigma_pixel': 1.0, 'sigma_depth': 10.0, 'sigma_point': 0.05, 'delta_norm': 1e-08, 'use_cuda': True}, 'retrieval': {'k': 3, 'min_thresh': 0.005}, 'reloc': {'min_match_frac': 0.3, 'strict': True}, 'inherit': 'config/base.yaml'}
+/work/courses/3dv/24/MASt3R-SLAM/thirdparty/mast3r/mast3r/model.py:24: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  ckpt = torch.load(model_path, map_location='cpu')
+... loading model from checkpoints/MASt3R_ViTLarge_BaseDecoder_512_catmlpdpt_metric.pth
+instantiating : AsymmetricMASt3R(enc_depth=24, dec_depth=12, enc_embed_dim=1024, dec_embed_dim=768, enc_num_heads=16, dec_num_heads=12, pos_embed='RoPE100',img_size=(512, 512), head_type='catmlp+dpt', output_mode='pts3d+desc24', depth_mode=('exp', -inf, inf), conf_mode=('exp', 1, inf), patch_embed_cls='PatchEmbedDust3R', two_confs=True, desc_conf_mode=('exp', 0, inf), landscape_only=False)
+<All keys matched successfully>
+/work/courses/3dv/24/MASt3R-SLAM/thirdparty/mast3r/mast3r/retrieval/processor.py:70: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  ckpt = torch.load(modelname, 'cpu')  # TODO from pretrained to download it automatically
+/work/courses/3dv/24/MASt3R-SLAM/mast3r_slam/frame.py:116: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /opt/conda/conda-bld/pytorch_1729647429097/work/torch/csrc/utils/tensor_numpy.cpp:206.)
+  uimg = torch.from_numpy(img["unnormalized_img"]) / 255.0
+Loading retrieval model from checkpoints/MASt3R_ViTLarge_BaseDecoder_512_catmlpdpt_metric_retrieval_trainingfree.pth
+Database retrieval 2 :  {0}
+Database retrieval 3 :  {0, 1}
+Database retrieval 4 :  {1, 2}
+Database retrieval 5 :  {2, 3}
+Database retrieval 6 :  {3, 4}
+Database retrieval 7 :  {4, 5}
+Database retrieval 8 :  {3, 6}
+Database retrieval 9 :  {6, 7}
+Database retrieval 10 :  {8, 6}
+Database retrieval 11 :  {8, 9}
+Database retrieval 12 :  {9, 10}
+Database retrieval 13 :  {10, 11}
+Database retrieval 14 :  {11, 12}
+Database retrieval 15 :  {12, 13}
+Database retrieval 16 :  {13, 14}
+Database retrieval 17 :  {14, 15}
+Database retrieval 18 :  {16, 15}
+Database retrieval 19 :  {16, 17}
+Database retrieval 20 :  {17, 18}
+Database retrieval 21 :  {18, 19}
+Database retrieval 22 :  {19, 20}
+Database retrieval 23 :  {20, 21}
+Database retrieval 24 :  {21, 22}
+Database retrieval 25 :  {22, 23}
+Database retrieval 26 :  {24, 22, 23}
+Database retrieval 27 :  {22, 23}
+Database retrieval 28 :  {26, 20}
+Database retrieval 29 :  {26, 27}
+Database retrieval 30 :  {18, 28}
+Database retrieval 31 :  {18, 29}
+Database retrieval 32 :  {17, 30}
+Database retrieval 33 :  {17, 31}
+Database retrieval 34 :  {32, 11}
+Database retrieval 35 :  {32, 33}
+Database retrieval 36 :  {33, 34}
+Database retrieval 37 :  {34, 35}
+Database retrieval 38 :  {5, 7}
+Database retrieval 39 :  {3, 4}
+Database retrieval 40 :  {2, 3}
+Database retrieval 41 :  {3, 39}
+Database retrieval 42 :  {40, 1}
+Database retrieval 43 :  {1, 41}
+Database retrieval 44 :  {1, 42}
+Database retrieval 45 :  {1, 43}
+Database retrieval 46 :  {43, 44}
+Database retrieval 47 :  {44, 45}
+Database retrieval 48 :  {45, 46}
+FPS: 1.0328933902914172
+FPS: 0.847122831330104
+FPS: 1.0442781138798378
+FPS: 1.2043044619450205
+FPS: 1.3270536612259674
+FPS: 1.4250749272387588
+FPS: 1.4362126142731209
+FPS: 1.3327098619580475
+FPS: 1.2573757982859108
+FPS: 1.3159940366468321
+FPS: 1.3686926356023124
+done
+datasets/bonn/rgbd_bonn_static_close_far/
+{'use_calib': True, 'single_thread': True, 'dataset': {'subsample': 1, 'img_downsample': 1, 'center_principle_point': True}, 'matching': {'max_iter': 10, 'lambda_init': 1e-08, 'convergence_thresh': 1e-06, 'dist_thresh': 0.1, 'radius': 3, 'dilation_max': 5}, 'tracking': {'min_match_frac': 0.05, 'max_iters': 50, 'C_conf': 0.0, 'Q_conf': 1.5, 'rel_error': 0.001, 'delta_norm': 0.001, 'huber': 1.345, 'match_frac_thresh': 0.333, 'sigma_ray': 0.003, 'sigma_dist': 10.0, 'sigma_pixel': 1.0, 'sigma_depth': 10.0, 'sigma_point': 0.05, 'pixel_border': -10, 'depth_eps': 1e-06, 'filtering_mode': 'weighted_pointmap', 'filtering_score': 'median'}, 'local_opt': {'pin': 1, 'window_size': 1000000.0, 'C_conf': 0.0, 'Q_conf': 1.5, 'min_match_frac': 0.1, 'pixel_border': -10, 'depth_eps': 1e-06, 'max_iters': 10, 'sigma_ray': 0.003, 'sigma_dist': 10.0, 'sigma_pixel': 1.0, 'sigma_depth': 10.0, 'sigma_point': 0.05, 'delta_norm': 1e-08, 'use_cuda': True}, 'retrieval': {'k': 3, 'min_thresh': 0.005}, 'reloc': {'min_match_frac': 0.3, 'strict': True}, 'inherit': 'config/base.yaml'}
+/work/courses/3dv/24/MASt3R-SLAM/thirdparty/mast3r/mast3r/model.py:24: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  ckpt = torch.load(model_path, map_location='cpu')
+... loading model from checkpoints/MASt3R_ViTLarge_BaseDecoder_512_catmlpdpt_metric.pth
+instantiating : AsymmetricMASt3R(enc_depth=24, dec_depth=12, enc_embed_dim=1024, dec_embed_dim=768, enc_num_heads=16, dec_num_heads=12, pos_embed='RoPE100',img_size=(512, 512), head_type='catmlp+dpt', output_mode='pts3d+desc24', depth_mode=('exp', -inf, inf), conf_mode=('exp', 1, inf), patch_embed_cls='PatchEmbedDust3R', two_confs=True, desc_conf_mode=('exp', 0, inf), landscape_only=False)
+<All keys matched successfully>
+/work/courses/3dv/24/MASt3R-SLAM/mast3r_slam/frame.py:116: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /opt/conda/conda-bld/pytorch_1729647429097/work/torch/csrc/utils/tensor_numpy.cpp:206.)
+  uimg = torch.from_numpy(img["unnormalized_img"]) / 255.0
+/work/courses/3dv/24/MASt3R-SLAM/thirdparty/mast3r/mast3r/retrieval/processor.py:70: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  ckpt = torch.load(modelname, 'cpu')  # TODO from pretrained to download it automatically
+slurmstepd: error: *** JOB 11873 ON studgpu-node09 CANCELLED AT 2025-03-28T12:56:17 DUE TO TIME LIMIT ***

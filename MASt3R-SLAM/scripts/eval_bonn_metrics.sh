@@ -22,22 +22,22 @@ datasets=(
     rgbd_bonn_synchronous
     rgbd_bonn_static_close_far
     rgbd_bonn_synchronous2
-    rgbd_bonn_static
+    #rgbd_bonn_static
     rgbd_bonn_moving_nonobstructing_box
     rgbd_bonn_balloon_tracking
     rgbd_bonn_removing_nonobstructing_box
     rgbd_bonn_moving_obstructing_box
     rgbd_bonn_person_tracking
     rgbd_bonn_placing_nonobstructing_box2
-    rgbd_bonn_crowd2
-    rgbd_bonn_person_tracking2
-    rgbd_bonn_crowd3
-    rgbd_bonn_placing_nonobstructing_box3
-    rgbd_bonn_balloon2
-    rgbd_bonn_moving_obstructing_box2
-    rgbd_bonn_balloon_tracking2
-    rgbd_bonn_placing_obstructing_box
-    rgbd_bonn_kidnapping_box2
+    #rgbd_bonn_crowd2
+    #rgbd_bonn_person_tracking2
+    #rgbd_bonn_crowd3
+    #rgbd_bonn_placing_nonobstructing_box3
+    #rgbd_bonn_balloon2
+    #rgbd_bonn_moving_obstructing_box2
+    #rgbd_bonn_balloon_tracking2
+    #rgbd_bonn_placing_obstructing_box
+    #rgbd_bonn_kidnapping_box2
 )
 
 no_calib=false
@@ -62,8 +62,20 @@ for dataset in ${datasets[@]}; do
     dataset_name="$dataset_path""$dataset"/
     echo ${dataset_name}
     if [ "$no_calib" = true ]; then
-        evo_ape tum $dataset_name/groundtruth.txt logs/bonn/no_calib/$dataset/$dataset.txt -as
+        python scripts/prepare_bonn.py --groundtruth_path $dataset_name/groundtruth.txt --estimated_path logs/bonn/no_calib/$dataset/$dataset.txt --output_path logs/bonn_transformed/no_calib/$dataset/$dataset.txt
     else
-        evo_ape tum $dataset_name/groundtruth.txt logs/bonn/calib/$dataset/$dataset.txt -as
+        python scripts/prepare_bonn.py --groundtruth_path $dataset_name/groundtruth.txt --estimated_path logs/bonn/calib/$dataset/$dataset.txt --output_path logs/bonn_transformed/calib/$dataset/$dataset.txt
+    fi
+done
+
+echo "🎉 All the estimated trajectories have been transformed and saved."
+
+for dataset in ${datasets[@]}; do
+    dataset_name="$dataset_path""$dataset"/
+    echo ${dataset_name}
+    if [ "$no_calib" = true ]; then
+        evo_ape tum $dataset_name/groundtruth.txt logs/bonn_transformed/no_calib/$dataset/$dataset.txt -as  --align --pose_relation trans_part
+    else
+        evo_ape tum $dataset_name/groundtruth.txt logs/bonn_transformed/calib/$dataset/$dataset.txt -as --align --pose_relation trans_part
     fi
 done
