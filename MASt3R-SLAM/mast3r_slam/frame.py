@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Optional
 import lietorch
 import torch
-from mast3r_slam.mast3r_utils import resize_img
+from mast3r_slam.monst3r_utils import resize_img
 from mast3r_slam.config import config
 
 
@@ -29,6 +29,7 @@ class Frame:
     N: int = 0
     N_updates: int = 0
     K: Optional[torch.Tensor] = None
+    dynamic_mask: Optional[torch.Tensor] = None
 
     def get_score(self, C):
         filtering_score = config["tracking"]["filtering_score"]
@@ -151,6 +152,7 @@ class SharedStates:
         self.C = torch.zeros(h * w, 1, device=device, dtype=dtype).share_memory_()
         self.feat = torch.zeros(1, self.num_patches, self.feat_dim, device=device, dtype=dtype).share_memory_()
         self.pos = torch.zeros(1, self.num_patches, 2, device=device, dtype=torch.long).share_memory_()
+        self.dynamic_mask = torch.zeros(h, w, device=device, dtype=dtype).share_memory_()
         # fmt: on
 
     def set_frame(self, frame):
@@ -165,6 +167,8 @@ class SharedStates:
             self.C[:] = frame.C
             self.feat[:] = frame.feat
             self.pos[:] = frame.pos
+            if frame.dynamic_mask is not None:
+                self.dynamic_mask[:] = frame.dynamic_mask
 
     def get_frame(self):
         with self.lock:
@@ -180,6 +184,7 @@ class SharedStates:
             frame.C = self.C
             frame.feat = self.feat
             frame.pos = self.pos
+            frame.dynamic_mask = self.dynamic_mask
             return frame
 
     def queue_global_optimization(self, idx):

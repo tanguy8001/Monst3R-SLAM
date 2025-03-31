@@ -2,23 +2,23 @@
 #SBATCH --account=3dv
 #SBATCH --partition=jobs
 #SBATCH --time=720
-#SBATCH --output=eval_tum%j.out
+#SBATCH --output=eval_tum_metrics%j.out
 
 cd /work/courses/3dv/24/MASt3R-SLAM
 source /home/tdieudonne/.bashrc
 conda activate slam
 
-echo "Starting evaluation of TUM dataset at: $(date)"
+echo "Starting metrics computation of TUM dataset at: $(date)"
 
 dataset_path="datasets/tum/"
 datasets=(
-    #rgbd_dataset_freiburg1_360
-    #rgbd_dataset_freiburg1_desk
-    #rgbd_dataset_freiburg1_desk2
-    #rgbd_dataset_freiburg1_floor
-    #rgbd_dataset_freiburg1_plant
-    #rgbd_dataset_freiburg1_room
-    #rgbd_dataset_freiburg1_rpy
+    rgbd_dataset_freiburg1_360
+    rgbd_dataset_freiburg1_desk
+    rgbd_dataset_freiburg1_desk2
+    rgbd_dataset_freiburg1_floor
+    rgbd_dataset_freiburg1_plant
+    rgbd_dataset_freiburg1_room
+    rgbd_dataset_freiburg1_rpy
     rgbd_dataset_freiburg1_teddy
     rgbd_dataset_freiburg1_xyz
 )
@@ -40,17 +40,6 @@ while [[ "$#" -gt 0 ]]; do
     esac
     shift
 done
-
-if [ "$print_only" = false ]; then
-    for dataset in ${datasets[@]}; do
-        dataset_name="$dataset_path""$dataset"/
-        if [ "$no_calib" = true ]; then
-            python main.py --dataset $dataset_name --no-viz --save-as tum/no_calib/$dataset --config config/eval_no_calib.yaml
-        else
-            python main.py --dataset $dataset_name --no-viz --save-as tum/calib/$dataset --config config/eval_calib.yaml
-        fi
-    done
-fi
 
 for dataset in ${datasets[@]}; do
     dataset_name="$dataset_path""$dataset"/

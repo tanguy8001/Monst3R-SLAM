@@ -9,7 +9,7 @@ from mast3r_slam.geometry import (
 )
 from mast3r_slam.nonlinear_optimizer import check_convergence, huber
 from mast3r_slam.config import config
-from mast3r_slam.mast3r_utils import mast3r_match_asymmetric
+from mast3r_slam.monst3r_utils import monst3r_match_asymmetric, get_dynamic_mask
 
 
 class FrameTracker:
@@ -28,7 +28,7 @@ class FrameTracker:
     def track(self, frame: Frame):
         keyframe = self.keyframes.last_keyframe()
 
-        idx_f2k, valid_match_k, Xff, Cff, Qff, Xkf, Ckf, Qkf = mast3r_match_asymmetric(
+        idx_f2k, valid_match_k, Xff, Cff, Qff, Xkf, Ckf, Qkf = monst3r_match_asymmetric(
             self.model, frame, keyframe, idx_i2j_init=self.idx_f2k
         )
         # Save idx for next
@@ -40,6 +40,7 @@ class FrameTracker:
 
         Qk = torch.sqrt(Qff[idx_f2k] * Qkf)
 
+        # TODO: adapt to final get_dynamic_mask fct ---------------------------------
         # Detect dynamic objects if enabled in config
         if config.get("use_dynamic_mask", False):
             try:
@@ -60,6 +61,8 @@ class FrameTracker:
                 frame.dynamic_mask = dynamic_mask
             except Exception as e:
                 print(f"Failed to compute dynamic mask: {e}")
+
+        # ------------------------------------------------------------------------------
 
         # Update keyframe pointmap after registration (need pose)
         frame.update_pointmap(Xff, Cff)

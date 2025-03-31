@@ -1,5 +1,8 @@
 use_calib: False
 single_thread: False
+use_dynamic_mask: True
+dynamic_mask_threshold: 0.35
+dynamic_points_weight: 0.8
 dataset:
   subsample: 1
   img_downsample: 1

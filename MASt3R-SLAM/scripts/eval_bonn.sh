@@ -20,16 +20,16 @@ datasets=(
     #rgbd_bonn_balloon
     #rgbd_bonn_placing_nonobstructing_box
     #rgbd_bonn_synchronous
-    rgbd_bonn_static_close_far
-    rgbd_bonn_synchronous2
-    rgbd_bonn_static
-    rgbd_bonn_moving_nonobstructing_box
-    rgbd_bonn_balloon_tracking
-    rgbd_bonn_removing_nonobstructing_box
-    rgbd_bonn_moving_obstructing_box
-    rgbd_bonn_person_tracking
-    rgbd_bonn_placing_nonobstructing_box2
-    rgbd_bonn_crowd2
+    #rgbd_bonn_static_close_far
+    #rgbd_bonn_synchronous2
+    #rgbd_bonn_static
+    #rgbd_bonn_moving_nonobstructing_box
+    #rgbd_bonn_balloon_tracking
+    #rgbd_bonn_removing_nonobstructing_box
+    #rgbd_bonn_moving_obstructing_box
+    #rgbd_bonn_person_tracking
+    #rgbd_bonn_placing_nonobstructing_box2
+    #rgbd_bonn_crowd2
     rgbd_bonn_person_tracking2
     rgbd_bonn_crowd3
     rgbd_bonn_placing_nonobstructing_box3

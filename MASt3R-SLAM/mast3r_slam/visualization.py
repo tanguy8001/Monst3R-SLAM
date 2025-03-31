@@ -36,6 +36,7 @@ class WindowMsg:
     is_paused: bool = False
     next: bool = False
     C_conf_threshold: float = 1.5
+    show_dynamic_mask: bool = False
 
 
 class Window(WindowEvents):
@@ -76,6 +77,7 @@ class Window(WindowEvents):
         self.show_keyframe_edges = True
         self.culling = True
         self.follow_cam = True
+        self.show_dynamic_mask = False
 
         self.depth_bias = 0.001
         self.frustum_scale = 0.05
@@ -89,8 +91,8 @@ class Window(WindowEvents):
 
         self.textures = dict()
         self.mtime = self.pointmap_prog.extra["meta"].resolved_path.stat().st_mtime
-        self.curr_img, self.kf_img = Image(), Image()
-        self.curr_img_np, self.kf_img_np = None, None
+        self.curr_img, self.kf_img, self.dynamic_mask_img = Image(), Image(), Image()
+        self.curr_img_np, self.kf_img_np, self.dynamic_mask_np = None, None, None
 
         self.main2viz = main2viz
         self.viz2main = viz2main
@@ -112,6 +114,16 @@ class Window(WindowEvents):
 
         self.curr_img_np = curr_frame.uimg.numpy()
         self.curr_img.write(self.curr_img_np)
+        
+        # Prepare dynamic mask visualization if available
+        if hasattr(curr_frame, 'dynamic_mask') and curr_frame.dynamic_mask is not None:
+            # Create a colored version of the dynamic mask for visualization
+            dynamic_mask = curr_frame.dynamic_mask.cpu().numpy()
+            # Create an RGB visualization where red indicates dynamic content
+            dynamic_mask_rgb = np.zeros((h, w, 3), dtype=np.float32)
+            dynamic_mask_rgb[..., 0] = dynamic_mask  # Red channel for dynamic regions
+            self.dynamic_mask_np = dynamic_mask_rgb
+            self.dynamic_mask_img.write(self.dynamic_mask_np)
 
         cam_T_WC = as_SE3(curr_frame.T_WC).cpu()
         if self.follow_cam:
@@ -174,9 +186,9 @@ class Window(WindowEvents):
             with self.states.lock:
                 ii = torch.tensor(self.states.edges_ii, dtype=torch.long)
                 jj = torch.tensor(self.states.edges_jj, dtype=torch.long)
-                if ii.numel() > 0 and jj.numel() > 0:
-                    T_WCi = lietorch.Sim3(self.keyframes.T_WC[ii, 0])
-                    T_WCj = lietorch.Sim3(self.keyframes.T_WC[jj, 0])
+            if ii.numel() > 0 and jj.numel() > 0:
+                T_WCi = lietorch.Sim3(self.keyframes.T_WC[ii, 0])
+                T_WCj = lietorch.Sim3(self.keyframes.T_WC[jj, 0])
             if ii.numel() > 0 and jj.numel() > 0:
                 t_WCi = T_WCi.matrix()[:, :3, 3].cpu().numpy()
                 t_WCj = T_WCj.matrix()[:, :3, 3].cpu().numpy()
@@ -319,6 +331,18 @@ class Window(WindowEvents):
         image_with_text(self.kf_img, size, "kf", same_line=False)
         image_with_text(self.curr_img, size, "curr", same_line=False)
 
+        # Add UI component for dynamic mask display
+        _, self.show_dynamic_mask = imgui.checkbox(
+            "Show Dynamic Mask", self.show_dynamic_mask
+        )
+        
+        # Display dynamic mask if enabled and available
+        if self.show_dynamic_mask and self.dynamic_mask_np is not None:
+            imgui.text("Dynamic Mask:")
+            imgui.image(self.dynamic_mask_img.glo.action, 
+                        self.dynamic_mask_np.shape[1], 
+                        self.dynamic_mask_np.shape[0])
+
         imgui.end()
 
         if new_state != self.state:
@@ -329,6 +353,11 @@ class Window(WindowEvents):
         self.imgui.render(imgui.get_draw_data())
 
     def send_msg(self):
+        self.state.is_terminated = self.should_close
+        self.state.is_paused = self.viewport.is_paused
+        self.state.next = self.viewport.next_frame
+        self.state.C_conf_threshold = self.state.C_conf_threshold
+        self.state.show_dynamic_mask = self.show_dynamic_mask
         self.viz2main.put(self.state)
 
     def render_pointmap(self, T_WC, w, h, ptex, ctex, itex, use_img=True, depth_bias=0):

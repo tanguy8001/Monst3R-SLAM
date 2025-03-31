@@ -9,6 +9,8 @@ from dust3r.model import AsymmetricCroCo3DStereo
 from mast3r_slam.retrieval_database import RetrievalDatabase
 from mast3r_slam.config import config
 import mast3r_slam.matching as matching
+from dust3r.inference import inference
+from dust3r.image_pairs import make_pairs
 
 
 def load_monst3r(path=None, device="cuda"):
@@ -117,24 +119,33 @@ def monst3r_decode_symmetric_batch(
 
 @torch.inference_mode
 def monst3r_inference_mono(model, frame):
+    """
+    Mono inference using MonST3R - creates a self-pair for inference
+    """
     if frame.feat is None:
         frame.feat, frame.pos, _ = model._encode_image(frame.img, frame.img_true_shape)
 
-    feat = frame.feat
-    pos = frame.pos
-    shape = frame.img_true_shape
-
-    res11, res21 = decoder(model, feat, feat, pos, pos, shape, shape)
-    res = [res11, res21]
-    X, C, D, Q = zip(
-        *[(r["pts3d"][0], r["conf"][0], r["desc"][0], r["desc_conf"][0]) for r in res]
-    )
-    # 4xhxwxc
-    X, C, D, Q = torch.stack(X), torch.stack(C), torch.stack(D), torch.stack(Q)
-    X, C, D, Q = downsample(X, C, D, Q)
-
-    Xii, Xji = einops.rearrange(X, "b h w c -> b (h w) c")
-    Cii, Cji = einops.rearrange(C, "b h w -> b (h w) 1")
+    # Create a pair with itself for MonST3R
+    img_dict = {
+        'img': frame.img,
+        'idx': 0,
+        'true_shape': frame.img_true_shape
+    }
+    
+    # Create a pair with itself
+    pairs = make_pairs([img_dict, img_dict.copy()], scene_graph='complete')
+    
+    # Run MonST3R inference
+    with torch.no_grad():
+        output = inference(pairs, model, frame.img.device, batch_size=1, verbose=False)
+    
+    # Get pointcloud and confidence from the first prediction
+    pts3d = output['pred1']['pts3d'][0]  # [H, W, 3]
+    conf = output['pred1']['conf'][0]    # [H, W]
+    
+    # Reshape for SLAM system
+    Xii = pts3d.reshape(1, -1, 3)
+    Cii = conf.reshape(1, -1, 1)
 
     return Xii, Cii
 
@@ -182,6 +193,38 @@ def monst3r_match_symmetric(model, feat_i, pos_i, feat_j, pos_j, shape_i, shape_
 
 @torch.inference_mode
 def monst3r_asymmetric_inference(model, frame_i, frame_j):
+    """
+    Asymmetric inference using MonST3R - direct pairwise inference
+    """
+    # Create image dictionaries for MonST3R
+    img_i = {
+        'img': frame_i.img,
+        'idx': 0,
+        'true_shape': frame_i.img_true_shape
+    }
+    
+    img_j = {
+        'img': frame_j.img,
+        'idx': 1,
+        'true_shape': frame_j.img_true_shape
+    }
+    
+    # Create a pair with asymmetric structure (i->j)
+    pairs = [(img_i, img_j)]
+    
+    # Run MonST3R inference
+    with torch.no_grad():
+        output = inference(pairs, model, frame_i.img.device, batch_size=1, verbose=False)
+    
+    # Extract predictions
+    pred1, pred2 = output['pred1'], output['pred2']
+    
+    # Get 3D points and descriptors
+    X = torch.stack([pred1['pts3d'][0], pred2['pts3d_in_other_view'][0]], dim=0)
+    C = torch.stack([pred1['conf'][0], pred2['conf'][0]], dim=0)
+    
+    # For compatibility with existing code, create descriptor tensors
+    # Use the encoded features as descriptors if available
     if frame_i.feat is None:
         frame_i.feat, frame_i.pos, _ = model._encode_image(
             frame_i.img, frame_i.img_true_shape
@@ -190,19 +233,24 @@ def monst3r_asymmetric_inference(model, frame_i, frame_j):
         frame_j.feat, frame_j.pos, _ = model._encode_image(
             frame_j.img, frame_j.img_true_shape
         )
-
+    
+    # Using MASt3R's encoded features since MONSt3R doesn't output features
     feat1, feat2 = frame_i.feat, frame_j.feat
     pos1, pos2 = frame_i.pos, frame_j.pos
     shape1, shape2 = frame_i.img_true_shape, frame_j.img_true_shape
 
     res11, res21 = decoder(model, feat1, feat2, pos1, pos2, shape1, shape2)
     res = [res11, res21]
-    X, C, D, Q = zip(
+    _, _, D, Q = zip(
         *[(r["pts3d"][0], r["conf"][0], r["desc"][0], r["desc_conf"][0]) for r in res]
     )
     # 4xhxwxc
-    X, C, D, Q = torch.stack(X), torch.stack(C), torch.stack(D), torch.stack(Q)
+    # Create descriptors from encoded features from MASt3R
+    D, Q = torch.stack(D), torch.stack(Q)
+    
+    # Ensure shape compatibility with existing code
     X, C, D, Q = downsample(X, C, D, Q)
+    
     return X, C, D, Q
 
 
@@ -229,6 +277,57 @@ def monst3r_match_asymmetric(model, frame_i, frame_j, idx_i2j_init=None):
     Qii, Qji = einops.rearrange(Q, "b h w -> b (h w) 1")
 
     return idx_i2j, valid_match_j, Xii, Cii, Qii, Xji, Cji, Qji
+
+
+def get_dynamic_mask(model, frame_i, frame_j, threshold=0.35):
+    """
+    Get dynamic mask between two frames using MonST3R
+    Returns a binary mask where True indicates dynamic content
+    """
+    # Create image dictionaries for MonST3R
+    img_i = {
+        'img': frame_i.img,
+        'idx': 0,
+        'true_shape': frame_i.img_true_shape
+    }
+    
+    img_j = {
+        'img': frame_j.img,
+        'idx': 1,
+        'true_shape': frame_j.img_true_shape
+    }
+    
+    # Create pairs in both directions
+    pairs = [(img_i, img_j), (img_j, img_i)]
+    
+    # Run MonST3R inference
+    with torch.no_grad():
+        output = inference(pairs, model, frame_i.img.device, batch_size=1, verbose=False)
+    
+    # Get predictions
+    pred1_forward = output['pred1'][0]  # i->j
+    pred2_forward = output['pred2'][0]  # i->j result
+    pred1_backward = output['pred1'][1]  # j->i
+    pred2_backward = output['pred2'][1]  # j->i result
+    
+    # Compute reprojection error between the two directions
+    # This is a simplified method - actual implementation would need more details
+    # from get_dynamic_mask_from_pairviewer in demo.py
+    pts3d_i = pred1_forward['pts3d']
+    pts3d_j_in_i = pred2_forward['pts3d_in_other_view']
+    
+    # Calculate reprojection error
+    error_map = torch.norm(pts3d_i - pts3d_j_in_i, dim=-1)
+    
+    # Normalize error map
+    error_min = error_map.min()
+    error_max = error_map.max()
+    normalized_error = (error_map - error_min) / (error_max - error_min + 1e-8)
+    
+    # Binary threshold
+    dynamic_mask = (normalized_error > threshold).float()
+    
+    return dynamic_mask
 
 
 def _resize_pil_image(img, long_edge_size):

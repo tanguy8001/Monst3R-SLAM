@@ -1,0 +1,352 @@
+Starting metrics computation of Bonn dataset at: Mon Mar 31 10:33:36 CEST 2025
+datasets/bonn/rgbd_bonn_removing_nonobstructing_box2/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_removing_nonobstructing_box2/rgbd_bonn_removing_nonobstructing_box2.txt -> logs/bonn_transformed/calib/rgbd_bonn_removing_nonobstructing_box2/rgbd_bonn_removing_nonobstructing_box2.txt
+datasets/bonn/rgbd_bonn_removing_obstructing_box/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_removing_obstructing_box/rgbd_bonn_removing_obstructing_box.txt -> logs/bonn_transformed/calib/rgbd_bonn_removing_obstructing_box/rgbd_bonn_removing_obstructing_box.txt
+datasets/bonn/rgbd_bonn_moving_nonobstructing_box2/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_moving_nonobstructing_box2/rgbd_bonn_moving_nonobstructing_box2.txt -> logs/bonn_transformed/calib/rgbd_bonn_moving_nonobstructing_box2/rgbd_bonn_moving_nonobstructing_box2.txt
+datasets/bonn/rgbd_bonn_crowd/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_crowd/rgbd_bonn_crowd.txt -> logs/bonn_transformed/calib/rgbd_bonn_crowd/rgbd_bonn_crowd.txt
+datasets/bonn/rgbd_bonn_kidnapping_box/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_kidnapping_box/rgbd_bonn_kidnapping_box.txt -> logs/bonn_transformed/calib/rgbd_bonn_kidnapping_box/rgbd_bonn_kidnapping_box.txt
+datasets/bonn/rgbd_bonn_balloon/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_balloon/rgbd_bonn_balloon.txt -> logs/bonn_transformed/calib/rgbd_bonn_balloon/rgbd_bonn_balloon.txt
+datasets/bonn/rgbd_bonn_placing_nonobstructing_box/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_placing_nonobstructing_box/rgbd_bonn_placing_nonobstructing_box.txt -> logs/bonn_transformed/calib/rgbd_bonn_placing_nonobstructing_box/rgbd_bonn_placing_nonobstructing_box.txt
+datasets/bonn/rgbd_bonn_synchronous/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_synchronous/rgbd_bonn_synchronous.txt -> logs/bonn_transformed/calib/rgbd_bonn_synchronous/rgbd_bonn_synchronous.txt
+datasets/bonn/rgbd_bonn_static_close_far/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_static_close_far/rgbd_bonn_static_close_far.txt -> logs/bonn_transformed/calib/rgbd_bonn_static_close_far/rgbd_bonn_static_close_far.txt
+datasets/bonn/rgbd_bonn_synchronous2/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_synchronous2/rgbd_bonn_synchronous2.txt -> logs/bonn_transformed/calib/rgbd_bonn_synchronous2/rgbd_bonn_synchronous2.txt
+datasets/bonn/rgbd_bonn_moving_nonobstructing_box/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_moving_nonobstructing_box/rgbd_bonn_moving_nonobstructing_box.txt -> logs/bonn_transformed/calib/rgbd_bonn_moving_nonobstructing_box/rgbd_bonn_moving_nonobstructing_box.txt
+datasets/bonn/rgbd_bonn_balloon_tracking/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_balloon_tracking/rgbd_bonn_balloon_tracking.txt -> logs/bonn_transformed/calib/rgbd_bonn_balloon_tracking/rgbd_bonn_balloon_tracking.txt
+datasets/bonn/rgbd_bonn_removing_nonobstructing_box/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_removing_nonobstructing_box/rgbd_bonn_removing_nonobstructing_box.txt -> logs/bonn_transformed/calib/rgbd_bonn_removing_nonobstructing_box/rgbd_bonn_removing_nonobstructing_box.txt
+datasets/bonn/rgbd_bonn_moving_obstructing_box/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_moving_obstructing_box/rgbd_bonn_moving_obstructing_box.txt -> logs/bonn_transformed/calib/rgbd_bonn_moving_obstructing_box/rgbd_bonn_moving_obstructing_box.txt
+datasets/bonn/rgbd_bonn_person_tracking/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_person_tracking/rgbd_bonn_person_tracking.txt -> logs/bonn_transformed/calib/rgbd_bonn_person_tracking/rgbd_bonn_person_tracking.txt
+datasets/bonn/rgbd_bonn_placing_nonobstructing_box2/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_placing_nonobstructing_box2/rgbd_bonn_placing_nonobstructing_box2.txt -> logs/bonn_transformed/calib/rgbd_bonn_placing_nonobstructing_box2/rgbd_bonn_placing_nonobstructing_box2.txt
+datasets/bonn/rgbd_bonn_crowd2/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_crowd2/rgbd_bonn_crowd2.txt -> logs/bonn_transformed/calib/rgbd_bonn_crowd2/rgbd_bonn_crowd2.txt
+datasets/bonn/rgbd_bonn_person_tracking2/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_person_tracking2/rgbd_bonn_person_tracking2.txt -> logs/bonn_transformed/calib/rgbd_bonn_person_tracking2/rgbd_bonn_person_tracking2.txt
+datasets/bonn/rgbd_bonn_crowd3/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_crowd3/rgbd_bonn_crowd3.txt -> logs/bonn_transformed/calib/rgbd_bonn_crowd3/rgbd_bonn_crowd3.txt
+datasets/bonn/rgbd_bonn_placing_nonobstructing_box3/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_placing_nonobstructing_box3/rgbd_bonn_placing_nonobstructing_box3.txt -> logs/bonn_transformed/calib/rgbd_bonn_placing_nonobstructing_box3/rgbd_bonn_placing_nonobstructing_box3.txt
+datasets/bonn/rgbd_bonn_balloon2/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_balloon2/rgbd_bonn_balloon2.txt -> logs/bonn_transformed/calib/rgbd_bonn_balloon2/rgbd_bonn_balloon2.txt
+datasets/bonn/rgbd_bonn_moving_obstructing_box2/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_moving_obstructing_box2/rgbd_bonn_moving_obstructing_box2.txt -> logs/bonn_transformed/calib/rgbd_bonn_moving_obstructing_box2/rgbd_bonn_moving_obstructing_box2.txt
+datasets/bonn/rgbd_bonn_balloon_tracking2/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_balloon_tracking2/rgbd_bonn_balloon_tracking2.txt -> logs/bonn_transformed/calib/rgbd_bonn_balloon_tracking2/rgbd_bonn_balloon_tracking2.txt
+datasets/bonn/rgbd_bonn_placing_obstructing_box/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_placing_obstructing_box/rgbd_bonn_placing_obstructing_box.txt -> logs/bonn_transformed/calib/rgbd_bonn_placing_obstructing_box/rgbd_bonn_placing_obstructing_box.txt
+datasets/bonn/rgbd_bonn_kidnapping_box2/
+✅ Transformed: logs/bonn/calib/rgbd_bonn_kidnapping_box2/rgbd_bonn_kidnapping_box2.txt -> logs/bonn_transformed/calib/rgbd_bonn_kidnapping_box2/rgbd_bonn_kidnapping_box2.txt
+🎉 All the estimated trajectories have been transformed and saved.
+datasets/bonn/rgbd_bonn_removing_nonobstructing_box2/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.051880
+      mean	0.014272
+    median	0.012468
+       min	0.000630
+      rmse	0.016653
+       sse	0.151688
+       std	0.008579
+
+datasets/bonn/rgbd_bonn_removing_obstructing_box/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.245993
+      mean	0.124552
+    median	0.112060
+       min	0.039849
+      rmse	0.134231
+       sse	10.738738
+       std	0.050049
+
+datasets/bonn/rgbd_bonn_moving_nonobstructing_box2/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.055147
+      mean	0.025839
+    median	0.022932
+       min	0.007598
+      rmse	0.027910
+       sse	0.427665
+       std	0.010551
+
+datasets/bonn/rgbd_bonn_crowd/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.112401
+      mean	0.024643
+    median	0.021763
+       min	0.001801
+      rmse	0.030839
+       sse	0.531631
+       std	0.018541
+
+datasets/bonn/rgbd_bonn_kidnapping_box/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.068967
+      mean	0.023570
+    median	0.023527
+       min	0.001883
+      rmse	0.025914
+       sse	0.441202
+       std	0.010770
+
+datasets/bonn/rgbd_bonn_balloon/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.051546
+      mean	0.017859
+    median	0.015521
+       min	0.002606
+      rmse	0.020049
+       sse	0.105716
+       std	0.009112
+
+datasets/bonn/rgbd_bonn_placing_nonobstructing_box/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.074438
+      mean	0.016547
+    median	0.013259
+       min	0.001029
+      rmse	0.021566
+       sse	0.204633
+       std	0.013830
+
+datasets/bonn/rgbd_bonn_synchronous/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.012607
+      mean	0.005702
+    median	0.004851
+       min	0.001174
+      rmse	0.006484
+       sse	0.009375
+       std	0.003087
+
+datasets/bonn/rgbd_bonn_static_close_far/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.058629
+      mean	0.015038
+    median	0.013251
+       min	0.001341
+      rmse	0.017322
+       sse	0.313557
+       std	0.008598
+
+datasets/bonn/rgbd_bonn_synchronous2/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.016765
+      mean	0.004231
+    median	0.003681
+       min	0.000181
+      rmse	0.005000
+       sse	0.005250
+       std	0.002664
+
+datasets/bonn/rgbd_bonn_moving_nonobstructing_box/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.040680
+      mean	0.014078
+    median	0.013012
+       min	0.002740
+      rmse	0.015170
+       sse	0.111605
+       std	0.005650
+
+datasets/bonn/rgbd_bonn_balloon_tracking/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.103871
+      mean	0.023917
+    median	0.019667
+       min	0.003519
+      rmse	0.027974
+       sse	0.289534
+       std	0.014508
+
+datasets/bonn/rgbd_bonn_removing_nonobstructing_box/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.026085
+      mean	0.014078
+    median	0.014139
+       min	0.002577
+      rmse	0.014871
+       sse	0.067011
+       std	0.004793
+
+datasets/bonn/rgbd_bonn_moving_obstructing_box/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.356007
+      mean	0.135996
+    median	0.122026
+       min	0.032447
+      rmse	0.151993
+       sse	8.570767
+       std	0.067874
+
+datasets/bonn/rgbd_bonn_person_tracking/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.075039
+      mean	0.032379
+    median	0.029121
+       min	0.009200
+      rmse	0.034883
+       sse	0.428332
+       std	0.012979
+
+datasets/bonn/rgbd_bonn_placing_nonobstructing_box2/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.047395
+      mean	0.018216
+    median	0.016838
+       min	0.002586
+      rmse	0.019640
+       sse	0.169330
+       std	0.007340
+
+datasets/bonn/rgbd_bonn_crowd2/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.086511
+      mean	0.031396
+    median	0.029392
+       min	0.003827
+      rmse	0.034687
+       sse	0.636495
+       std	0.014747
+
+datasets/bonn/rgbd_bonn_person_tracking2/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.056741
+      mean	0.023263
+    median	0.022023
+       min	0.002906
+      rmse	0.025684
+       sse	0.230218
+       std	0.010885
+
+datasets/bonn/rgbd_bonn_crowd3/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.041078
+      mean	0.016160
+    median	0.014986
+       min	0.002528
+      rmse	0.017622
+       sse	0.145640
+       std	0.007029
+
+datasets/bonn/rgbd_bonn_placing_nonobstructing_box3/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.043258
+      mean	0.016767
+    median	0.015808
+       min	0.002495
+      rmse	0.018642
+       sse	0.137278
+       std	0.008148
+
+datasets/bonn/rgbd_bonn_balloon2/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.041438
+      mean	0.020922
+    median	0.020403
+       min	0.004610
+      rmse	0.022467
+       sse	0.136289
+       std	0.008188
+
+datasets/bonn/rgbd_bonn_moving_obstructing_box2/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.313396
+      mean	0.176654
+    median	0.168900
+       min	0.046410
+      rmse	0.191677
+       sse	17.194426
+       std	0.074389
+
+datasets/bonn/rgbd_bonn_balloon_tracking2/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.064355
+      mean	0.029978
+    median	0.030062
+       min	0.008235
+      rmse	0.031403
+       sse	0.226808
+       std	0.009350
+
+datasets/bonn/rgbd_bonn_placing_obstructing_box/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.337775
+      mean	0.157453
+    median	0.156682
+       min	0.006514
+      rmse	0.179591
+       sse	19.964558
+       std	0.086380
+
+datasets/bonn/rgbd_bonn_kidnapping_box2/
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.061928
+      mean	0.018301
+    median	0.015823
+       min	0.001484
+      rmse	0.021265
+       sse	0.345927
+       std	0.010829
+
