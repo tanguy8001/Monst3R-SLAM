@@ -15,6 +15,7 @@ from mast3r_slam.dataloader import Intrinsics, load_dataset
 import mast3r_slam.evaluate as eval
 from mast3r_slam.frame import Mode, SharedKeyframes, SharedStates, create_frame, SharedFramePoses
 from mast3r_slam.monst3r_utils import (
+    load_mast3r,
     load_monst3r,
     load_retriever,
     monst3r_inference_mono,
@@ -200,8 +201,10 @@ if __name__ == "__main__":
         )
         viz.start()
 
-    model = load_monst3r(device=device)
-    model.share_memory()
+    mast3r = load_mast3r(device=device)
+    monst3r = load_monst3r(device=device)
+    mast3r.share_memory()
+    monst3r.share_memory()
 
     has_calib = dataset.has_calib()
     use_calib = config["use_calib"]
@@ -226,10 +229,13 @@ if __name__ == "__main__":
         if recon_file.exists():
             recon_file.unlink()
 
-    tracker = FrameTracker2(model, keyframes, device)
+    tracker = FrameTracker2(mast3r=mast3r, 
+                            monst3r=monst3r, 
+                            frames=keyframes, 
+                            device=device)
     last_msg = WindowMsg()
 
-    backend = mp.Process(target=run_backend, args=(config, model, states, keyframes, K, all_frames))
+    backend = mp.Process(target=run_backend, args=(config, mast3r, monst3r, states, keyframes, K, all_frames))
     backend.start()
 
     i = 0
@@ -271,7 +277,7 @@ if __name__ == "__main__":
 
         if mode == Mode.INIT:
             # Initialize via mono inference, and encoded features neeed for database
-            X_init, C_init = monst3r_inference_mono(model, frame)
+            X_init, C_init = monst3r_inference_mono(monst3r=monst3r, frame=frame)
             frame.update_pointmap(X_init, C_init)
             keyframes.append(frame)
             states.queue_global_optimization(len(keyframes) - 1)
@@ -293,7 +299,7 @@ if __name__ == "__main__":
 
         elif mode == Mode.RELOC:
             # If tracking quality is low, perform relocalization using loop closure
-            X, C = monst3r_inference_mono(model, frame)
+            X, C = monst3r_inference_mono(monst3r=monst3r, frame=frame)
             frame.update_pointmap(X, C)
             states.set_frame(frame)
             states.queue_reloc()

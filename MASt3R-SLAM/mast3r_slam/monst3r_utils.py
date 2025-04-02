@@ -216,60 +216,43 @@ def monst3r_match_symmetric(model, feat_i, pos_i, feat_j, pos_j, shape_i, shape_
 
 
 @torch.inference_mode
-def monst3r_asymmetric_inference(model, frame_i, frame_j):
+def monst3r_asymmetric_inference(mast3r, monst3r, frame_i, frame_j):
     """
     Asymmetric inference using MonST3R - direct pairwise inference
     X, C obtained from MonST3R & D, Q obtained from MASt3R
     """
-    # Create image dictionaries for MonST3R
-    img_i = {
-        'img': frame_i.img,
-        'idx': 0,
-        'true_shape': frame_i.img_true_shape
-    }
-    
-    img_j = {
-        'img': frame_j.img,
-        'idx': 1,
-        'true_shape': frame_j.img_true_shape
-    }
-    
-    # Create a pair with asymmetric structure (i->j)
-    pairs = [(img_i, img_j)]
-    
-    # Run MonST3R inference
-    with torch.no_grad():
-        output = inference(pairs, model, frame_i.img.device, batch_size=1, verbose=False)
-    
-    # Extract predictions
-    pred1, pred2 = output['pred1'], output['pred2']
-    
-    # Get 3D points and descriptors
-    X = torch.stack([pred1['pts3d'][0], pred2['pts3d_in_other_view'][0]], dim=0)
-    C = torch.stack([pred1['conf'][0], pred2['conf'][0]], dim=0)
-    
-    # For compatibility with existing code, create descriptor tensors
-    # Use the encoded features as descriptors if available
+
     if frame_i.feat is None:
-        frame_i.feat, frame_i.pos, _ = model._encode_image(
+        frame_i.feat, frame_i.pos, _ = monst3r._encode_image(
             frame_i.img, frame_i.img_true_shape
         )
     if frame_j.feat is None:
-        frame_j.feat, frame_j.pos, _ = model._encode_image(
+        frame_j.feat, frame_j.pos, _ = monst3r._encode_image(
             frame_j.img, frame_j.img_true_shape
         )
-    
-    # Using MASt3R's encoded features since MONSt3R doesn't output features
+
     feat1, feat2 = frame_i.feat, frame_j.feat
     pos1, pos2 = frame_i.pos, frame_j.pos
     shape1, shape2 = frame_i.img_true_shape, frame_j.img_true_shape
+    
 
-    res11, res21 = mast3r_decoder(model, feat1, feat2, pos1, pos2, shape1, shape2)
+    # MonST3R inference
+    res11, res21 = monst3r_decoder(monst3r, feat1, feat2, pos1, pos2, shape1, shape2)
+    res = [res11, res21]
+    X, C = zip(
+        *[(r["pts3d"][0], r["conf"][0]) for r in res]
+    )
+    X, C = torch.stack(X), torch.stack(C)
+    #X = torch.stack([pred1['pts3d'][0], pred2['pts3d_in_other_view'][0]], dim=0)
+    #C = torch.stack([pred1['conf'][0], pred2['conf'][0]], dim=0)
+    
+
+    # Using MASt3R's encoded features since MONSt3R doesn't output features
+    res11, res21 = mast3r_decoder(mast3r, feat1, feat2, pos1, pos2, shape1, shape2)
     res = [res11, res21]
     _, _, D, Q = zip(
         *[(r["pts3d"][0], r["conf"][0], r["desc"][0], r["desc_conf"][0]) for r in res]
     )
-    # 4xhxwxc
     # Create descriptors from encoded features from MASt3R
     D, Q = torch.stack(D), torch.stack(Q)
     
@@ -279,8 +262,11 @@ def monst3r_asymmetric_inference(model, frame_i, frame_j):
     return X, C, D, Q
 
 
-def monst3r_match_asymmetric(model, frame_i, frame_j, idx_i2j_init=None):
-    X, C, D, Q = monst3r_asymmetric_inference(model, frame_i, frame_j)
+def monst3r_match_asymmetric(mast3r, monst3r, frame_i, frame_j, idx_i2j_init=None):
+    X, C, D, Q = monst3r_asymmetric_inference(mast3r=mast3r, 
+                                              monst3r=monst3r, 
+                                              frame_i=frame_i, 
+                                              frame_j=frame_j)
 
     b, h, w = X.shape[:-1]
     # 2 outputs per inference
