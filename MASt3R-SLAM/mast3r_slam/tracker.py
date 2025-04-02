@@ -40,27 +40,6 @@ class FrameTracker:
 
         Qk = torch.sqrt(Qff[idx_f2k] * Qkf)
 
-        # Detect dynamic objects if enabled in config
-        if config.get("use_dynamic_mask", False):
-            try:
-                dynamic_mask = get_dynamic_mask(
-                    self.model, frame, keyframe, 
-                    threshold=config.get("dynamic_mask_threshold", 0.35)
-                )
-                # Use dynamic mask to filter out points on moving objects
-                # Reshape dynamic_mask to match our points
-                h, w = dynamic_mask.shape
-                reshaped_mask = dynamic_mask.reshape(-1)
-                # Filter valid matches based on dynamic mask
-                # Lower confidence for points on dynamic objects
-                dynamic_points = reshaped_mask[idx_f2k] > 0.5
-                Qk[dynamic_points] *= (1.0 - config.get("dynamic_points_weight", 0.8))
-                
-                # Store dynamic mask in frame for visualization
-                frame.dynamic_mask = dynamic_mask
-            except Exception as e:
-                print(f"Failed to compute dynamic mask: {e}")
-
         # Update keyframe pointmap after registration (need pose)
         frame.update_pointmap(Xff, Cff)
 

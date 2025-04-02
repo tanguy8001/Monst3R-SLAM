@@ -8,7 +8,7 @@ import lietorch
 import torch
 import tqdm
 import yaml
-from mast3r_slam.global_opt import FactorGraph
+from mast3r_slam.global_opt2 import FactorGraph
 
 from mast3r_slam.config import load_config, config, set_global_config
 from mast3r_slam.dataloader import Intrinsics, load_dataset
@@ -149,7 +149,7 @@ def run_backend(cfg, model, states, keyframes, K, all_frames=None):
 
 
 if __name__ == "__main__":
-    mp.set_start_method("spawn")
+    mp.set_start_method("fork")
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.set_grad_enabled(False)
     device = "cuda:0"

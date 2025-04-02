@@ -31,7 +31,7 @@ def load_retriever(mast3r_model, retriever_path=None, device="cuda"):
     return retriever
 
 # Process features through the decoder and downstream head, 
-# Get pts3d, descs, confs, desc_confs
+# Get pts3d, descs, confs, desc_confs ie. MASt3R's head_3D & head_desc outputs
 @torch.inference_mode
 def decoder(model, feat1, feat2, pos1, pos2, shape1, shape2):
     dec1, dec2 = model._decoder(feat1, pos1, feat2, pos2)

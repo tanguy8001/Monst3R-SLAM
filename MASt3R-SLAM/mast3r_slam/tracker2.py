@@ -12,7 +12,7 @@ from mast3r_slam.config import config
 from mast3r_slam.monst3r_utils import monst3r_match_asymmetric, get_dynamic_mask
 
 
-class FrameTracker:
+class FrameTracker2:
     def __init__(self, model, frames, device):
         self.cfg = config["tracking"]
         self.model = model
