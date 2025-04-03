@@ -25,7 +25,7 @@ def load_mast3r(path=None, device="cuda"):
 
 def load_monst3r(path=None, device="cuda"):
     weights_path = (
-        "/work/courses/3dv/24/MASt3R-SLAM/thirdparty/monst3r/checkpoints/MonST3R_PO-TA-S-W_ViTLarge_BaseDecoder_512_dpt.pth"
+        "thirdparty/monst3r/checkpoints/MonST3R_PO-TA-S-W_ViTLarge_BaseDecoder_512_dpt.pth"
         if path is None
         else path
     )
