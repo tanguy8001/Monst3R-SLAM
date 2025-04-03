@@ -8,10 +8,15 @@ from mast3r_slam.geometry import (
 from mast3r_slam.monst3r_utils import monst3r_match_symmetric
 import mast3r_slam_backends
 
-
+"""
+Manages the factor graph for the global optimization.
+- Nodes are keyframes with their poses T_WC and 3D points X_C
+- Edges represent matched features between keyframe pairs
+"""
 class FactorGraph:
-    def __init__(self, model, frames: SharedKeyframes, K=None, device="cuda"):
-        self.model = model
+    def __init__(self, mast3r, monst3r, frames: SharedKeyframes, K=None, device="cuda"):
+        self.mast3r = mast3r
+        self.monst3r = monst3r
         self.frames = frames
         self.device = device
         self.cfg = config["local_opt"]
@@ -47,7 +52,11 @@ class FactorGraph:
             Qji,
             Qij,
         ) = monst3r_match_symmetric(
-            self.model, feat_i, pos_i, feat_j, pos_j, shape_i, shape_j
+            mast3r=self.mast3r, 
+            monst3r=self.monst3r, 
+            feat_i=feat_i, pos_i=pos_i, 
+            feat_j=feat_j, pos_j=pos_j, 
+            shape_i=shape_i, shape_j=shape_j
         )
 
         batch_inds = torch.arange(idx_i2j.shape[0], device=idx_i2j.device)[

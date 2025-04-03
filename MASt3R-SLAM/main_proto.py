@@ -8,8 +8,8 @@ import lietorch
 import torch
 import tqdm
 import yaml
-from mast3r_slam.global_opt2 import FactorGraph
 
+from mast3r_slam.global_opt2 import FactorGraph
 from mast3r_slam.config import load_config, config, set_global_config
 from mast3r_slam.dataloader import Intrinsics, load_dataset
 import mast3r_slam.evaluate as eval
@@ -78,12 +78,12 @@ def relocalization(frame, keyframes, factor_graph, retrieval_database, all_frame
         return successful_loop_closure
 
 
-def run_backend(cfg, model, states, keyframes, K, all_frames=None):
+def run_backend(cfg, mast3r, monst3r, states, keyframes, K, all_frames=None):
     set_global_config(cfg)
 
     device = keyframes.device
-    factor_graph = FactorGraph(model, keyframes, K, device)
-    retrieval_database = load_retriever(model)
+    factor_graph = FactorGraph(mast3r, monst3r, keyframes, K, device)
+    retrieval_database = load_retriever(mast3r)
 
     mode = states.get_mode()
     while mode is not Mode.TERMINATED:

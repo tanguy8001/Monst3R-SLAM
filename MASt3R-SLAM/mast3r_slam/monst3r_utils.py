@@ -96,6 +96,7 @@ def monst3r_symmetric_inference(mast3r, monst3r, frame_i, frame_j):
     pos1, pos2 = frame_i.pos, frame_j.pos
     shape1, shape2 = frame_i.img_true_shape, frame_j.img_true_shape
 
+    # MASt3R inference
     res11, res21 = mast3r_decoder(mast3r, feat1, feat2, pos1, pos2, shape1, shape2)
     res22, res12 = mast3r_decoder(mast3r, feat2, feat1, pos2, pos1, shape2, shape1)
     res = [res11, res21, res22, res12]
@@ -103,7 +104,13 @@ def monst3r_symmetric_inference(mast3r, monst3r, frame_i, frame_j):
         *[(r["pts3d"][0], r["conf"][0], r["desc"][0], r["desc_conf"][0]) for r in res]
     )
 
-
+    # MonST3R inference
+    res11, res21 = monst3r_decoder(monst3r, feat1, feat2, pos1, pos2, shape1, shape2)
+    res22, res12 = monst3r_decoder(monst3r, feat2, feat1, pos2, pos1, shape2, shape1)
+    res = [res11, res21, res22, res12]
+    X, C = zip(
+        *[(r["pts3d"][0], r["conf"][0]) for r in res]
+    )
 
     # 4xhxwxc
     X, C, D, Q = torch.stack(X), torch.stack(C), torch.stack(D), torch.stack(Q)
@@ -114,7 +121,7 @@ def monst3r_symmetric_inference(mast3r, monst3r, frame_i, frame_j):
 # NOTE: Assumes img shape the same
 @torch.inference_mode
 def monst3r_decode_symmetric_batch(
-    model, feat_i, pos_i, feat_j, pos_j, shape_i, shape_j
+    mast3r, monst3r, feat_i, pos_i, feat_j, pos_j, shape_i, shape_j
 ):
     B = feat_i.shape[0]
     X, C, D, Q = [], [], [], []
@@ -123,15 +130,26 @@ def monst3r_decode_symmetric_batch(
         feat2 = feat_j[b][None]
         pos1 = pos_i[b][None]
         pos2 = pos_j[b][None]
-        res11, res21 = mast3r_decoder(model, feat1, feat2, pos1, pos2, shape_i[b], shape_j[b])
-        res22, res12 = mast3r_decoder(model, feat2, feat1, pos2, pos1, shape_j[b], shape_i[b])
+
+        # MASt3R inference
+        res11, res21 = mast3r_decoder(mast3r, feat1, feat2, pos1, pos2, shape_i[b], shape_j[b])
+        res22, res12 = mast3r_decoder(mast3r, feat2, feat1, pos2, pos1, shape_j[b], shape_i[b])
         res = [res11, res21, res22, res12]
-        Xb, Cb, Db, Qb = zip(
+        _, _, Db, Qb = zip(
             *[
                 (r["pts3d"][0], r["conf"][0], r["desc"][0], r["desc_conf"][0])
                 for r in res
             ]
         )
+
+        # MonST3R inference
+        res11, res21 = monst3r_decoder(monst3r, feat1, feat2, pos1, pos2, shape_i[b], shape_j[b])
+        res22, res12 = monst3r_decoder(monst3r, feat2, feat1, pos2, pos1, shape_j[b], shape_i[b])
+        res = [res11, res21, res22, res12]
+        Xb, Cb = zip(
+            *[(r["pts3d"][0], r["conf"][0]) for r in res]
+        )
+
         X.append(torch.stack(Xb, dim=0))
         C.append(torch.stack(Cb, dim=0))
         D.append(torch.stack(Db, dim=0))
@@ -174,9 +192,9 @@ def monst3r_inference_mono(monst3r, frame):
     return Xii, Cii
 
 
-def monst3r_match_symmetric(model, feat_i, pos_i, feat_j, pos_j, shape_i, shape_j):
+def monst3r_match_symmetric(mast3r, monst3r, feat_i, pos_i, feat_j, pos_j, shape_i, shape_j):
     X, C, D, Q = monst3r_decode_symmetric_batch(
-        model, feat_i, pos_i, feat_j, pos_j, shape_i, shape_j
+        mast3r, monst3r, feat_i, pos_i, feat_j, pos_j, shape_i, shape_j
     )
 
     # Ordering 4xbxhxwxc
