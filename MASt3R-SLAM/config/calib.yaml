@@ -2,4 +2,4 @@ inherit: "config/base.yaml"
 
 use_calib: True
 dataset:
-  subsample: 2
+  subsample: 8

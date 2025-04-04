@@ -335,7 +335,9 @@ if __name__ == "__main__":
         # Save keyframe trajectory (for backward compatibility)
         eval.save_traj(save_dir, f"{seq_name}_keyframes.txt", dataset.timestamps, keyframes)
         # Save full trajectory with all frames
+        print("Saving full trajectory to ", save_dir, f"{seq_name}.txt")
         eval.save_full_traj(save_dir, f"{seq_name}.txt", all_frames)
+        eval.save_full_traj("/work/courses/3dv/24/MASt3R-SLAM/", "tum_room.txt", all_frames)
         eval.save_reconstruction(
             save_dir,
             f"{seq_name}.ply",

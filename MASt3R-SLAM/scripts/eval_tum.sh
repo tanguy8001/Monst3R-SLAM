@@ -5,8 +5,8 @@
 #SBATCH --output=eval_tum%j.out
 
 cd /work/courses/3dv/24/MASt3R-SLAM
-source /home/tdieudonne/.bashrc
-conda activate slam
+source /home/jsathiaraj/.bashrc
+conda activate mast3rslam
 
 echo "Starting evaluation of TUM dataset at: $(date)"
 
@@ -53,7 +53,7 @@ if [ "$print_only" = false ]; then
 fi
 
 for dataset in ${datasets[@]}; do
-    dataset_name="$dataset_path""$dataset"/
+    dataset_name="$dataset_path""$dataset"
     echo ${dataset_name}
     if [ "$no_calib" = true ]; then
         evo_ape tum $dataset_name/groundtruth.txt logs/tum/no_calib/$dataset/$dataset.txt -as

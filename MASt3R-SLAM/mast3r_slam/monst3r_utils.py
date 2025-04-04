@@ -307,10 +307,22 @@ def monst3r_match_asymmetric(mast3r, monst3r, frame_i, frame_j, idx_i2j_init=Non
 
     return idx_i2j, valid_match_j, Xii, Cii, Qii, Xji, Cji, Qji
 
-def get_dynamic_mask(model, frame_i, frame_j, threshold=0.35):
+def get_dynamic_mask(monst3r, frame_i, frame_j, threshold=0.35):
     """
     Get dynamic mask between two frames using MonST3R
-    Returns a binary mask where True indicates dynamic content
+    
+    This function uses the pairwise pointmaps from MonST3R to identify dynamic objects
+    by comparing the stereo reconstruction from two viewpoints. Areas with high reprojection
+    error/geometric inconsistency are likely to be dynamic objects.
+    
+    Args:
+        monst3r: MonST3R model
+        frame_i: First frame
+        frame_j: Second frame
+        threshold: Threshold for classifying pixels as dynamic (0.0-1.0)
+        
+    Returns:
+        dynamic_mask: Binary mask where 1 indicates dynamic content (H×W tensor)
     """
     # Create image dictionaries for MonST3R
     img_i = {
@@ -325,35 +337,58 @@ def get_dynamic_mask(model, frame_i, frame_j, threshold=0.35):
         'true_shape': frame_j.img_true_shape
     }
     
-    # Create pairs in both directions
-    pairs = [(img_i, img_j), (img_j, img_i)]
+    # Create pairs in both directions for better dynamic detection
+    pairs = make_pairs([img_i, img_j])
     
-    # Run MonST3R inference
+    # Run MonST3R inference to get pointmaps
     with torch.no_grad():
-        output = inference(pairs, model, frame_i.img.device, batch_size=1, verbose=False)
+        outputs = inference(pairs, monst3r, device=frame_i.img.device, batch_size=1, verbose=False)
     
-    # Get predictions
-    pred1_forward = output['pred1'][0]  # i->j
-    pred2_forward = output['pred2'][0]  # i->j result
-    pred1_backward = output['pred1'][1]  # j->i
-    pred2_backward = output['pred2'][1]  # j->i result
+    # Get the pointmaps from both directions
+    # i->j direction
+    forward_pts3d = outputs[0]['pred1']['pts3d'][0]  # (H, W, 3)
+    forward_pts3d_in_other = outputs[0]['pred2']['pts3d_in_other_view'][0]  # (H, W, 3)
     
-    # Compute reprojection error between the two directions
-    # This is a simplified method - actual implementation would need more details
-    # from get_dynamic_mask_from_pairviewer in demo.py
-    pts3d_i = pred1_forward['pts3d']
-    pts3d_j_in_i = pred2_forward['pts3d_in_other_view']
+    # j->i direction
+    backward_pts3d = outputs[1]['pred1']['pts3d'][0]  # (H, W, 3)
+    backward_pts3d_in_other = outputs[1]['pred2']['pts3d_in_other_view'][0]  # (H, W, 3)
     
-    # Calculate reprojection error
-    error_map = torch.norm(pts3d_i - pts3d_j_in_i, dim=-1)
+    # Get the confidence maps
+    forward_conf = outputs[0]['pred1']['conf'][0]  # (H, W)
+    backward_conf = outputs[1]['pred1']['conf'][0]  # (H, W)
     
-    # Normalize error map
-    error_min = error_map.min()
-    error_max = error_map.max()
-    normalized_error = (error_map - error_min) / (error_max - error_min + 1e-8)
+    # Compute geometric inconsistency in forward direction
+    # For each point in frame i, we check if its reconstruction is consistent when viewed from frame j
+    forward_error = torch.norm(forward_pts3d - forward_pts3d_in_other, dim=-1)  # (H, W)
     
-    # Binary threshold
-    dynamic_mask = (normalized_error > threshold).float()
+    # Similarly for backward direction
+    backward_error = torch.norm(backward_pts3d - backward_pts3d_in_other, dim=-1)  # (H, W)
+    
+    # Combine errors from both directions, weighted by confidence
+    combined_error = (forward_error * forward_conf + backward_error * backward_conf) / (forward_conf + backward_conf + 1e-8)
+    
+    # Normalize error map to range [0, 1]
+    error_min = combined_error.min()
+    error_max = combined_error.max()
+    normalized_error = (combined_error - error_min) / (error_max - error_min + 1e-8)
+    
+    # Apply threshold to get binary mask
+    dynamic_mask = (normalized_error > threshold)
+    
+    # Optional: Apply morphological operations to clean up the mask
+    # Convert to numpy for cv2 operations
+    if dynamic_mask.numel() > 0:
+        import cv2
+        import numpy as np
+        
+        mask_np = dynamic_mask.cpu().numpy().astype(np.uint8)
+        # Apply morphological operations to clean up the mask
+        kernel = np.ones((3, 3), np.uint8)
+        mask_np = cv2.morphologyEx(mask_np, cv2.MORPH_OPEN, kernel)
+        mask_np = cv2.morphologyEx(mask_np, cv2.MORPH_CLOSE, kernel)
+        
+        # Convert back to tensor
+        dynamic_mask = torch.from_numpy(mask_np).to(dynamic_mask.device)
     
     return dynamic_mask
 

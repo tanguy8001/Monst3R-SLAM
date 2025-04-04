@@ -46,7 +46,7 @@ class FrameTracker2:
         if config.get("use_dynamic_mask", False):
             try:
                 dynamic_mask = get_dynamic_mask(
-                    self.model, frame, keyframe, 
+                    self.monst3r, frame, keyframe, 
                     threshold=config.get("dynamic_mask_threshold", 0.35)
                 )
                 # Use dynamic mask to filter out points on moving objects
