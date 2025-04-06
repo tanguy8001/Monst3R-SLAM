@@ -41,7 +41,6 @@ class FrameTracker2:
 
         Qk = torch.sqrt(Qff[idx_f2k] * Qkf)
 
-        # TODO: adapt to final get_dynamic_mask fct ---------------------------------
         # Detect dynamic objects if enabled in config
         if config.get("use_dynamic_mask", False):
             try:
@@ -60,10 +59,13 @@ class FrameTracker2:
                 
                 # Store dynamic mask in frame for visualization
                 frame.dynamic_mask = dynamic_mask
+                print(f"Successfully computed dynamic mask for frame {frame.frame_id}")
             except Exception as e:
-                print(f"Failed to compute dynamic mask: {e}")
-
-        # ------------------------------------------------------------------------------
+                print(f"Failed to compute dynamic mask for frame {frame.frame_id}: {str(e)}")
+                print("Continuing without dynamic mask")
+                # Create an empty mask as fallback
+                h, w = frame.img.shape[-2:]
+                frame.dynamic_mask = torch.zeros((h, w), dtype=torch.bool, device=frame.img.device)
 
         # Update keyframe pointmap after registration (need pose)
         frame.update_pointmap(Xff, Cff)

@@ -2,7 +2,7 @@
 #SBATCH --account=3dv
 #SBATCH --partition=jobs
 #SBATCH --time=720
-#SBATCH --output=eval_tum_metrics%j.out
+#SBATCH --output=out/eval_tum_metrics_%j.out
 
 cd /work/courses/3dv/24/MASt3R-SLAM
 source /home/tdieudonne/.bashrc

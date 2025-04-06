@@ -12,6 +12,9 @@ import mast3r_slam.matching as matching
 # TODO: check it uses the right dust3r
 from thirdparty.monst3r.dust3r.inference import inference
 from thirdparty.monst3r.dust3r.image_pairs import make_pairs
+#from thirdparty.monst3r.dust3r.third_party.raft import load_RAFT
+#from thirdparty.monst3r.dust3r.utils.goem_opt import OccMask
+from tqdm import tqdm
 from thirdparty.monst3r.dust3r.model import AsymmetricCroCo3DStereo
 
 def load_mast3r(path=None, device="cuda"):
@@ -324,73 +327,112 @@ def get_dynamic_mask(monst3r, frame_i, frame_j, threshold=0.35):
     Returns:
         dynamic_mask: Binary mask where 1 indicates dynamic content (H×W tensor)
     """
-    # Create image dictionaries for MonST3R
-    img_i = {
-        'img': frame_i.img,
-        'idx': 0,
-        'true_shape': frame_i.img_true_shape
-    }
+    try:
+        # Create image dictionaries for MonST3R
+        img_i = {
+            'img': frame_i.img,
+            'idx': 0,
+            'true_shape': frame_i.img_true_shape
+        }
+        
+        img_j = {
+            'img': frame_j.img,
+            'idx': 1,
+            'true_shape': frame_j.img_true_shape
+        }
+        
+        # Create pairs in both directions for better dynamic detection
+        pairs = make_pairs([img_i, img_j])
+        
+        # Run MonST3R inference to get pointmaps
+        with torch.no_grad():
+            outputs = inference(pairs, monst3r, device=frame_i.img.device, batch_size=1, verbose=False)
+        
+        # Get the pointmaps from both directions
+        # i->j direction
+        forward_pts3d = outputs[0]['pred1']['pts3d'][0]  # (H, W, 3)
+        forward_pts3d_in_other = outputs[0]['pred2']['pts3d_in_other_view'][0]  # (H, W, 3)
+        
+        # j->i direction
+        backward_pts3d = outputs[1]['pred1']['pts3d'][0]  # (H, W, 3)
+        backward_pts3d_in_other = outputs[1]['pred2']['pts3d_in_other_view'][0]  # (H, W, 3)
+        
+        # Get the confidence maps
+        forward_conf = outputs[0]['pred1']['conf'][0]  # (H, W)
+        backward_conf = outputs[1]['pred1']['conf'][0]  # (H, W)
+        
+        # Compute geometric inconsistency in forward direction
+        # For each point in frame i, we check if its reconstruction is consistent when viewed from frame j
+        forward_error = torch.norm(forward_pts3d - forward_pts3d_in_other, dim=-1)  # (H, W)
+        
+        # Similarly for backward direction
+        backward_error = torch.norm(backward_pts3d - backward_pts3d_in_other, dim=-1)  # (H, W)
+        
+        # Combine errors from both directions, weighted by confidence
+        combined_error = (forward_error * forward_conf + backward_error * backward_conf) / (forward_conf + backward_conf + 1e-8)
+        
+        # Normalize error map to range [0, 1]
+        error_min = combined_error.min()
+        error_max = combined_error.max()
+        normalized_error = (combined_error - error_min) / (error_max - error_min + 1e-8)
+        
+        # Apply threshold to get binary mask
+        dynamic_mask = (normalized_error > threshold)
+        
+        # Optional: Apply morphological operations to clean up the mask
+        # Convert to numpy for cv2 operations
+        if dynamic_mask.numel() > 0:
+            import cv2
+            import numpy as np
+            
+            mask_np = dynamic_mask.cpu().numpy().astype(np.uint8)
+            # Apply morphological operations to clean up the mask
+            kernel = np.ones((3, 3), np.uint8)
+            mask_np = cv2.morphologyEx(mask_np, cv2.MORPH_OPEN, kernel)
+            mask_np = cv2.morphologyEx(mask_np, cv2.MORPH_CLOSE, kernel)
+            
+            # Convert back to tensor
+            dynamic_mask = torch.from_numpy(mask_np).to(dynamic_mask.device)
+        
+        return dynamic_mask
+        
+    except Exception as e:
+        print(f"Error in dynamic mask generation: {e}")
+        # Return an empty mask in case of failure
+        h, w = frame_i.img.shape[1:3]
+        return torch.zeros((h, w), dtype=torch.bool, device=frame_i.img.device)
     
-    img_j = {
-        'img': frame_j.img,
-        'idx': 1,
-        'true_shape': frame_j.img_true_shape
-    }
-    
-    # Create pairs in both directions for better dynamic detection
-    pairs = make_pairs([img_i, img_j])
-    
-    # Run MonST3R inference to get pointmaps
+def get_flow(self, sintel_ckpt=False): #TODO: test with gt flow
+    print('precomputing flow...')
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    get_valid_flow_mask = OccMask(th=3.0)
+    pair_imgs = [np.stack(self.imgs)[self._ei], np.stack(self.imgs)[self._ej]]
+    flow_net = load_RAFT() if sintel_ckpt else load_RAFT("thirdparty/monst3r/dust3r/third_party/RAFT/models/Tartan-C-T-TSKH-spring540x960-M.pth")
+    flow_net = flow_net.to(device)
+    flow_net.eval()
     with torch.no_grad():
-        outputs = inference(pairs, monst3r, device=frame_i.img.device, batch_size=1, verbose=False)
-    
-    # Get the pointmaps from both directions
-    # i->j direction
-    forward_pts3d = outputs[0]['pred1']['pts3d'][0]  # (H, W, 3)
-    forward_pts3d_in_other = outputs[0]['pred2']['pts3d_in_other_view'][0]  # (H, W, 3)
-    
-    # j->i direction
-    backward_pts3d = outputs[1]['pred1']['pts3d'][0]  # (H, W, 3)
-    backward_pts3d_in_other = outputs[1]['pred2']['pts3d_in_other_view'][0]  # (H, W, 3)
-    
-    # Get the confidence maps
-    forward_conf = outputs[0]['pred1']['conf'][0]  # (H, W)
-    backward_conf = outputs[1]['pred1']['conf'][0]  # (H, W)
-    
-    # Compute geometric inconsistency in forward direction
-    # For each point in frame i, we check if its reconstruction is consistent when viewed from frame j
-    forward_error = torch.norm(forward_pts3d - forward_pts3d_in_other, dim=-1)  # (H, W)
-    
-    # Similarly for backward direction
-    backward_error = torch.norm(backward_pts3d - backward_pts3d_in_other, dim=-1)  # (H, W)
-    
-    # Combine errors from both directions, weighted by confidence
-    combined_error = (forward_error * forward_conf + backward_error * backward_conf) / (forward_conf + backward_conf + 1e-8)
-    
-    # Normalize error map to range [0, 1]
-    error_min = combined_error.min()
-    error_max = combined_error.max()
-    normalized_error = (combined_error - error_min) / (error_max - error_min + 1e-8)
-    
-    # Apply threshold to get binary mask
-    dynamic_mask = (normalized_error > threshold)
-    
-    # Optional: Apply morphological operations to clean up the mask
-    # Convert to numpy for cv2 operations
-    if dynamic_mask.numel() > 0:
-        import cv2
-        import numpy as np
-        
-        mask_np = dynamic_mask.cpu().numpy().astype(np.uint8)
-        # Apply morphological operations to clean up the mask
-        kernel = np.ones((3, 3), np.uint8)
-        mask_np = cv2.morphologyEx(mask_np, cv2.MORPH_OPEN, kernel)
-        mask_np = cv2.morphologyEx(mask_np, cv2.MORPH_CLOSE, kernel)
-        
-        # Convert back to tensor
-        dynamic_mask = torch.from_numpy(mask_np).to(dynamic_mask.device)
-    
-    return dynamic_mask
+        chunk_size = 12
+        flow_ij = []
+        flow_ji = []
+        num_pairs = len(pair_imgs[0])
+        for i in tqdm(range(0, num_pairs, chunk_size)):
+            end_idx = min(i + chunk_size, num_pairs)
+            imgs_ij = [torch.tensor(pair_imgs[0][i:end_idx]).float().to(device),
+                    torch.tensor(pair_imgs[1][i:end_idx]).float().to(device)]
+            flow_ij.append(flow_net(imgs_ij[0].permute(0, 3, 1, 2) * 255, 
+                                    imgs_ij[1].permute(0, 3, 1, 2) * 255, 
+                                    iters=20, test_mode=True)[1])
+            flow_ji.append(flow_net(imgs_ij[1].permute(0, 3, 1, 2) * 255, 
+                                    imgs_ij[0].permute(0, 3, 1, 2) * 255, 
+                                    iters=20, test_mode=True)[1])
+        flow_ij = torch.cat(flow_ij, dim=0)
+        flow_ji = torch.cat(flow_ji, dim=0)
+        valid_mask_i = get_valid_flow_mask(flow_ij, flow_ji)
+        valid_mask_j = get_valid_flow_mask(flow_ji, flow_ij)
+    print('flow precomputed')
+    # delete the flow net
+    if flow_net is not None: del flow_net
+    return flow_ij, flow_ji, valid_mask_i, valid_mask_j
 
 
 def _resize_pil_image(img, long_edge_size):

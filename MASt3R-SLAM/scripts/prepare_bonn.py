@@ -21,7 +21,7 @@ def convert_bonn(groundtruth_path, estimated_path, output_path):
     q = np.quaternion(initial_pose_gt[0,7],initial_pose_gt[0,4],initial_pose_gt[0,5],initial_pose_gt[0,6])
     R = quaternion.as_rotation_matrix(q)
     T_0 = np.block([[R, t], [0, 0, 0, 1]])
-    T_g = T_ros * T_0 * T_ros * T_m     # inv(T_ros) = T_ros
+    T_g = T_ros @ T_0 @ T_ros @ T_m     # inv(T_ros) = T_ros
 
     transformed_poses = []
     for pose in estimated_poses:

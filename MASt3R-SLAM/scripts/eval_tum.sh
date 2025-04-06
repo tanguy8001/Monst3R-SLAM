@@ -2,11 +2,11 @@
 #SBATCH --account=3dv
 #SBATCH --partition=jobs
 #SBATCH --time=720
-#SBATCH --output=eval_tum%j.out
+#SBATCH --output=results/eval_tum_%j.out
 
 cd /work/courses/3dv/24/MASt3R-SLAM
-source /home/jsathiaraj/.bashrc
-conda activate mast3rslam
+source /home/tdieudonne/.bashrc
+conda activate slam
 
 echo "Starting evaluation of TUM dataset at: $(date)"
 

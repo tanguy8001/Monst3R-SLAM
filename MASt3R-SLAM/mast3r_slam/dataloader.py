@@ -69,24 +69,39 @@ class TUMDataset(MonocularDataset):
         super().__init__()
         self.dataset_path = pathlib.Path(dataset_path)
         rgb_list = self.dataset_path / "rgb.txt"
-        tstamp_rgb = np.loadtxt(rgb_list, delimiter=" ", dtype=np.unicode_, skiprows=0)
-        self.rgb_files = [self.dataset_path / f for f in tstamp_rgb[:, 1]]
-        self.timestamps = tstamp_rgb[:, 0]
+        print(f"Loading TUM Dataset from: {dataset_path}")
+        print(f"RGB list path: {rgb_list}, exists: {rgb_list.exists()}")
+        
+        try:
+            tstamp_rgb = np.loadtxt(rgb_list, delimiter=" ", dtype=np.unicode_, skiprows=0)
+            print(f"RGB list loaded, shape: {tstamp_rgb.shape}")
+            self.rgb_files = [self.dataset_path / f for f in tstamp_rgb[:, 1]]
+            self.timestamps = tstamp_rgb[:, 0]
+            print(f"Number of loaded RGB files: {len(self.rgb_files)}")
+            if len(self.rgb_files) > 0:
+                print(f"First RGB file: {self.rgb_files[0]}, exists: {self.rgb_files[0].exists()}")
+        except Exception as e:
+            print(f"Error loading RGB list: {e}")
+            self.rgb_files = []
+            self.timestamps = []
 
-        match = re.search(r"freiburg(\d+)", dataset_path)
-        idx = int(match.group(1))
-        if idx == 1:
-            calib = np.array(
-                [517.3, 516.5, 318.6, 255.3, 0.2624, -0.9531, -0.0054, 0.0026, 1.1633]
-            )
-        if idx == 2:
-            calib = np.array(
-                [520.9, 521.0, 325.1, 249.7, 0.2312, -0.7849, -0.0033, -0.0001, 0.9172]
-            )
-        if idx == 3:
-            calib = np.array([535.4, 539.2, 320.1, 247.6])
-        W, H = 640, 480
-        self.camera_intrinsics = Intrinsics.from_calib(self.img_size, W, H, calib)
+        try:
+            match = re.search(r"freiburg(\d+)", str(dataset_path))
+            idx = int(match.group(1))
+            if idx == 1:
+                calib = np.array(
+                    [517.3, 516.5, 318.6, 255.3, 0.2624, -0.9531, -0.0054, 0.0026, 1.1633]
+                )
+            if idx == 2:
+                calib = np.array(
+                    [520.9, 521.0, 325.1, 249.7, 0.2312, -0.7849, -0.0033, -0.0001, 0.9172]
+                )
+            if idx == 3:
+                calib = np.array([535.4, 539.2, 320.1, 247.6])
+            W, H = 640, 480
+            self.camera_intrinsics = Intrinsics.from_calib(self.img_size, W, H, calib)
+        except Exception as e:
+            print(f"Error setting camera intrinsics: {e}")
 
 class BonnDataset(MonocularDataset):
     def __init__(self, dataset_path):
@@ -333,7 +348,7 @@ def load_dataset(dataset_path):
     split_dataset_type = dataset_path.split("/")
     if "bonn" in split_dataset_type:
         return BonnDataset(dataset_path)
-    if "tum" in split_dataset_type:
+    if any(s.lower() == "tum" or s.lower() == "tum2" or "tum" in s.lower() for s in split_dataset_type):
         return TUMDataset(dataset_path)
     if "euroc" in split_dataset_type:
         return EurocDataset(dataset_path)

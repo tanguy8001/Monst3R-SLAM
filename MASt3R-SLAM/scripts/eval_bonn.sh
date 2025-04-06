@@ -27,17 +27,17 @@ datasets=(
     #rgbd_bonn_balloon_tracking
     #rgbd_bonn_removing_nonobstructing_box
     #rgbd_bonn_moving_obstructing_box
-    #rgbd_bonn_person_tracking
+    rgbd_bonn_person_tracking
     #rgbd_bonn_placing_nonobstructing_box2
     #rgbd_bonn_crowd2
-    rgbd_bonn_person_tracking2
-    rgbd_bonn_crowd3
-    rgbd_bonn_placing_nonobstructing_box3
-    rgbd_bonn_balloon2
-    rgbd_bonn_moving_obstructing_box2
-    rgbd_bonn_balloon_tracking2
-    rgbd_bonn_placing_obstructing_box
-    rgbd_bonn_kidnapping_box2
+    #rgbd_bonn_person_tracking2
+    #rgbd_bonn_crowd3
+    #rgbd_bonn_placing_nonobstructing_box3
+    #rgbd_bonn_balloon2
+    #rgbd_bonn_moving_obstructing_box2
+    #rgbd_bonn_balloon_tracking2
+    #rgbd_bonn_placing_obstructing_box
+    #rgbd_bonn_kidnapping_box2
 )
 
 no_calib=false

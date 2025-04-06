@@ -1,0 +1,89 @@
+Starting evaluation of TUM 2 dataset at: Sun Apr  6 15:37:17 CEST 2025
+datasets/tum2/rgbd_dataset_freiburg2_desk_with_person
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.066254
+      mean	0.015524
+    median	0.014906
+       min	0.000929
+      rmse	0.017526
+       sse	1.109472
+       std	0.008134
+
+datasets/tum2/rgbd_dataset_freiburg3_sitting_halfsphere
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.063241
+      mean	0.018851
+    median	0.016694
+       min	0.002840
+      rmse	0.021051
+       sse	0.489690
+       std	0.009371
+
+datasets/tum2/rgbd_dataset_freiburg3_sitting_rpy
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.112497
+      mean	0.025614
+    median	0.020514
+       min	0.001242
+      rmse	0.029986
+       sse	0.734592
+       std	0.015591
+
+datasets/tum2/rgbd_dataset_freiburg3_sitting_static
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.019648
+      mean	0.004172
+    median	0.003630
+       min	0.000430
+      rmse	0.004850
+       sse	0.016535
+       std	0.002474
+
+datasets/tum2/rgbd_dataset_freiburg3_sitting_xyz
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.052284
+      mean	0.009283
+    median	0.008477
+       min	0.000891
+      rmse	0.010767
+       sse	0.145851
+       std	0.005456
+
+datasets/tum2/rgbd_dataset_freiburg3_walking_halfsphere
+[ERROR] csv file logs/tum2/calib/rgbd_dataset_freiburg3_walking_halfsphere/rgbd_dataset_freiburg3_walking_halfsphere.txt does not exist
+datasets/tum2/rgbd_dataset_freiburg3_walking_rpy
+[ERROR] csv file logs/tum2/calib/rgbd_dataset_freiburg3_walking_rpy/rgbd_dataset_freiburg3_walking_rpy.txt does not exist
+datasets/tum2/rgbd_dataset_freiburg3_walking_static
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.030383
+      mean	0.008282
+    median	0.006811
+       min	0.000407
+      rmse	0.009419
+       sse	0.065645
+       std	0.004485
+
+datasets/tum2/rgbd_dataset_freiburg3_walking_xyz
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	0.068502
+      mean	0.016099
+    median	0.014075
+       min	0.001807
+      rmse	0.018377
+       sse	0.289097
+       std	0.008862
+
