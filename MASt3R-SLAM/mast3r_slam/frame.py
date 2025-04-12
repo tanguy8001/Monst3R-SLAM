@@ -31,6 +31,24 @@ class Frame:
     K: Optional[torch.Tensor] = None
     dynamic_mask: Optional[torch.Tensor] = None
 
+    def __init__(
+        self,
+        frame_id: int,
+        img: torch.Tensor,
+        img_shape: torch.Tensor,
+        img_true_shape: torch.Tensor,
+        uimg: torch.Tensor,
+        T_WC: lietorch.Sim3 = lietorch.Sim3.Identity(1),
+        K: Optional[torch.Tensor] = None,
+    ):
+        self.frame_id = frame_id
+        self.img = img
+        self.img_shape = img_shape
+        self.img_true_shape = img_true_shape
+        self.uimg = uimg
+        self.T_WC = T_WC
+        self.K = K
+
     def get_score(self, C):
         filtering_score = config["tracking"]["filtering_score"]
         if filtering_score == "median":
@@ -109,17 +127,17 @@ class Frame:
         return self.C / self.N if self.C is not None else None
 
 
-def create_frame(i, img, T_WC, img_size=512, device="cuda:0"):
+def create_frame(i, img, T_WC, K=None, img_size=512, device="cuda:0"):
     img = resize_img(img, img_size)
     rgb = img["img"].to(device=device)
     img_shape = torch.tensor(img["true_shape"], device=device)
     img_true_shape = img_shape.clone()
-    uimg = torch.from_numpy(img["unnormalized_img"]) / 255.0
+    uimg = torch.from_numpy(img["unnormalized_img"].copy()) / 255.0
     downsample = config["dataset"]["img_downsample"]
     if downsample > 1:
         uimg = uimg[::downsample, ::downsample]
         img_shape = img_shape // downsample
-    frame = Frame(i, rgb, img_shape, img_true_shape, uimg, T_WC)
+    frame = Frame(i, rgb, img_shape, img_true_shape, uimg, T_WC, K=K)
     return frame
 
 

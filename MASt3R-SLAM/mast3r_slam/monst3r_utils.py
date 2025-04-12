@@ -2,6 +2,9 @@ import PIL
 import numpy as np
 import torch
 import einops
+from tqdm import tqdm
+import lietorch
+import os
 
 import mast3r.utils.path_to_dust3r  # noqa
 from dust3r.utils.image import ImgNorm
@@ -12,10 +15,10 @@ import mast3r_slam.matching as matching
 # TODO: check it uses the right dust3r
 from thirdparty.monst3r.dust3r.inference import inference
 from thirdparty.monst3r.dust3r.image_pairs import make_pairs
-#from thirdparty.monst3r.dust3r.third_party.raft import load_RAFT
-#from thirdparty.monst3r.dust3r.utils.goem_opt import OccMask
-from tqdm import tqdm
+from thirdparty.monst3r.third_party.raft import load_RAFT
+from thirdparty.monst3r.dust3r.utils.goem_opt import OccMask
 from thirdparty.monst3r.dust3r.model import AsymmetricCroCo3DStereo
+from thirdparty.monst3r.dust3r.utils.goem_opt import DepthBasedWarping
 
 def load_mast3r(path=None, device="cuda"):
     weights_path = (
@@ -310,97 +313,168 @@ def monst3r_match_asymmetric(mast3r, monst3r, frame_i, frame_j, idx_i2j_init=Non
 
     return idx_i2j, valid_match_j, Xii, Cii, Qii, Xji, Cji, Qji
 
+@torch.inference_mode()
 def get_dynamic_mask(monst3r, frame_i, frame_j, threshold=0.35):
     """
-    Get dynamic mask between two frames using MonST3R
+    Get dynamic mask between two frames using MonST3R and RAFT.
     
-    This function uses the pairwise pointmaps from MonST3R to identify dynamic objects
-    by comparing the stereo reconstruction from two viewpoints. Areas with high reprojection
-    error/geometric inconsistency are likely to be dynamic objects.
+    Compares optical flow (RAFT) with ego-motion flow (MonST3R depth + relative pose)
+    to identify inconsistencies indicative of dynamic objects.
     
     Args:
-        monst3r: MonST3R model
-        frame_i: First frame
-        frame_j: Second frame
-        threshold: Threshold for classifying pixels as dynamic (0.0-1.0)
+        monst3r: Initialized MonST3R model.
+        frame_i: First frame object (needs img, T_WC, K).
+        frame_j: Second frame object (needs img, T_WC, K).
+        threshold: Threshold for classifying pixels as dynamic based on normalized flow error (0.0-1.0).
         
     Returns:
-        dynamic_mask: Binary mask where 1 indicates dynamic content (H×W tensor)
+        dynamic_mask: Binary mask (HxW tensor) where True indicates dynamic content.
+                      Returns an empty mask if calculation fails (e.g., missing calibration).
     """
+    device = frame_i.img.device
+    h, w = frame_i.img.shape[-2:]
+    empty_mask = torch.zeros((h, w), dtype=torch.bool, device=device)
+
+    # 1. Check for calibration (required for ego-motion flow)
+    if not hasattr(frame_i, 'K') or not hasattr(frame_j, 'K') or frame_i.K is None or frame_j.K is None:
+        print("Warning: Cannot compute dynamic mask without camera calibration (K).")
+        return empty_mask
+
+    # 2. Load RAFT model (Consider caching this outside if called frequently)
     try:
-        # Create image dictionaries for MonST3R
-        img_i = {
-            'img': frame_i.img,
-            'idx': 0,
-            'true_shape': frame_i.img_true_shape
-        }
-        
-        img_j = {
-            'img': frame_j.img,
-            'idx': 1,
-            'true_shape': frame_j.img_true_shape
-        }
-        
-        # Create pairs in both directions for better dynamic detection
-        pairs = make_pairs([img_i, img_j])
-        
-        # Run MonST3R inference to get pointmaps
-        with torch.no_grad():
-            outputs = inference(pairs, monst3r, device=frame_i.img.device, batch_size=1, verbose=False)
-        
-        # Get the pointmaps from both directions
-        # i->j direction
-        forward_pts3d = outputs[0]['pred1']['pts3d'][0]  # (H, W, 3)
-        forward_pts3d_in_other = outputs[0]['pred2']['pts3d_in_other_view'][0]  # (H, W, 3)
-        
-        # j->i direction
-        backward_pts3d = outputs[1]['pred1']['pts3d'][0]  # (H, W, 3)
-        backward_pts3d_in_other = outputs[1]['pred2']['pts3d_in_other_view'][0]  # (H, W, 3)
-        
-        # Get the confidence maps
-        forward_conf = outputs[0]['pred1']['conf'][0]  # (H, W)
-        backward_conf = outputs[1]['pred1']['conf'][0]  # (H, W)
-        
-        # Compute geometric inconsistency in forward direction
-        # For each point in frame i, we check if its reconstruction is consistent when viewed from frame j
-        forward_error = torch.norm(forward_pts3d - forward_pts3d_in_other, dim=-1)  # (H, W)
-        
-        # Similarly for backward direction
-        backward_error = torch.norm(backward_pts3d - backward_pts3d_in_other, dim=-1)  # (H, W)
-        
-        # Combine errors from both directions, weighted by confidence
-        combined_error = (forward_error * forward_conf + backward_error * backward_conf) / (forward_conf + backward_conf + 1e-8)
-        
-        # Normalize error map to range [0, 1]
-        error_min = combined_error.min()
-        error_max = combined_error.max()
-        normalized_error = (combined_error - error_min) / (error_max - error_min + 1e-8)
-        
-        # Apply threshold to get binary mask
-        dynamic_mask = (normalized_error > threshold)
-        
-        # Optional: Apply morphological operations to clean up the mask
-        # Convert to numpy for cv2 operations
-        if dynamic_mask.numel() > 0:
-            import cv2
-            import numpy as np
-            
-            mask_np = dynamic_mask.cpu().numpy().astype(np.uint8)
-            # Apply morphological operations to clean up the mask
-            kernel = np.ones((3, 3), np.uint8)
-            mask_np = cv2.morphologyEx(mask_np, cv2.MORPH_OPEN, kernel)
-            mask_np = cv2.morphologyEx(mask_np, cv2.MORPH_CLOSE, kernel)
-            
-            # Convert back to tensor
-            dynamic_mask = torch.from_numpy(mask_np).to(dynamic_mask.device)
-        
-        return dynamic_mask
-        
+        # Construct path relative to this file
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        raft_weights_path = os.path.join(current_dir, "../thirdparty/monst3r/third_party/RAFT/models/Tartan-C-T-TSKH-spring540x960-M.pth")
+        raft_weights_path = os.path.normpath(raft_weights_path) # Normalize path (e.g., remove ..)
+
+        # Use the TartanAir checkpoint as in get_flow
+        raft_model = load_RAFT(raft_weights_path)
+        raft_model = raft_model.to(device)
+        raft_model.eval()
     except Exception as e:
-        print(f"Error in dynamic mask generation: {e}")
-        # Return an empty mask in case of failure
-        h, w = frame_i.img.shape[1:3]
-        return torch.zeros((h, w), dtype=torch.bool, device=frame_i.img.device)
+        print(f"Error loading RAFT model: {e}")
+        return empty_mask
+
+    # 3. Compute Optical Flow (RAFT)
+    try:
+        # Prepare images for RAFT (needs BGR, 0-255, CHW format)
+        img_i_raft = frame_i.img.permute(0, 3, 1, 2) * 255
+        img_j_raft = frame_j.img.permute(0, 3, 1, 2) * 255
+        # Ensure batch dimension is present
+        if img_i_raft.dim() == 3: img_i_raft = img_i_raft.unsqueeze(0)
+        if img_j_raft.dim() == 3: img_j_raft = img_j_raft.unsqueeze(0)
+
+        flow_ij = raft_model(img_i_raft, img_j_raft, iters=20, test_mode=True)[1]
+        # Output is Bx2xHxW
+        flow_ij = flow_ij.squeeze(0) # Remove batch dim -> 2xHxW
+    except Exception as e:
+        print(f"Error computing optical flow: {e}")
+        del raft_model # Clean up GPU memory
+        return empty_mask
+    finally:
+         if 'raft_model' in locals() and raft_model is not None:
+             del raft_model # Clean up GPU memory
+
+    # 4. Get Relative Pose T_ji (transform points from i's frame to j's frame)
+    T_WC_i = frame_i.T_WC
+    T_WC_j = frame_j.T_WC
+    if isinstance(T_WC_i, torch.Tensor): T_WC_i = lietorch.Sim3(T_WC_i)
+    if isinstance(T_WC_j, torch.Tensor): T_WC_j = lietorch.Sim3(T_WC_j)
+
+    # T_ji = T_jW * T_Wi = T_WC_j.inv() * T_WC_i # Incorrect: This maps world points in frame i coord system to world points in frame j coord system
+    # Correct: T_ji transforms points FROM frame i coordinate system TO frame j coordinate system
+    # Point_j = T_ji * Point_i
+    # Point_w = T_Wi * Point_i => Point_i = T_Wi.inv() * Point_w
+    # Point_w = T_Wj * Point_j => Point_j = T_Wj.inv() * Point_w
+    # Point_j = T_Wj.inv() * T_Wi * Point_i
+    T_ji = T_WC_j.inv() * T_WC_i
+
+    # Extract rotation and translation (ensure correct types/shapes for DepthBasedWarping)
+    # DepthBasedWarping expects R (Bx3x3), T (Bx3x1)
+    R_ji = T_ji.rotation().matrix().unsqueeze(0)  # 1x3x3
+    T_ji = T_ji.translation().unsqueeze(-1).unsqueeze(0) # 1x3x1
+
+    # 5. Get Depth Map for frame_i
+    try:
+        if frame_i.feat is None:
+             frame_i.feat, frame_i.pos, _ = monst3r._encode_image(frame_i.img, frame_i.img_true_shape)
+        # Perform mono inference to get depth
+        res_i, _ = monst3r_decoder(monst3r, frame_i.feat, frame_i.feat, frame_i.pos, frame_i.pos, frame_i.img_true_shape, frame_i.img_true_shape)
+        depth_i = res_i['pts3d'][0, ..., 2] # HxW
+        # DepthBasedWarping expects inverse depth (disparity) -> Bx1xHxW
+        inv_depth_i = (1.0 / (depth_i + 1e-6)).unsqueeze(0).unsqueeze(0) # 1x1xHxW
+    except Exception as e:
+        print(f"Error computing depth map for frame_i: {e}")
+        return empty_mask
+
+    # 6. Get Intrinsics
+    K_i = frame_i.K.unsqueeze(0) # 1x3x3
+    K_j = frame_j.K.unsqueeze(0) # 1x3x3
+    try:
+        inv_K_i = torch.linalg.inv(K_i) # 1x3x3
+    except Exception as e:
+        print(f"Error inverting intrinsics K_i: {e}")
+        return empty_mask
+
+
+    # 7. Compute Ego-Motion Flow
+    try:
+        depth_warper = DepthBasedWarping().to(device)
+        # ego_flow_ij: Bx3xHxW (flow_x, flow_y, mask)
+        ego_flow_ij, _ = depth_warper(R_ji, T_ji, R_ji.transpose(1,2), -R_ji.transpose(1,2) @ T_ji, inv_depth_i, K_j, inv_K_i) # Use T_ij = inv(T_ji) ? Check docs -> expects pose1 R1,T1 and pose2 R2, T2
+        # Let's re-check DepthBasedWarping call signature vs optimizer.py
+        # optimizer.py: depth_wrapper(R_i, T_i, R_j, T_j, inv_depth_i, K_j, inv_K_i)
+        # This warps points from frame i coordinates (using R_i, T_i world pose) to frame j coordinates (using R_j, T_j world pose)
+        # We want to warp from frame i to frame j using the *relative* pose T_ji
+        # Let P_i be a point in frame i. World point P_w = T_Wi * P_i
+        # Project P_w into frame j: P_j = K_j * [I|0] * T_Wj.inv() * P_w
+        # P_j = K_j * [I|0] * T_Wj.inv() * T_Wi * P_i
+        # P_j = K_j * [I|0] * T_ji * P_i
+        # The function seems to want world poses. Let's provide Identity for frame i and T_ji for frame j.
+        R_i_world = torch.eye(3, device=device).unsqueeze(0) # 1x3x3
+        T_i_world = torch.zeros((1, 3, 1), device=device)   # 1x3x1
+        R_j_world = R_ji # 1x3x3
+        T_j_world = T_ji # 1x3x1
+
+        # ego_flow_ij, _ = depth_warper(R_i_world, T_i_world, R_j_world, T_j_world, inv_depth_i, K_j, inv_K_i)
+        # Let's try the call signature from docs: DepthBasedWarping.__call__(self, R1, T1, R2, T2, disp1, K2, invK1):
+        # R1, T1: pose of view 1; R2, T2: pose of view 2; disp1: disparity map of view 1; K2: intrinsics of view 2; invK1: inverse intrinsics of view 1
+        # It calculates the flow FROM view 1 TO view 2.
+        # So R1,T1 should be T_WC_i and R2,T2 should be T_WC_j
+        R1 = T_WC_i.rotation().matrix().unsqueeze(0)
+        T1 = T_WC_i.translation().unsqueeze(-1).unsqueeze(0)
+        R2 = T_WC_j.rotation().matrix().unsqueeze(0)
+        T2 = T_WC_j.translation().unsqueeze(-1).unsqueeze(0)
+
+        ego_flow_ij, _ = depth_warper(R1, T1, R2, T2, inv_depth_i, K_j, inv_K_i)
+
+
+        ego_flow_ij = ego_flow_ij.squeeze(0) # Remove batch dim -> 3xHxW (flow_x, flow_y, mask)
+    except Exception as e:
+        print(f"Error computing ego-motion flow: {e}")
+        del depth_warper
+        return empty_mask
+    finally:
+        if 'depth_warper' in locals() and depth_warper is not None:
+            del depth_warper
+
+    # 8. Compute Error Map
+    # Use only the flow components (first 2 channels)
+    flow_diff = flow_ij - ego_flow_ij[:2, ...]
+    err_map = torch.norm(flow_diff, dim=0) # HxW
+
+    # 9. Normalize and Threshold
+    min_err = torch.min(err_map)
+    max_err = torch.max(err_map)
+    if max_err > min_err:
+        norm_err_map = (err_map - min_err) / (max_err - min_err)
+    else:
+        norm_err_map = torch.zeros_like(err_map) # Avoid division by zero if error is constant
+
+    dynamic_mask = norm_err_map > threshold # HxW boolean tensor
+
+    return dynamic_mask
+
     
 def get_flow(self, sintel_ckpt=False): #TODO: test with gt flow
     print('precomputing flow...')

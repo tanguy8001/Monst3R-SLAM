@@ -2,4 +2,4 @@ evo_ape tum datasets/bonn/rgbd_bonn_removing_obstructing_box/groundtruth.txt log
 
 evo_ape tum datasets/tum/rgbd_dataset_freiburg1_360/groundtruth.txt logs/tum/calib/rgbd_dataset_freiburg1_360/rgbd_dataset_freiburg1_360_keyframes.txt -as --plot --plot_mode xz --save_results results/test.zip --save_plot results/rgbd_dataset_freiburg1_360_full.
 
-evo_ape tum datasets/bonn/rgbd_bonn_person_tracking/groundtruth.txt /work/courses/3dv/24/MASt3R-SLAM/logs/rgbd_bonn_person_tracking.txt -as --plot --plot_mode xz --save_results results/rgbd_bonn_person_tracking.zip --save_plot results/rgbd_bonn_person_trackin.pdf
+evo_ape tum datasets/bonn/rgbd_bonn_person_tracking/groundtruth.txt /work/courses/3dv/24/MASt3R-SLAM/logs/rgbd_bonn_person_tracking.txt -as --plot --plot_mode xz --save_results results/rgbd_bonn_person_tracking.zip --save_plot results/rgbd_bonn_person_tracking.pdf

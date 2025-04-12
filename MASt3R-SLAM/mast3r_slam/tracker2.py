@@ -50,16 +50,24 @@ class FrameTracker2:
                 )
                 # Use dynamic mask to filter out points on moving objects
                 # Reshape dynamic_mask to match our points
-                h, w = dynamic_mask.shape
-                reshaped_mask = dynamic_mask.reshape(-1)
-                # Filter valid matches based on dynamic mask
-                # Lower confidence for points on dynamic objects
-                dynamic_points = reshaped_mask[idx_f2k] > 0.5
-                Qk[dynamic_points] *= (1.0 - config.get("dynamic_points_weight", 0.8))
-                
-                # Store dynamic mask in frame for visualization
-                frame.dynamic_mask = dynamic_mask
-                print(f"Successfully computed dynamic mask for frame {frame.frame_id}")
+                h, w = frame.img.shape[-2:] # Use frame's shape directly
+                # Check if the returned mask is valid (not all zeros)
+                if dynamic_mask.any():
+                    reshaped_mask = dynamic_mask.reshape(-1)
+                    # Filter valid matches based on dynamic mask
+                    # Lower confidence for points on dynamic objects
+                    dynamic_points = reshaped_mask[idx_f2k] > 0.5 # Use boolean directly
+                    Qk[dynamic_points] *= (1.0 - config.get("dynamic_points_weight", 0.8))
+                    
+                    # Store dynamic mask in frame for visualization
+                    frame.dynamic_mask = dynamic_mask
+                    print(f"Successfully computed and applied dynamic mask for frame {frame.frame_id}")
+                else:
+                    # Handle case where dynamic mask computation failed (e.g., no K) or produced an empty mask
+                    print(f"Dynamic mask computation resulted in an empty mask for frame {frame.frame_id}. Skipping application.")
+                    # Ensure frame has an empty mask placeholder if needed elsewhere
+                    frame.dynamic_mask = torch.zeros((h, w), dtype=torch.bool, device=frame.img.device)
+
             except Exception as e:
                 print(f"Failed to compute dynamic mask for frame {frame.frame_id}: {str(e)}")
                 print("Continuing without dynamic mask")
