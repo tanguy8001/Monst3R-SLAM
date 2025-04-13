@@ -57,7 +57,7 @@ class FrameTracker2:
                     # Filter valid matches based on dynamic mask
                     # Lower confidence for points on dynamic objects
                     dynamic_points = reshaped_mask[idx_f2k] > 0.5 # Use boolean directly
-                    Qk[dynamic_points] *= (1.0 - config.get("dynamic_points_weight", 0.8))
+                    Qk[dynamic_points] *= (1.0 - config.get("dynamic_points_weight", 0.2))
                     
                     # Store dynamic mask in frame for visualization
                     frame.dynamic_mask = dynamic_mask

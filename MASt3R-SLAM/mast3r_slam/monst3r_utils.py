@@ -447,10 +447,7 @@ def get_dynamic_mask(monst3r, frame_i, frame_j, threshold=0.35):
     # 7. Compute Ego-Motion Flow
     try:
         depth_warper = DepthBasedWarping().to(device)
-
-        # print(f"R_ji.shape: {R_ji.shape}, T_ji_vec.shape: {T_ji_vec.shape}")
-        # print(f"R_ji.transpose(1,2).shape: {R_ji.transpose(1,2).shape}, -R_ji.transpose(1,2) @ T_ji_vec.shape: {(-R_ji.transpose(1,2) @ T_ji_vec).shape}")
-        # print(f"inv_depth_i.shape: {inv_depth_i.shape}, K_j.shape: {K_j.shape}, inv_K_i.shape: {inv_K_i.shape}")
+        
         # ego_flow_ij: Bx3xHxW (flow_x, flow_y, mask)
         ego_flow_ij, _ = depth_warper(R_ji, T_ji_vec, R_ji.transpose(1,2), -R_ji.transpose(1,2) @ T_ji_vec, inv_depth_i, K_j, inv_K_i) # Use T_ij = inv(T_ji) ? Check docs -> expects pose1 R1,T1 and pose2 R2, T2
         # Let's re-check DepthBasedWarping call signature vs optimizer.py
