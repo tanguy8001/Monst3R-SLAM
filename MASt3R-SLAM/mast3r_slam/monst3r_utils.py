@@ -414,8 +414,8 @@ def get_dynamic_mask(monst3r, frame_i, frame_j, threshold=0.35):
         try:
             # Fallback: Extract from the 4x4 matrix
             T_ji_mat = T_ji.matrix()
-            R_ji = T_ji_mat[..., :3, :3].unsqueeze(0) # Extract 3x3 rotation, add batch dim
-            T_ji_vec = T_ji_mat[..., :3, 3].unsqueeze(-1).unsqueeze(0) # Extract translation, add batch dim
+            R_ji = T_ji_mat[..., :3, :3] # Extract Bx3x3 rotation
+            T_ji_vec = T_ji_mat[..., :3, 3].unsqueeze(-1) # Extract Bx3 translation, add last dim
             print(f"Successfully extracted rotation/translation from T_ji using .matrix() fallback.")
         except Exception as fallback_e:
             print(f"Error during fallback extraction from T_ji matrix: {fallback_e}")
@@ -447,6 +447,10 @@ def get_dynamic_mask(monst3r, frame_i, frame_j, threshold=0.35):
     # 7. Compute Ego-Motion Flow
     try:
         depth_warper = DepthBasedWarping().to(device)
+
+        # print(f"R_ji.shape: {R_ji.shape}, T_ji_vec.shape: {T_ji_vec.shape}")
+        # print(f"R_ji.transpose(1,2).shape: {R_ji.transpose(1,2).shape}, -R_ji.transpose(1,2) @ T_ji_vec.shape: {(-R_ji.transpose(1,2) @ T_ji_vec).shape}")
+        # print(f"inv_depth_i.shape: {inv_depth_i.shape}, K_j.shape: {K_j.shape}, inv_K_i.shape: {inv_K_i.shape}")
         # ego_flow_ij: Bx3xHxW (flow_x, flow_y, mask)
         ego_flow_ij, _ = depth_warper(R_ji, T_ji_vec, R_ji.transpose(1,2), -R_ji.transpose(1,2) @ T_ji_vec, inv_depth_i, K_j, inv_K_i) # Use T_ij = inv(T_ji) ? Check docs -> expects pose1 R1,T1 and pose2 R2, T2
         # Let's re-check DepthBasedWarping call signature vs optimizer.py
@@ -467,19 +471,33 @@ def get_dynamic_mask(monst3r, frame_i, frame_j, threshold=0.35):
         # R1, T1: pose of view 1; R2, T2: pose of view 2; disp1: disparity map of view 1; K2: intrinsics of view 2; invK1: inverse intrinsics of view 1
         # It calculates the flow FROM view 1 TO view 2.
         # So R1,T1 should be T_WC_i and R2,T2 should be T_WC_j
-        R1 = T_WC_i.rotation().matrix().unsqueeze(0)
-        T1 = T_WC_i.translation().unsqueeze(-1).unsqueeze(0)
-        R2 = T_WC_j.rotation().matrix().unsqueeze(0)
-        T2 = T_WC_j.translation().unsqueeze(-1).unsqueeze(0)
+        R1 = T_WC_i.rotation().matrix()
+        T1 = T_WC_i.translation().unsqueeze(-1)
+        R2 = T_WC_j.rotation().matrix()
+        T2 = T_WC_j.translation().unsqueeze(-1)
 
         ego_flow_ij, _ = depth_warper(R1, T1, R2, T2, inv_depth_i, K_j, inv_K_i)
 
         ego_flow_ij = ego_flow_ij.squeeze(0) # Remove batch dim -> 3xHxW (flow_x, flow_y, mask)
     except AttributeError as e:
         print(f"Error extracting rotation/translation from T_WC_i or T_WC_j for ego-motion: {e}")
-        print(f"T_WC_i type: {type(T_WC_i)}, T_WC_j type: {type(T_WC_j)}")
-        del depth_warper
-        return empty_mask
+        #print(f"T_WC_i type: {type(T_WC_i)}, T_WC_j type: {type(T_WC_j)}")
+        # Attempt fallback for world poses using .matrix()
+        try:
+            print("Attempting fallback extraction for T_WC_i/T_WC_j using .matrix().")
+            R1 = T_WC_i.matrix()[..., :3, :3]
+            T1 = T_WC_i.matrix()[..., :3, 3].unsqueeze(-1)
+            R2 = T_WC_j.matrix()[..., :3, :3]
+            T2 = T_WC_j.matrix()[..., :3, 3].unsqueeze(-1)
+            print("Fallback successful for T_WC_i/T_WC_j.")
+            # Re-attempt ego-motion calculation with fallback poses
+            ego_flow_ij, _ = depth_warper(R1, T1, R2, T2, inv_depth_i, K_j, inv_K_i)
+            ego_flow_ij = ego_flow_ij.squeeze(0)
+        except Exception as fallback_e:
+            print(f"Error during fallback extraction or ego-motion computation: {fallback_e}")
+            if 'depth_warper' in locals(): del depth_warper
+            return empty_mask
+
     except Exception as e:
         print(f"Error computing ego-motion flow: {e}")
         del depth_warper
