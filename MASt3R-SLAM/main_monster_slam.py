@@ -78,15 +78,10 @@ def relocalization(frame, keyframes, factor_graph, retrieval_database, all_frame
         return successful_loop_closure
 
 
-def run_backend(cfg, states, keyframes, K, all_frames=None):
+def run_backend(cfg, mast3r, monst3r, states, keyframes, K, all_frames=None):
     set_global_config(cfg)
-    # Load models inside the backend process
-    device = keyframes.device # Assume keyframes device is the target device
-    print(f"Backend process loading models on device: {device}")
-    mast3r = load_mast3r(device=device)
-    monst3r = load_monst3r(device=device)
-    print("Backend process finished loading models.")
 
+    device = keyframes.device
     factor_graph = FactorGraph(mast3r, monst3r, keyframes, K, device)
     retrieval_database = load_retriever(mast3r)
 
@@ -155,7 +150,7 @@ def run_backend(cfg, states, keyframes, K, all_frames=None):
 
 
 if __name__ == "__main__":
-    mp.set_start_method("spawn")
+    mp.set_start_method("fork")
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.set_grad_enabled(False)
     device = "cuda:0"
@@ -241,7 +236,7 @@ if __name__ == "__main__":
                             device=device)
     last_msg = WindowMsg()
 
-    backend = mp.Process(target=run_backend, args=(config, states, keyframes, K, all_frames))
+    backend = mp.Process(target=run_backend, args=(config, mast3r, monst3r, states, keyframes, K, all_frames))
     backend.start()
 
     i = 0

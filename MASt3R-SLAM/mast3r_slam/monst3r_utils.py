@@ -346,7 +346,6 @@ def get_dynamic_mask(monst3r, frame_i, frame_j, threshold=0.35):
         current_dir = os.path.dirname(os.path.abspath(__file__))
         raft_weights_path = os.path.join(current_dir, "../thirdparty/monst3r/third_party/RAFT/models/Tartan-C-T-TSKH-spring540x960-M.pth")
         raft_weights_path = os.path.normpath(raft_weights_path) # Normalize path (e.g., remove ..)
-
         # Use the TartanAir checkpoint as in get_flow
         raft_model = load_RAFT(raft_weights_path)
         raft_model = raft_model.to(device)
@@ -354,15 +353,25 @@ def get_dynamic_mask(monst3r, frame_i, frame_j, threshold=0.35):
     except Exception as e:
         print(f"Error loading RAFT model: {e}")
         return empty_mask
+    
 
     # 3. Compute Optical Flow (RAFT)
     try:
-        # Prepare images for RAFT (needs BGR, 0-255, CHW format)
-        img_i_raft = frame_i.img.permute(0, 3, 1, 2) * 255
-        img_j_raft = frame_j.img.permute(0, 3, 1, 2) * 255
-        # Ensure batch dimension is present
-        if img_i_raft.dim() == 3: img_i_raft = img_i_raft.unsqueeze(0)
-        if img_j_raft.dim() == 3: img_j_raft = img_j_raft.unsqueeze(0)
+        # Prepare images for RAFT (needs BCHW format, scaled to [0, 255])
+        # frame.img is already BCHW [-1, 1]
+        img_i = frame_i.img # Should be Bx3xHxW
+        img_j = frame_j.img # Should be Bx3xHxW
+
+        # Ensure both tensors have the batch dimension (BCHW)
+        if img_i.dim() == 3: img_i = img_i.unsqueeze(0)
+        if img_j.dim() == 3: img_j = img_j.unsqueeze(0)
+        
+        # print(f"img_i.shape: {img_i.shape}") # Removed debug print
+        # print(f"img_j.shape: {img_j.shape}") # Removed debug print
+
+        # Rescale from [-1, 1] to [0, 255]
+        img_i_raft = (img_i * 0.5 + 0.5) * 255.0
+        img_j_raft = (img_j * 0.5 + 0.5) * 255.0
 
         flow_ij = raft_model(img_i_raft, img_j_raft, iters=20, test_mode=True)[1]
         # Output is Bx2xHxW
@@ -381,18 +390,36 @@ def get_dynamic_mask(monst3r, frame_i, frame_j, threshold=0.35):
     if isinstance(T_WC_i, torch.Tensor): T_WC_i = lietorch.Sim3(T_WC_i)
     if isinstance(T_WC_j, torch.Tensor): T_WC_j = lietorch.Sim3(T_WC_j)
 
+    # Assert that T_WC_i and T_WC_j are Sim3 objects after potential conversion
+    assert isinstance(T_WC_i, lietorch.Sim3), f"T_WC_i is not a Sim3 object, but type {type(T_WC_i)}"
+    assert isinstance(T_WC_j, lietorch.Sim3), f"T_WC_j is not a Sim3 object, but type {type(T_WC_j)}"
+
     # T_ji = T_jW * T_Wi = T_WC_j.inv() * T_WC_i # Incorrect: This maps world points in frame i coord system to world points in frame j coord system
     # Correct: T_ji transforms points FROM frame i coordinate system TO frame j coordinate system
     # Point_j = T_ji * Point_i
     # Point_w = T_Wi * Point_i => Point_i = T_Wi.inv() * Point_w
     # Point_w = T_Wj * Point_j => Point_j = T_Wj.inv() * Point_w
     # Point_j = T_Wj.inv() * T_Wi * Point_i
+    # P_j = K_j * [I|0] * T_Wj.inv() * T_Wi * P_i
+    # P_j = K_j * [I|0] * T_ji * P_i
     T_ji = T_WC_j.inv() * T_WC_i
 
     # Extract rotation and translation (ensure correct types/shapes for DepthBasedWarping)
-    # DepthBasedWarping expects R (Bx3x3), T (Bx3x1)
-    R_ji = T_ji.rotation().matrix().unsqueeze(0)  # 1x3x3
-    T_ji = T_ji.translation().unsqueeze(-1).unsqueeze(0) # 1x3x1
+    try:
+        # DepthBasedWarping expects R (Bx3x3), T (Bx3x1)
+        R_ji = T_ji.rotation().matrix().unsqueeze(0)  # 1x3x3
+        T_ji_vec = T_ji.translation().unsqueeze(-1).unsqueeze(0) # 1x3x1
+    except AttributeError as e:
+        print(f"AttributeError extracting rotation/translation from T_ji: {e}. T_ji type: {type(T_ji)}. Trying fallback using .matrix().")
+        try:
+            # Fallback: Extract from the 4x4 matrix
+            T_ji_mat = T_ji.matrix()
+            R_ji = T_ji_mat[..., :3, :3].unsqueeze(0) # Extract 3x3 rotation, add batch dim
+            T_ji_vec = T_ji_mat[..., :3, 3].unsqueeze(-1).unsqueeze(0) # Extract translation, add batch dim
+            print(f"Successfully extracted rotation/translation from T_ji using .matrix() fallback.")
+        except Exception as fallback_e:
+            print(f"Error during fallback extraction from T_ji matrix: {fallback_e}")
+            return empty_mask
 
     # 5. Get Depth Map for frame_i
     try:
@@ -421,14 +448,13 @@ def get_dynamic_mask(monst3r, frame_i, frame_j, threshold=0.35):
     try:
         depth_warper = DepthBasedWarping().to(device)
         # ego_flow_ij: Bx3xHxW (flow_x, flow_y, mask)
-        ego_flow_ij, _ = depth_warper(R_ji, T_ji, R_ji.transpose(1,2), -R_ji.transpose(1,2) @ T_ji, inv_depth_i, K_j, inv_K_i) # Use T_ij = inv(T_ji) ? Check docs -> expects pose1 R1,T1 and pose2 R2, T2
+        ego_flow_ij, _ = depth_warper(R_ji, T_ji_vec, R_ji.transpose(1,2), -R_ji.transpose(1,2) @ T_ji_vec, inv_depth_i, K_j, inv_K_i) # Use T_ij = inv(T_ji) ? Check docs -> expects pose1 R1,T1 and pose2 R2, T2
         # Let's re-check DepthBasedWarping call signature vs optimizer.py
         # optimizer.py: depth_wrapper(R_i, T_i, R_j, T_j, inv_depth_i, K_j, inv_K_i)
         # This warps points from frame i coordinates (using R_i, T_i world pose) to frame j coordinates (using R_j, T_j world pose)
         # We want to warp from frame i to frame j using the *relative* pose T_ji
         # Let P_i be a point in frame i. World point P_w = T_Wi * P_i
         # Project P_w into frame j: P_j = K_j * [I|0] * T_Wj.inv() * P_w
-        # P_j = K_j * [I|0] * T_Wj.inv() * T_Wi * P_i
         # P_j = K_j * [I|0] * T_ji * P_i
         # The function seems to want world poses. Let's provide Identity for frame i and T_ji for frame j.
         R_i_world = torch.eye(3, device=device).unsqueeze(0) # 1x3x3
@@ -448,8 +474,12 @@ def get_dynamic_mask(monst3r, frame_i, frame_j, threshold=0.35):
 
         ego_flow_ij, _ = depth_warper(R1, T1, R2, T2, inv_depth_i, K_j, inv_K_i)
 
-
         ego_flow_ij = ego_flow_ij.squeeze(0) # Remove batch dim -> 3xHxW (flow_x, flow_y, mask)
+    except AttributeError as e:
+        print(f"Error extracting rotation/translation from T_WC_i or T_WC_j for ego-motion: {e}")
+        print(f"T_WC_i type: {type(T_WC_i)}, T_WC_j type: {type(T_WC_j)}")
+        del depth_warper
+        return empty_mask
     except Exception as e:
         print(f"Error computing ego-motion flow: {e}")
         del depth_warper
