@@ -19,6 +19,15 @@ from thirdparty.monst3r.third_party.raft import load_RAFT
 from thirdparty.monst3r.dust3r.utils.goem_opt import OccMask
 from thirdparty.monst3r.dust3r.model import AsymmetricCroCo3DStereo
 from thirdparty.monst3r.dust3r.utils.goem_opt import DepthBasedWarping
+from thirdparty.monst3r.third_party.sam2.sam2.build_sam import build_sam2_video_predictor
+
+_MONST3R_UTILS_DIR = os.path.dirname(os.path.abspath(__file__))
+_MONST3R_BASE_PATH = os.path.normpath(os.path.join(_MONST3R_UTILS_DIR, "..", "thirdparty", "monst3r"))
+SAM2_CHECKPOINT_DEFAULT = os.path.join(_MONST3R_BASE_PATH, "third_party", "sam2", "checkpoints", "sam2.1_hiera_large.pt")
+# Absolute path for existence check
+SAM2_MODEL_CONFIG_ABSOLUTE_PATH = os.path.join(_MONST3R_BASE_PATH, "third_party", "sam2", "sam2", "configs", "sam2.1/sam2.1_hiera_l.yaml")
+# Relative config name for Hydra, assuming build_sam.py initializes with config_path="configs" and expects the .yaml extension
+SAM2_MODEL_CONFIG_NAME_FOR_HYDRA = "configs/sam2.1/sam2.1_hiera_l.yaml"
 
 def load_mast3r(path=None, device="cuda"):
     weights_path = (
@@ -258,7 +267,6 @@ def monst3r_asymmetric_inference(mast3r, monst3r, frame_i, frame_j):
     feat1, feat2 = frame_i.feat, frame_j.feat
     pos1, pos2 = frame_i.pos, frame_j.pos
     shape1, shape2 = frame_i.img_true_shape, frame_j.img_true_shape
-    
 
     # MonST3R inference
     res11, res21 = monst3r_decoder(monst3r, feat1, feat2, pos1, pos2, shape1, shape2)
@@ -269,7 +277,6 @@ def monst3r_asymmetric_inference(mast3r, monst3r, frame_i, frame_j):
     X, C = torch.stack(X), torch.stack(C)
     #X = torch.stack([pred1['pts3d'][0], pred2['pts3d_in_other_view'][0]], dim=0)
     #C = torch.stack([pred1['conf'][0], pred2['conf'][0]], dim=0)
-    
 
     # Using MASt3R's encoded features since MONSt3R doesn't output features
     res11, res21 = mast3r_decoder(mast3r, feat1, feat2, pos1, pos2, shape1, shape2)
@@ -314,9 +321,10 @@ def monst3r_match_asymmetric(mast3r, monst3r, frame_i, frame_j, idx_i2j_init=Non
     return idx_i2j, valid_match_j, Xii, Cii, Qii, Xji, Cji, Qji
 
 @torch.inference_mode()
-def get_dynamic_mask(monst3r, frame_i, frame_j, threshold=0.35):
+def get_dynamic_mask(monst3r, frame_i, frame_j, threshold=0.35, refine_with_sam2=True):
     """
     Get dynamic mask between two frames using MonST3R and RAFT.
+    Optionally refines the mask using SAM2.
     
     Compares optical flow (RAFT) with ego-motion flow (MonST3R depth + relative pose)
     to identify inconsistencies indicative of dynamic objects.
@@ -326,10 +334,12 @@ def get_dynamic_mask(monst3r, frame_i, frame_j, threshold=0.35):
         frame_i: First frame object (needs img, T_WC, K).
         frame_j: Second frame object (needs img, T_WC, K).
         threshold: Threshold for classifying pixels as dynamic based on normalized flow error (0.0-1.0).
+        refine_with_sam2: Boolean flag to enable SAM2 refinement.
         
     Returns:
         dynamic_mask: Binary mask (HxW tensor) where True indicates dynamic content.
                       Returns an empty mask if calculation fails (e.g., missing calibration).
+                      Mask is on the same device as frame_i.img.
     """
     device = frame_i.img.device
     h, w = frame_i.img.shape[-2:]
@@ -394,32 +404,13 @@ def get_dynamic_mask(monst3r, frame_i, frame_j, threshold=0.35):
     assert isinstance(T_WC_i, lietorch.Sim3), f"T_WC_i is not a Sim3 object, but type {type(T_WC_i)}"
     assert isinstance(T_WC_j, lietorch.Sim3), f"T_WC_j is not a Sim3 object, but type {type(T_WC_j)}"
 
-    # T_ji = T_jW * T_Wi = T_WC_j.inv() * T_WC_i # Incorrect: This maps world points in frame i coord system to world points in frame j coord system
-    # Correct: T_ji transforms points FROM frame i coordinate system TO frame j coordinate system
-    # Point_j = T_ji * Point_i
-    # Point_w = T_Wi * Point_i => Point_i = T_Wi.inv() * Point_w
-    # Point_w = T_Wj * Point_j => Point_j = T_Wj.inv() * Point_w
-    # Point_j = T_Wj.inv() * T_Wi * Point_i
-    # P_j = K_j * [I|0] * T_Wj.inv() * T_Wi * P_i
-    # P_j = K_j * [I|0] * T_ji * P_i
     T_ji = T_WC_j.inv() * T_WC_i
 
     # Extract rotation and translation (ensure correct types/shapes for DepthBasedWarping)
-    try:
-        # DepthBasedWarping expects R (Bx3x3), T (Bx3x1)
-        R_ji = T_ji.rotation().matrix().unsqueeze(0)  # 1x3x3
-        T_ji_vec = T_ji.translation().unsqueeze(-1).unsqueeze(0) # 1x3x1
-    except AttributeError as e:
-        print(f"AttributeError extracting rotation/translation from T_ji: {e}. T_ji type: {type(T_ji)}. Trying fallback using .matrix().")
-        try:
-            # Fallback: Extract from the 4x4 matrix
-            T_ji_mat = T_ji.matrix()
-            R_ji = T_ji_mat[..., :3, :3] # Extract Bx3x3 rotation
-            T_ji_vec = T_ji_mat[..., :3, 3].unsqueeze(-1) # Extract Bx3 translation, add last dim
-            print(f"Successfully extracted rotation/translation from T_ji using .matrix() fallback.")
-        except Exception as fallback_e:
-            print(f"Error during fallback extraction from T_ji matrix: {fallback_e}")
-            return empty_mask
+    # Extract from the 4x4 matrix
+    T_ji_mat = T_ji.matrix()
+    R_ji = T_ji_mat[..., :3, :3] # Extract Bx3x3 rotation
+    T_ji_vec = T_ji_mat[..., :3, 3].unsqueeze(-1) # Extract Bx3 translation, add last dim
 
     # 5. Get Depth Map for frame_i
     try:
@@ -468,10 +459,11 @@ def get_dynamic_mask(monst3r, frame_i, frame_j, threshold=0.35):
         # R1, T1: pose of view 1; R2, T2: pose of view 2; disp1: disparity map of view 1; K2: intrinsics of view 2; invK1: inverse intrinsics of view 1
         # It calculates the flow FROM view 1 TO view 2.
         # So R1,T1 should be T_WC_i and R2,T2 should be T_WC_j
-        R1 = T_WC_i.rotation().matrix()
-        T1 = T_WC_i.translation().unsqueeze(-1)
-        R2 = T_WC_j.rotation().matrix()
-        T2 = T_WC_j.translation().unsqueeze(-1)
+        # Directly use the matrix components as this was successful in fallback
+        R1 = T_WC_i.matrix()[..., :3, :3]
+        T1 = T_WC_i.matrix()[..., :3, 3].unsqueeze(-1)
+        R2 = T_WC_j.matrix()[..., :3, :3]
+        T2 = T_WC_j.matrix()[..., :3, 3].unsqueeze(-1)
 
         ego_flow_ij, _ = depth_warper(R1, T1, R2, T2, inv_depth_i, K_j, inv_K_i)
 
@@ -480,20 +472,25 @@ def get_dynamic_mask(monst3r, frame_i, frame_j, threshold=0.35):
         print(f"Error extracting rotation/translation from T_WC_i or T_WC_j for ego-motion: {e}")
         #print(f"T_WC_i type: {type(T_WC_i)}, T_WC_j type: {type(T_WC_j)}")
         # Attempt fallback for world poses using .matrix()
-        try:
-            print("Attempting fallback extraction for T_WC_i/T_WC_j using .matrix().")
-            R1 = T_WC_i.matrix()[..., :3, :3]
-            T1 = T_WC_i.matrix()[..., :3, 3].unsqueeze(-1)
-            R2 = T_WC_j.matrix()[..., :3, :3]
-            T2 = T_WC_j.matrix()[..., :3, 3].unsqueeze(-1)
-            print("Fallback successful for T_WC_i/T_WC_j.")
-            # Re-attempt ego-motion calculation with fallback poses
-            ego_flow_ij, _ = depth_warper(R1, T1, R2, T2, inv_depth_i, K_j, inv_K_i)
-            ego_flow_ij = ego_flow_ij.squeeze(0)
-        except Exception as fallback_e:
-            print(f"Error during fallback extraction or ego-motion computation: {fallback_e}")
-            if 'depth_warper' in locals(): del depth_warper
-            return empty_mask
+        # try:
+        #     print("Attempting fallback extraction for T_WC_i/T_WC_j using .matrix().")
+        #     R1 = T_WC_i.matrix()[..., :3, :3]
+        #     T1 = T_WC_i.matrix()[..., :3, 3].unsqueeze(-1)
+        #     R2 = T_WC_j.matrix()[..., :3, :3]
+        #     T2 = T_WC_j.matrix()[..., :3, 3].unsqueeze(-1)
+        #     print("Fallback successful for T_WC_i/T_WC_j.")
+        #     # Re-attempt ego-motion calculation with fallback poses
+        #     ego_flow_ij, _ = depth_warper(R1, T1, R2, T2, inv_depth_i, K_j, inv_K_i)
+        #     ego_flow_ij = ego_flow_ij.squeeze(0)
+        # except Exception as fallback_e:
+        #     print(f"Error during fallback extraction or ego-motion computation: {fallback_e}")
+        #     if 'depth_warper' in locals(): del depth_warper
+        #     return empty_mask
+        # Since the direct .matrix() approach IS the fallback and seems to work, 
+        # we'll keep it simple. If this primary method fails, the outer try-except will catch it.
+        print(f"Primary Sim3 matrix extraction failed: {e}") # Should ideally not be reached if above is the fix
+        if 'depth_warper' in locals() and hasattr(depth_warper, '__del__'): del depth_warper # Ensure cleanup
+        return empty_mask
 
     except Exception as e:
         print(f"Error computing ego-motion flow: {e}")
@@ -516,9 +513,83 @@ def get_dynamic_mask(monst3r, frame_i, frame_j, threshold=0.35):
     else:
         norm_err_map = torch.zeros_like(err_map) # Avoid division by zero if error is constant
 
-    dynamic_mask = norm_err_map > threshold # HxW boolean tensor
+    dynamic_mask = norm_err_map > threshold # HxW boolean tensor, on device
 
-    return dynamic_mask
+    # 10. SAM2 Refinement (Optional)
+    if refine_with_sam2 and dynamic_mask.any():
+        print(f"Attempting SAM2 refinement for frame {frame_i.frame_id}...")
+        sam2_predictor_instance = None
+        prev_allow_tf32 = None
+        prev_allow_cudnn_tf32 = None
+        refined_successfully = False
+        try:
+            if device == 'cuda':
+                prev_allow_tf32 = torch.backends.cuda.matmul.allow_tf32
+                prev_allow_cudnn_tf32 = torch.backends.cudnn.allow_tf32
+                if torch.cuda.get_device_properties(0).major >= 8: # Ampere+
+                    torch.backends.cuda.matmul.allow_tf32 = True
+                    torch.backends.cudnn.allow_tf32 = True
+            
+            autocast_dtype = torch.bfloat16 if device == 'cuda' and torch.cuda.is_bf16_supported() else torch.float32
+            
+            if not os.path.exists(SAM2_CHECKPOINT_DEFAULT):
+                print(f"Warning: SAM2 checkpoint not found at {SAM2_CHECKPOINT_DEFAULT}. Skipping SAM2 refinement.")
+            elif not os.path.exists(SAM2_MODEL_CONFIG_ABSOLUTE_PATH):
+                print(f"Warning: SAM2 model config not found at {SAM2_MODEL_CONFIG_ABSOLUTE_PATH}. Skipping SAM2 refinement.")
+            else:
+                # Convert device object to string for device_type
+                device_str = device.type if isinstance(device, torch.device) else str(device) # Ensure string conversion
+                autocast_device_type = device_str if device_str != 'mps' else 'cpu'
+                autocast_enabled = device_str != 'mps'
+
+                with torch.autocast(device_type=autocast_device_type, dtype=autocast_dtype, enabled=autocast_enabled):
+                    sam2_predictor_instance = build_sam2_video_predictor(SAM2_MODEL_CONFIG_NAME_FOR_HYDRA, SAM2_CHECKPOINT_DEFAULT, device=device)
+                
+                    # Prepare video tensor: NCHW format for SAM2
+                    # Use a 2-frame video [frame_i, frame_j]
+                    img_i_sam = frame_i.img.squeeze(0) # CHW
+                    img_j_sam = frame_j.img.squeeze(0) # CHW
+                    video_tensor_sam = torch.stack([img_i_sam, img_j_sam]).to(device) # 2CHW
+
+                    with torch.autocast(device_type=autocast_device_type, dtype=autocast_dtype, enabled=autocast_enabled):
+                        inference_state = sam2_predictor_instance.init_state(video_path=video_tensor_sam)
+                        
+                        initial_mask_for_sam2 = dynamic_mask.to(device) # Ensure it's on device, HW
+                        
+                        sam2_predictor_instance.add_new_mask(
+                            inference_state,
+                            frame_idx=0, # Mask is for frame_i
+                            obj_id=1,    # Arbitrary object ID
+                            mask=initial_mask_for_sam2,
+                        )
+                        
+                        sam2_refined_mask = None
+                        for out_frame_idx, out_obj_ids, out_mask_logits in sam2_predictor_instance.propagate_in_video(inference_state, start_frame_idx=0):
+                            if out_frame_idx == 0 and 1 in out_obj_ids: # Interested in frame_i (idx 0)
+                                obj_idx_in_list = out_obj_ids.index(1)
+                                # Logits to boolean mask, stays on device
+                                sam2_refined_mask = (out_mask_logits[obj_idx_in_list] > 0.0)
+                                break 
+                        
+                        if sam2_refined_mask is not None:
+                            dynamic_mask = dynamic_mask | sam2_refined_mask # OR combine, all on device
+                            print(f"Dynamic mask for frame {frame_i.frame_id} refined with SAM2.")
+                            refined_successfully = True
+                        else:
+                            print(f"Warning: SAM2 did not produce a refined mask for frame {frame_i.frame_id}.")
+        
+        except Exception as e_sam:
+            print(f"Error during SAM2 refinement for frame {frame_i.frame_id}: {e_sam}")
+        finally:
+            if device == 'cuda' and prev_allow_tf32 is not None:
+                torch.backends.cuda.matmul.allow_tf32 = prev_allow_tf32
+                torch.backends.cudnn.allow_tf32 = prev_allow_cudnn_tf32
+            if sam2_predictor_instance is not None:
+                del sam2_predictor_instance
+                if device == 'cuda':
+                    torch.cuda.empty_cache()
+
+    return dynamic_mask # on original device
 
     
 def get_flow(self, sintel_ckpt=False): #TODO: test with gt flow

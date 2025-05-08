@@ -77,6 +77,7 @@ class TUMDataset(MonocularDataset):
             print(f"RGB list loaded, shape: {tstamp_rgb.shape}")
             self.rgb_files = [self.dataset_path / f for f in tstamp_rgb[:, 1]]
             self.timestamps = tstamp_rgb[:, 0]
+            print(f"Number of timestamps: {len(self.timestamps)}")
             print(f"Number of loaded RGB files: {len(self.rgb_files)}")
             if len(self.rgb_files) > 0:
                 print(f"First RGB file: {self.rgb_files[0]}, exists: {self.rgb_files[0].exists()}")

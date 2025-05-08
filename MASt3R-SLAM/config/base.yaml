@@ -59,3 +59,11 @@ retrieval:
 reloc:
   min_match_frac: 0.3
   strict: True
+
+headless: True
+save_dir: "slam_results"
+save_interval: 0.3  # Save every 0.3 seconds
+
+performance:
+  use_gpu: True
+  num_threads: 8

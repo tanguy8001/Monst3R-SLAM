@@ -1,0 +1,2 @@
+Starting job at Sun Apr 27 21:22:58 CEST 2025
+slurmstepd: error: *** JOB 19508 ON studgpu-node01 CANCELLED AT 2025-04-27T22:23:17 DUE TO TIME LIMIT ***

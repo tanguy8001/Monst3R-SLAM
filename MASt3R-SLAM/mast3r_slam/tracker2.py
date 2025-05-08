@@ -1,4 +1,8 @@
 import torch
+import os
+import PIL.Image
+import numpy as np
+
 from mast3r_slam.frame import Frame
 from mast3r_slam.geometry import (
     act_Sim3,
@@ -12,11 +16,13 @@ from mast3r_slam.config import config
 from mast3r_slam.monst3r_utils import monst3r_match_asymmetric, get_dynamic_mask
 
 
+
 class FrameTracker2:
     def __init__(self, mast3r, monst3r, frames, device):
         self.cfg = config["tracking"]
         self.mast3r = mast3r
         self.monst3r = monst3r
+        
         self.keyframes = frames
         self.device = device
 
@@ -29,6 +35,7 @@ class FrameTracker2:
     def track(self, frame: Frame):
         keyframe = self.keyframes.last_keyframe()
 
+        # valid_match_k is a boolean mask of the points that are matched between the frame and the keyframe
         idx_f2k, valid_match_k, Xff, Cff, Qff, Xkf, Ckf, Qkf = monst3r_match_asymmetric(
             mast3r=self.mast3r, monst3r=self.monst3r, frame_i=frame, frame_j=keyframe, idx_i2j_init=self.idx_f2k
         )
@@ -42,11 +49,14 @@ class FrameTracker2:
         Qk = torch.sqrt(Qff[idx_f2k] * Qkf)
 
         # Detect dynamic objects if enabled in config
+        dynamic_mask_computed = False
+        is_dynamic_point = None
         if config.get("use_dynamic_mask", False):
             try:
                 dynamic_mask = get_dynamic_mask(
-                    self.monst3r, frame, keyframe, 
-                    threshold=config.get("dynamic_mask_threshold", 0.35)
+                    self.monst3r, frame, keyframe,
+                    threshold=config.get("dynamic_mask_threshold", 0.35),
+                    refine_with_sam2=config.get("refine_dynamic_mask_with_sam2", True)
                 )
                 # Use dynamic mask to filter out points on moving objects
                 # Reshape dynamic_mask to match our points
@@ -54,17 +64,16 @@ class FrameTracker2:
                 # Check if the returned mask is valid (not all zeros)
                 if dynamic_mask.any():
                     reshaped_mask = dynamic_mask.reshape(-1)
-                    # Filter valid matches based on dynamic mask
-                    # Lower confidence for points on dynamic objects
-                    dynamic_points = reshaped_mask[idx_f2k] > 0.5 # Use boolean directly
-                    Qk[dynamic_points] *= (1.0 - config.get("dynamic_points_weight", 0.2))
-                    
+                    # Identify points corresponding to dynamic pixels
+                    is_dynamic_point = reshaped_mask[idx_f2k] > 0.5 # Boolean mask for points
+                    dynamic_mask_computed = True
+
                     # Store dynamic mask in frame for visualization
                     frame.dynamic_mask = dynamic_mask
-                    print(f"Successfully computed and applied dynamic mask for frame {frame.frame_id}")
+                    print(f"Successfully computed dynamic mask for frame {frame.frame_id}")
                 else:
                     # Handle case where dynamic mask computation failed (e.g., no K) or produced an empty mask
-                    print(f"Dynamic mask computation resulted in an empty mask for frame {frame.frame_id}. Skipping application.")
+                    print(f"Dynamic mask computation resulted in an empty mask for frame {frame.frame_id}.")
                     # Ensure frame has an empty mask placeholder if needed elsewhere
                     frame.dynamic_mask = torch.zeros((h, w), dtype=torch.bool, device=frame.img.device)
 
@@ -74,6 +83,53 @@ class FrameTracker2:
                 # Create an empty mask as fallback
                 h, w = frame.img.shape[-2:]
                 frame.dynamic_mask = torch.zeros((h, w), dtype=torch.bool, device=frame.img.device)
+
+        # --- Debug: Save dynamic mask overlay ---
+        if config.get("debug_save_dynamic_mask", True): # Set to False to disable saving
+             try:
+                 # Get necessary data (ensure they are on CPU)
+                 img_to_save = frame.uimg.cpu().numpy() # HWC float [0,1]
+                 mask_to_save = frame.dynamic_mask.cpu().numpy() # HxW boolean
+
+                 # Convert image to uint8 PIL
+                 if img_to_save.shape[0] == 3: # Handle potential CHW case, though uimg should be HWC
+                     img_to_save = np.transpose(img_to_save, (1, 2, 0))
+                 img_pil = PIL.Image.fromarray((img_to_save * 255).astype(np.uint8))
+                 img_pil = img_pil.convert("RGBA") # Ensure RGBA for overlay
+
+                 # Create colored mask overlay (semi-transparent red)
+                 # Create an RGBA image for the overlay, starting fully transparent
+                 overlay_color = (255, 0, 0, 128) # Red with 50% alpha
+                 overlay = PIL.Image.new('RGBA', img_pil.size, (0, 0, 0, 0))
+                 # Create a mask image where dynamic pixels are opaque red, others transparent
+                 mask_pixels = np.zeros((*mask_to_save.shape, 4), dtype=np.uint8)
+                 mask_pixels[mask_to_save] = overlay_color
+                 mask_image = PIL.Image.fromarray(mask_pixels, 'RGBA')
+
+                 # Paste the colored mask onto the transparent overlay
+                 overlay.paste(mask_image, (0, 0), mask_image) # Use mask_image as its own mask
+
+                 # Combine image and overlay
+                 img_with_mask = PIL.Image.alpha_composite(img_pil, overlay)
+                 img_with_mask = img_with_mask.convert("RGB") # Convert back to RGB for saving
+
+                 # Define save path
+                 # Attempt to get dataset/sequence name from config, provide defaults
+                 dataset_name = config.get("dataset", {}).get("name", "unknown_dataset")
+                 # Use 'sequence' or 'video' as potential keys for the video name
+                 video_name = config.get("dataset", {}).get("sequence", config.get("dataset", {}).get("video", "unknown_video"))
+                 save_dir = os.path.join("logs", dataset_name, video_name, "debug_dynamic_mask")
+                 os.makedirs(save_dir, exist_ok=True)
+                 save_path = os.path.join(save_dir, f"frame_{frame.frame_id:06d}.png")
+
+                 # Save the image
+                 img_with_mask.save(save_path)
+                 # Optional: print confirmation
+                 # print(f"Saved dynamic mask overlay to {save_path}")
+
+             except Exception as e:
+                 print(f"Error saving dynamic mask overlay for frame {frame.frame_id}: {e}")
+        # --- End Debug ---
 
         # Update keyframe pointmap after registration (need pose)
         frame.update_pointmap(Xff, Cff)
@@ -85,7 +141,7 @@ class FrameTracker2:
         else:
             K = None
 
-        # Get poses and point correspondneces and confidences
+        # Get poses and point correspondences and confidences
         Xf, Xk, T_WCf, T_WCk, Cf, Ck, meas_k, valid_meas_k = self.get_points_poses(
             frame, keyframe, idx_f2k, img_size, use_calib, K
         )
@@ -96,7 +152,37 @@ class FrameTracker2:
         valid_Ck = Ck > self.cfg["C_conf"]
         valid_Q = Qk > self.cfg["Q_conf"]
 
-        valid_opt = valid_match_k & valid_Cf & valid_Ck & valid_Q
+        # Calculate base validity based on confidence and matching
+        valid_opt_base = valid_match_k & valid_Cf & valid_Ck & valid_Q
+
+        # Initialize final valid mask
+        valid_opt = valid_opt_base.clone()
+
+        # Filter dynamic points conditionally based on confidence
+        if dynamic_mask_computed and is_dynamic_point is not None:
+            # Ensure shapes match to avoid broadcasting issues
+            is_dynamic_point_reshaped = is_dynamic_point.view_as(valid_opt)
+
+            # Identify low-confidence points (failing any individual threshold)
+            # Note: Using individual checks, not valid_opt_base which includes valid_match_k
+            low_confidence_mask = (~valid_Cf) | (~valid_Ck) | (~valid_Q)
+
+            # Points to filter: Dynamic AND Low Confidence
+            points_to_filter = is_dynamic_point_reshaped & low_confidence_mask
+
+            original_valid_count = valid_opt.sum() # Count from valid_opt_base initially
+            valid_opt = valid_opt_base & (~points_to_filter) # Remove only low-conf dynamic points from base
+            filtered_count = original_valid_count - valid_opt.sum()
+
+            # Calculate how many dynamic points were *kept* because their confidence was high
+            # These are points that are dynamic, were in valid_opt_base, and are still in valid_opt
+            kept_dynamic_count = (is_dynamic_point_reshaped & valid_opt_base & valid_opt).sum()
+
+            if filtered_count > 0:
+                print(f"Filtered {filtered_count} low-confidence dynamic points from optimization for frame {frame.frame_id}")
+            if kept_dynamic_count > 0:
+                 print(f"Kept {kept_dynamic_count} high-confidence dynamic points for frame {frame.frame_id}")
+
         valid_kf = valid_match_k & valid_Q
 
         match_frac = valid_opt.sum() / valid_opt.numel()

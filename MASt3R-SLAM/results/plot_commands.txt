@@ -3,3 +3,5 @@ evo_ape tum datasets/bonn/rgbd_bonn_removing_obstructing_box/groundtruth.txt log
 evo_ape tum datasets/tum/rgbd_dataset_freiburg1_room/groundtruth.txt logs/rgbd_dataset_freiburg1_room.txt -as --plot --plot_mode xz --save_results results/test.zip --save_plot results/rgbd_dataset_freiburg1_room.pdf
 
 evo_ape tum datasets/bonn/rgbd_bonn_person_tracking/groundtruth.txt /work/courses/3dv/24/MASt3R-SLAM/logs/rgbd_bonn_person_tracking.txt -as --plot --plot_mode xz --save_results results/rgbd_bonn_person_tracking.zip --save_plot results/rgbd_bonn_person_tracking.pdf
+
+evo_ape tum datasets/tum2/rgbd_dataset_freiburg3_walking_xyz/groundtruth.txt /work/courses/3dv/24/MASt3R-SLAM/logs/rgbd_dataset_freiburg3_walking_xyz.txt -as --plot --plot_mode xz --save_results results/rgbd_dataset_freiburg3_walking_xyz.zip --save_plot results/rgbd_dataset_freiburg3_walking_xyz.pdf

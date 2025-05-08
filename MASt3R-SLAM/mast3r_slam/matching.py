@@ -74,7 +74,7 @@ def match_iterative_proj(X11, X21, D11, D21, idx_1_to_2_init=None):
     )
     valid_dists2 = (dists2 < cfg["dist_thresh"]).view(b, -1)
     valid_proj2 = valid_proj2 & valid_dists2
-
+    
     if cfg["radius"] > 0:
         (p1,) = mast3r_slam_backends.refine_matches(
             D11.half(),

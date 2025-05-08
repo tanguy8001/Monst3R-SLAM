@@ -168,6 +168,7 @@ if __name__ == "__main__":
     load_config(args.config)
     print(args.dataset)
     print(config)
+    print("T_Version")
 
     manager = mp.Manager()
     main2viz = new_queue(manager, args.no_viz)
@@ -258,6 +259,7 @@ if __name__ == "__main__":
             break
 
         timestamp, img = dataset[i]
+        print(f"Frame {i} timestamp: {timestamp}")
         if save_frames:
             frames.append(img)
 
