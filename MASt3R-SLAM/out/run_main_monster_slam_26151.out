@@ -1,0 +1,135 @@
+Starting main_monster_slam at: Sat May 10 12:28:04 CEST 2025
+datasets/tum2/rgbd_dataset_freiburg3_walking_xyz/
+{'use_calib': True, 'single_thread': False, 'use_dynamic_mask': True, 'dynamic_mask_threshold': 0.35, 'dynamic_points_weight': 0.8, 'dataset': {'subsample': 4, 'img_downsample': 1, 'center_principle_point': True}, 'matching': {'max_iter': 10, 'lambda_init': 1e-08, 'convergence_thresh': 1e-06, 'dist_thresh': 0.1, 'radius': 3, 'dilation_max': 5}, 'tracking': {'min_match_frac': 0.05, 'max_iters': 50, 'C_conf': 0.0, 'Q_conf': 1.5, 'rel_error': 0.001, 'delta_norm': 0.001, 'huber': 1.345, 'match_frac_thresh': 0.333, 'sigma_ray': 0.003, 'sigma_dist': 10.0, 'sigma_pixel': 1.0, 'sigma_depth': 10.0, 'sigma_point': 0.05, 'pixel_border': -10, 'depth_eps': 1e-06, 'filtering_mode': 'weighted_pointmap', 'filtering_score': 'median'}, 'local_opt': {'pin': 1, 'window_size': 1000000.0, 'C_conf': 0.0, 'Q_conf': 1.5, 'min_match_frac': 0.1, 'pixel_border': -10, 'depth_eps': 1e-06, 'max_iters': 10, 'sigma_ray': 0.003, 'sigma_dist': 10.0, 'sigma_pixel': 1.0, 'sigma_depth': 10.0, 'sigma_point': 0.05, 'delta_norm': 1e-08, 'use_cuda': True}, 'retrieval': {'k': 3, 'min_thresh': 0.005}, 'reloc': {'min_match_frac': 0.3, 'strict': True}, 'headless': True, 'save_dir': 'slam_results', 'save_interval': 0.3, 'performance': {'use_gpu': True, 'num_threads': 8}, 'inherit': 'config/base.yaml', 'debug_save_dynamic_mask': True, 'refine_dynamic_mask_with_sam2': True}
+Loading TUM Dataset from: datasets/tum2/rgbd_dataset_freiburg3_walking_xyz/
+RGB list path: datasets/tum2/rgbd_dataset_freiburg3_walking_xyz/rgb.txt, exists: True
+RGB list loaded, shape: (859, 2)
+Number of timestamps: 859
+Number of loaded RGB files: 859
+First RGB file: datasets/tum2/rgbd_dataset_freiburg3_walking_xyz/rgb/1341846313.553992.png, exists: True
+... loading model from checkpoints/MASt3R_ViTLarge_BaseDecoder_512_catmlpdpt_metric.pth
+/work/courses/3dv/24/MASt3R-SLAM/thirdparty/mast3r/mast3r/model.py:24: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  ckpt = torch.load(model_path, map_location='cpu')
+/work/courses/3dv/24/24_envs/envs/3dv/lib/python3.11/site-packages/glfw/__init__.py:917: GLFWError: (65550) b'X11: The DISPLAY environment variable is missing'
+  warnings.warn(message, GLFWError)
+Process Process-2:
+Traceback (most recent call last):
+  File "/work/courses/3dv/24/24_envs/envs/3dv/lib/python3.11/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/work/courses/3dv/24/24_envs/envs/3dv/lib/python3.11/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/work/courses/3dv/24/MASt3R-SLAM/mast3r_slam/visualization.py", line 419, in run_visualization
+    window = window_cls(
+             ^^^^^^^^^^^
+  File "/work/courses/3dv/24/24_envs/envs/3dv/lib/python3.11/site-packages/moderngl_window/context/glfw/window.py", line 31, in __init__
+    raise ValueError("Failed to initialize glfw")
+ValueError: Failed to initialize glfw
+instantiating : AsymmetricMASt3R(enc_depth=24, dec_depth=12, enc_embed_dim=1024, dec_embed_dim=768, enc_num_heads=16, dec_num_heads=12, pos_embed='RoPE100',img_size=(512, 512), head_type='catmlp+dpt', output_mode='pts3d+desc24', depth_mode=('exp', -inf, inf), conf_mode=('exp', 1, inf), patch_embed_cls='PatchEmbedDust3R', two_confs=True, desc_conf_mode=('exp', 0, inf), landscape_only=False)
+<All keys matched successfully>
+... loading model from thirdparty/monst3r/checkpoints/MonST3R_PO-TA-S-W_ViTLarge_BaseDecoder_512_dpt.pth
+/work/courses/3dv/24/MASt3R-SLAM/thirdparty/monst3r/dust3r/model.py:29: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  ckpt = torch.load(model_path, map_location='cpu')
+instantiating : AsymmetricCroCo3DStereo(pos_embed='RoPE100', patch_embed_cls='PatchEmbedDust3R', img_size=(512, 512), head_type='dpt', output_mode='pts3d', depth_mode=('exp', -inf, inf), conf_mode=('exp', 1, inf), enc_embed_dim=1024, enc_depth=24, enc_num_heads=16, dec_embed_dim=768, dec_depth=12, dec_num_heads=12, freeze='encoder', landscape_only=False)
+Freezing encoder parameters
+<All keys matched successfully>
+K:  tensor([[443.3130,   0.0000, 255.6000],
+        [  0.0000, 446.4595, 191.6000],
+        [  0.0000,   0.0000,   1.0000]], device='cuda:0')
+Process Process-3:
+Traceback (most recent call last):
+  File "/work/courses/3dv/24/24_envs/envs/3dv/lib/python3.11/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/work/courses/3dv/24/24_envs/envs/3dv/lib/python3.11/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/work/courses/3dv/24/MASt3R-SLAM/main_monster_slam.py", line 85, in run_backend
+    factor_graph = FactorGraph(mast3r, monst3r, keyframes, K, device)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/courses/3dv/24/MASt3R-SLAM/mast3r_slam/global_opt2.py", line 23, in __init__
+    self.ii = torch.as_tensor([], dtype=torch.long, device=self.device)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/courses/3dv/24/24_envs/envs/3dv/lib/python3.11/site-packages/torch/cuda/__init__.py", line 305, in _lazy_init
+    raise RuntimeError(
+RuntimeError: Cannot re-initialize CUDA in forked subprocess. To use CUDA with multiprocessing, you must use the 'spawn' start method
+/work/courses/3dv/24/MASt3R-SLAM/thirdparty/monst3r/third_party/raft.py:66: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  state_dict = torch.load(args.model)
+Loaded pretrained RAFT model from /work/courses/3dv/24/MASt3R-SLAM/thirdparty/monst3r/third_party/RAFT/models/Tartan-C-T-TSKH-spring540x960-M.pth
+/work/courses/3dv/24/24_envs/envs/3dv/lib/python3.11/site-packages/torch/functional.py:534: UserWarning: torch.meshgrid: in an upcoming release, it will be required to pass the indexing argument. (Triggered internally at /opt/conda/conda-bld/pytorch_1729647348947/work/aten/src/ATen/native/TensorShape.cpp:3595.)
+  return _VF.meshgrid(tensors, **kwargs)  # type: ignore[attr-defined]
+Attempting SAM2 refinement for frame 1...
+/work/courses/3dv/24/MASt3R-SLAM/thirdparty/monst3r/third_party/sam2/sam2/modeling/sam/transformer.py:23: UserWarning: Flash Attention is disabled as it requires a GPU with Ampere (8.0) CUDA capability.
+  OLD_GPU, USE_FLASH_ATTN, MATH_KERNEL_ON = get_sdpa_settings()
+/work/courses/3dv/24/MASt3R-SLAM/thirdparty/monst3r/third_party/sam2/sam2/sam2_video_predictor.py:962: UserWarning: /work/courses/3dv/24/MASt3R-SLAM/thirdparty/monst3r/third_party/sam2/sam2/_C.so: undefined symbol: _ZN3c106detail23torchInternalAssertFailEPKcS2_jS2_RKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+
+Skipping the post-processing step due to the error above. You can still use SAM 2 and it's OK to ignore the error above, although some post-processing functionality may be limited (which doesn't affect the results in most cases; see https://github.com/facebookresearch/sam2/blob/main/INSTALL.md).
+  pred_masks_gpu = fill_holes_in_mask_scores(
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 1 before SAM2: shape=torch.Size([384, 512]), any=True, sum=7313
+DEBUG: sam2_refined_mask for frame 1: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=7289
+DEBUG: Combined dynamic_mask for frame 1 after SAM2: shape=torch.Size([384, 512]), any=True, sum=7320
+Dynamic mask for frame 1 refined with SAM2.
+Successfully computed dynamic mask for frame 1
+Filtered 2571 dynamic points (identified by dynamic_mask module) from optimization for frame 1
+Loaded pretrained RAFT model from /work/courses/3dv/24/MASt3R-SLAM/thirdparty/monst3r/third_party/RAFT/models/Tartan-C-T-TSKH-spring540x960-M.pth
+Attempting SAM2 refinement for frame 2...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 2 before SAM2: shape=torch.Size([384, 512]), any=True, sum=9169
+DEBUG: sam2_refined_mask for frame 2: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=9155
+DEBUG: Combined dynamic_mask for frame 2 after SAM2: shape=torch.Size([384, 512]), any=True, sum=9175
+Dynamic mask for frame 2 refined with SAM2.
+Successfully computed dynamic mask for frame 2
+Filtered 1221 dynamic points (identified by dynamic_mask module) from optimization for frame 2
+Loaded pretrained RAFT model from /work/courses/3dv/24/MASt3R-SLAM/thirdparty/monst3r/third_party/RAFT/models/Tartan-C-T-TSKH-spring540x960-M.pth
+Attempting SAM2 refinement for frame 3...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 3 before SAM2: shape=torch.Size([384, 512]), any=True, sum=34540
+DEBUG: sam2_refined_mask for frame 3: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=34561
+DEBUG: Combined dynamic_mask for frame 3 after SAM2: shape=torch.Size([384, 512]), any=True, sum=34709
+Dynamic mask for frame 3 refined with SAM2.
+Successfully computed dynamic mask for frame 3
+Filtered 12716 dynamic points (identified by dynamic_mask module) from optimization for frame 3
+Loaded pretrained RAFT model from /work/courses/3dv/24/MASt3R-SLAM/thirdparty/monst3r/third_party/RAFT/models/Tartan-C-T-TSKH-spring540x960-M.pth
+Attempting SAM2 refinement for frame 4...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 4 before SAM2: shape=torch.Size([384, 512]), any=True, sum=23936
+DEBUG: sam2_refined_mask for frame 4: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=23910
+DEBUG: Combined dynamic_mask for frame 4 after SAM2: shape=torch.Size([384, 512]), any=True, sum=24029
+Dynamic mask for frame 4 refined with SAM2.
+Successfully computed dynamic mask for frame 4
+Filtered 5341 dynamic points (identified by dynamic_mask module) from optimization for frame 4
+Loaded pretrained RAFT model from /work/courses/3dv/24/MASt3R-SLAM/thirdparty/monst3r/third_party/RAFT/models/Tartan-C-T-TSKH-spring540x960-M.pth
+Attempting SAM2 refinement for frame 5...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 5 before SAM2: shape=torch.Size([384, 512]), any=True, sum=19299
+DEBUG: sam2_refined_mask for frame 5: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=19298
+DEBUG: Combined dynamic_mask for frame 5 after SAM2: shape=torch.Size([384, 512]), any=True, sum=19325
+Dynamic mask for frame 5 refined with SAM2.
+Successfully computed dynamic mask for frame 5
+Filtered 210 dynamic points (identified by dynamic_mask module) from optimization for frame 5
+Loaded pretrained RAFT model from /work/courses/3dv/24/MASt3R-SLAM/thirdparty/monst3r/third_party/RAFT/models/Tartan-C-T-TSKH-spring540x960-M.pth
+Attempting SAM2 refinement for frame 6...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 6 before SAM2: shape=torch.Size([384, 512]), any=True, sum=33355
+DEBUG: sam2_refined_mask for frame 6: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=33371
+DEBUG: Combined dynamic_mask for frame 6 after SAM2: shape=torch.Size([384, 512]), any=True, sum=33402
+Dynamic mask for frame 6 refined with SAM2.
+Successfully computed dynamic mask for frame 6
+Filtered 2838 dynamic points (identified by dynamic_mask module) from optimization for frame 6
+Loaded pretrained RAFT model from /work/courses/3dv/24/MASt3R-SLAM/thirdparty/monst3r/third_party/RAFT/models/Tartan-C-T-TSKH-spring540x960-M.pth
+Attempting SAM2 refinement for frame 7...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 7 before SAM2: shape=torch.Size([384, 512]), any=True, sum=182731
+DEBUG: sam2_refined_mask for frame 7: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=182811
+DEBUG: Combined dynamic_mask for frame 7 after SAM2: shape=torch.Size([384, 512]), any=True, sum=182827
+Dynamic mask for frame 7 refined with SAM2.
+Successfully computed dynamic mask for frame 7
+Filtered 139434 dynamic points (identified by dynamic_mask module) from optimization for frame 7
+Skipped frame 7
+FPS: 0.4370489898491736
+FPS: 0.7339601241861282
+FPS: 0.9473007123739132
+FPS: 1.1074791107684998
+FPS: 1.2319015286435506
+FPS: 1.3306432454239612
+FPS: 1.4106105176900574
+Saving full trajectory to  logs rgbd_dataset_freiburg3_walking_xyz.txt
+done

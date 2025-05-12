@@ -1,0 +1,1784 @@
+Starting main_monster_slam at: Sat May 10 12:36:59 CEST 2025
+datasets/tum2/rgbd_dataset_freiburg3_walking_xyz/
+{'use_calib': True, 'single_thread': False, 'use_dynamic_mask': True, 'dynamic_mask_threshold': 0.35, 'dynamic_points_weight': 0.8, 'dataset': {'subsample': 4, 'img_downsample': 1, 'center_principle_point': True}, 'matching': {'max_iter': 10, 'lambda_init': 1e-08, 'convergence_thresh': 1e-06, 'dist_thresh': 0.1, 'radius': 3, 'dilation_max': 5}, 'tracking': {'min_match_frac': 0.05, 'max_iters': 50, 'C_conf': 0.0, 'Q_conf': 1.5, 'rel_error': 0.001, 'delta_norm': 0.001, 'huber': 1.345, 'match_frac_thresh': 0.333, 'sigma_ray': 0.003, 'sigma_dist': 10.0, 'sigma_pixel': 1.0, 'sigma_depth': 10.0, 'sigma_point': 0.05, 'pixel_border': -10, 'depth_eps': 1e-06, 'filtering_mode': 'weighted_pointmap', 'filtering_score': 'median'}, 'local_opt': {'pin': 1, 'window_size': 1000000.0, 'C_conf': 0.0, 'Q_conf': 1.5, 'min_match_frac': 0.1, 'pixel_border': -10, 'depth_eps': 1e-06, 'max_iters': 10, 'sigma_ray': 0.003, 'sigma_dist': 10.0, 'sigma_pixel': 1.0, 'sigma_depth': 10.0, 'sigma_point': 0.05, 'delta_norm': 1e-08, 'use_cuda': True}, 'retrieval': {'k': 3, 'min_thresh': 0.005}, 'reloc': {'min_match_frac': 0.3, 'strict': True}, 'headless': True, 'save_dir': 'slam_results', 'save_interval': 0.3, 'performance': {'use_gpu': True, 'num_threads': 8}, 'inherit': 'config/base.yaml', 'debug_save_dynamic_mask': True, 'refine_dynamic_mask_with_sam2': True}
+Loading TUM Dataset from: datasets/tum2/rgbd_dataset_freiburg3_walking_xyz/
+RGB list path: datasets/tum2/rgbd_dataset_freiburg3_walking_xyz/rgb.txt, exists: True
+RGB list loaded, shape: (859, 2)
+Number of timestamps: 859
+Number of loaded RGB files: 859
+First RGB file: datasets/tum2/rgbd_dataset_freiburg3_walking_xyz/rgb/1341846313.553992.png, exists: True
+... loading model from checkpoints/MASt3R_ViTLarge_BaseDecoder_512_catmlpdpt_metric.pth
+/work/courses/3dv/24/MASt3R-SLAM/thirdparty/mast3r/mast3r/model.py:24: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  ckpt = torch.load(model_path, map_location='cpu')
+/work/courses/3dv/24/24_envs/envs/3dv/lib/python3.11/site-packages/glfw/__init__.py:917: GLFWError: (65550) b'X11: The DISPLAY environment variable is missing'
+  warnings.warn(message, GLFWError)
+Process Process-2:
+Traceback (most recent call last):
+  File "/work/courses/3dv/24/24_envs/envs/3dv/lib/python3.11/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/work/courses/3dv/24/24_envs/envs/3dv/lib/python3.11/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/work/courses/3dv/24/MASt3R-SLAM/mast3r_slam/visualization.py", line 419, in run_visualization
+    window = window_cls(
+             ^^^^^^^^^^^
+  File "/work/courses/3dv/24/24_envs/envs/3dv/lib/python3.11/site-packages/moderngl_window/context/glfw/window.py", line 31, in __init__
+    raise ValueError("Failed to initialize glfw")
+ValueError: Failed to initialize glfw
+instantiating : AsymmetricMASt3R(enc_depth=24, dec_depth=12, enc_embed_dim=1024, dec_embed_dim=768, enc_num_heads=16, dec_num_heads=12, pos_embed='RoPE100',img_size=(512, 512), head_type='catmlp+dpt', output_mode='pts3d+desc24', depth_mode=('exp', -inf, inf), conf_mode=('exp', 1, inf), patch_embed_cls='PatchEmbedDust3R', two_confs=True, desc_conf_mode=('exp', 0, inf), landscape_only=False)
+<All keys matched successfully>
+... loading model from thirdparty/monst3r/checkpoints/MonST3R_PO-TA-S-W_ViTLarge_BaseDecoder_512_dpt.pth
+/work/courses/3dv/24/MASt3R-SLAM/thirdparty/monst3r/dust3r/model.py:29: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  ckpt = torch.load(model_path, map_location='cpu')
+instantiating : AsymmetricCroCo3DStereo(pos_embed='RoPE100', patch_embed_cls='PatchEmbedDust3R', img_size=(512, 512), head_type='dpt', output_mode='pts3d', depth_mode=('exp', -inf, inf), conf_mode=('exp', 1, inf), enc_embed_dim=1024, enc_depth=24, enc_num_heads=16, dec_embed_dim=768, dec_depth=12, dec_num_heads=12, freeze='encoder', landscape_only=False)
+Freezing encoder parameters
+<All keys matched successfully>
+K:  tensor([[443.3130,   0.0000, 255.6000],
+        [  0.0000, 446.4595, 191.6000],
+        [  0.0000,   0.0000,   1.0000]], device='cuda:0')
+/work/courses/3dv/24/MASt3R-SLAM/thirdparty/monst3r/third_party/raft.py:66: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  state_dict = torch.load(args.model)
+Loaded pretrained RAFT model from /work/courses/3dv/24/MASt3R-SLAM/thirdparty/monst3r/third_party/RAFT/models/Tartan-C-T-TSKH-spring540x960-M.pth
+Process Process-3:
+Traceback (most recent call last):
+  File "/work/courses/3dv/24/24_envs/envs/3dv/lib/python3.11/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/work/courses/3dv/24/24_envs/envs/3dv/lib/python3.11/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/work/courses/3dv/24/MASt3R-SLAM/main_monster_slam.py", line 85, in run_backend
+    factor_graph = FactorGraph(mast3r, monst3r, keyframes, K, device)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/courses/3dv/24/MASt3R-SLAM/mast3r_slam/global_opt2.py", line 23, in __init__
+    self.ii = torch.as_tensor([], dtype=torch.long, device=self.device)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/courses/3dv/24/24_envs/envs/3dv/lib/python3.11/site-packages/torch/cuda/__init__.py", line 305, in _lazy_init
+    raise RuntimeError(
+RuntimeError: Cannot re-initialize CUDA in forked subprocess. To use CUDA with multiprocessing, you must use the 'spawn' start method
+/work/courses/3dv/24/24_envs/envs/3dv/lib/python3.11/site-packages/torch/functional.py:534: UserWarning: torch.meshgrid: in an upcoming release, it will be required to pass the indexing argument. (Triggered internally at /opt/conda/conda-bld/pytorch_1729647348947/work/aten/src/ATen/native/TensorShape.cpp:3595.)
+  return _VF.meshgrid(tensors, **kwargs)  # type: ignore[attr-defined]
+Attempting SAM2 refinement for frame 1...
+/work/courses/3dv/24/MASt3R-SLAM/thirdparty/monst3r/third_party/sam2/sam2/modeling/sam/transformer.py:23: UserWarning: Flash Attention is disabled as it requires a GPU with Ampere (8.0) CUDA capability.
+  OLD_GPU, USE_FLASH_ATTN, MATH_KERNEL_ON = get_sdpa_settings()
+/work/courses/3dv/24/MASt3R-SLAM/thirdparty/monst3r/third_party/sam2/sam2/sam2_video_predictor.py:962: UserWarning: /work/courses/3dv/24/MASt3R-SLAM/thirdparty/monst3r/third_party/sam2/sam2/_C.so: undefined symbol: _ZN3c106detail23torchInternalAssertFailEPKcS2_jS2_RKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+
+Skipping the post-processing step due to the error above. You can still use SAM 2 and it's OK to ignore the error above, although some post-processing functionality may be limited (which doesn't affect the results in most cases; see https://github.com/facebookresearch/sam2/blob/main/INSTALL.md).
+  pred_masks_gpu = fill_holes_in_mask_scores(
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 1 before SAM2: shape=torch.Size([384, 512]), any=True, sum=7313
+DEBUG: sam2_refined_mask for frame 1: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=7289
+DEBUG: Combined dynamic_mask for frame 1 after SAM2: shape=torch.Size([384, 512]), any=True, sum=7320
+Dynamic mask for frame 1 refined with SAM2.
+Successfully computed dynamic mask for frame 1
+Kept 2571 high-confidence dynamic points for frame 1
+Attempting SAM2 refinement for frame 2...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 2 before SAM2: shape=torch.Size([384, 512]), any=True, sum=9166
+DEBUG: sam2_refined_mask for frame 2: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=9156
+DEBUG: Combined dynamic_mask for frame 2 after SAM2: shape=torch.Size([384, 512]), any=True, sum=9174
+Dynamic mask for frame 2 refined with SAM2.
+Successfully computed dynamic mask for frame 2
+Kept 1196 high-confidence dynamic points for frame 2
+Attempting SAM2 refinement for frame 3...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 3 before SAM2: shape=torch.Size([384, 512]), any=True, sum=34425
+DEBUG: sam2_refined_mask for frame 3: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=34436
+DEBUG: Combined dynamic_mask for frame 3 after SAM2: shape=torch.Size([384, 512]), any=True, sum=34584
+Dynamic mask for frame 3 refined with SAM2.
+Successfully computed dynamic mask for frame 3
+Kept 12656 high-confidence dynamic points for frame 3
+Attempting SAM2 refinement for frame 4...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 4 before SAM2: shape=torch.Size([384, 512]), any=True, sum=21340
+DEBUG: sam2_refined_mask for frame 4: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=21261
+DEBUG: Combined dynamic_mask for frame 4 after SAM2: shape=torch.Size([384, 512]), any=True, sum=21424
+Dynamic mask for frame 4 refined with SAM2.
+Successfully computed dynamic mask for frame 4
+Kept 3778 high-confidence dynamic points for frame 4
+Attempting SAM2 refinement for frame 5...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 5 before SAM2: shape=torch.Size([384, 512]), any=True, sum=19578
+DEBUG: sam2_refined_mask for frame 5: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=19565
+DEBUG: Combined dynamic_mask for frame 5 after SAM2: shape=torch.Size([384, 512]), any=True, sum=19596
+Dynamic mask for frame 5 refined with SAM2.
+Successfully computed dynamic mask for frame 5
+Kept 214 high-confidence dynamic points for frame 5
+Attempting SAM2 refinement for frame 6...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 6 before SAM2: shape=torch.Size([384, 512]), any=True, sum=33353
+DEBUG: sam2_refined_mask for frame 6: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=33370
+DEBUG: Combined dynamic_mask for frame 6 after SAM2: shape=torch.Size([384, 512]), any=True, sum=33402
+Dynamic mask for frame 6 refined with SAM2.
+Successfully computed dynamic mask for frame 6
+Kept 2823 high-confidence dynamic points for frame 6
+Attempting SAM2 refinement for frame 7...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 7 before SAM2: shape=torch.Size([384, 512]), any=True, sum=182731
+DEBUG: sam2_refined_mask for frame 7: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=182811
+DEBUG: Combined dynamic_mask for frame 7 after SAM2: shape=torch.Size([384, 512]), any=True, sum=182827
+Dynamic mask for frame 7 refined with SAM2.
+Successfully computed dynamic mask for frame 7
+Kept 139434 high-confidence dynamic points for frame 7
+Attempting SAM2 refinement for frame 8...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 8 before SAM2: shape=torch.Size([384, 512]), any=True, sum=152624
+DEBUG: sam2_refined_mask for frame 8: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=152939
+DEBUG: Combined dynamic_mask for frame 8 after SAM2: shape=torch.Size([384, 512]), any=True, sum=153012
+Dynamic mask for frame 8 refined with SAM2.
+Successfully computed dynamic mask for frame 8
+Kept 98724 high-confidence dynamic points for frame 8
+Attempting SAM2 refinement for frame 9...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 9 before SAM2: shape=torch.Size([384, 512]), any=True, sum=14764
+DEBUG: sam2_refined_mask for frame 9: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=14754
+DEBUG: Combined dynamic_mask for frame 9 after SAM2: shape=torch.Size([384, 512]), any=True, sum=14789
+Dynamic mask for frame 9 refined with SAM2.
+Successfully computed dynamic mask for frame 9
+Kept 839 high-confidence dynamic points for frame 9
+Attempting SAM2 refinement for frame 10...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 10 before SAM2: shape=torch.Size([384, 512]), any=True, sum=24853
+DEBUG: sam2_refined_mask for frame 10: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=24809
+DEBUG: Combined dynamic_mask for frame 10 after SAM2: shape=torch.Size([384, 512]), any=True, sum=24882
+Dynamic mask for frame 10 refined with SAM2.
+Successfully computed dynamic mask for frame 10
+Kept 9831 high-confidence dynamic points for frame 10
+Attempting SAM2 refinement for frame 11...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 11 before SAM2: shape=torch.Size([384, 512]), any=True, sum=8958
+DEBUG: sam2_refined_mask for frame 11: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=8954
+DEBUG: Combined dynamic_mask for frame 11 after SAM2: shape=torch.Size([384, 512]), any=True, sum=8966
+Dynamic mask for frame 11 refined with SAM2.
+Successfully computed dynamic mask for frame 11
+Kept 1010 high-confidence dynamic points for frame 11
+Attempting SAM2 refinement for frame 12...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 12 before SAM2: shape=torch.Size([384, 512]), any=True, sum=15151
+DEBUG: sam2_refined_mask for frame 12: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=15148
+DEBUG: Combined dynamic_mask for frame 12 after SAM2: shape=torch.Size([384, 512]), any=True, sum=15159
+Dynamic mask for frame 12 refined with SAM2.
+Successfully computed dynamic mask for frame 12
+Kept 1186 high-confidence dynamic points for frame 12
+Attempting SAM2 refinement for frame 13...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 13 before SAM2: shape=torch.Size([384, 512]), any=True, sum=16603
+DEBUG: sam2_refined_mask for frame 13: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=16595
+DEBUG: Combined dynamic_mask for frame 13 after SAM2: shape=torch.Size([384, 512]), any=True, sum=16611
+Dynamic mask for frame 13 refined with SAM2.
+Successfully computed dynamic mask for frame 13
+Kept 5882 high-confidence dynamic points for frame 13
+Attempting SAM2 refinement for frame 14...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 14 before SAM2: shape=torch.Size([384, 512]), any=True, sum=46153
+DEBUG: sam2_refined_mask for frame 14: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=46239
+DEBUG: Combined dynamic_mask for frame 14 after SAM2: shape=torch.Size([384, 512]), any=True, sum=46295
+Dynamic mask for frame 14 refined with SAM2.
+Successfully computed dynamic mask for frame 14
+Kept 27654 high-confidence dynamic points for frame 14
+Attempting SAM2 refinement for frame 15...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 15 before SAM2: shape=torch.Size([384, 512]), any=True, sum=16761
+DEBUG: sam2_refined_mask for frame 15: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=16758
+DEBUG: Combined dynamic_mask for frame 15 after SAM2: shape=torch.Size([384, 512]), any=True, sum=16765
+Dynamic mask for frame 15 refined with SAM2.
+Successfully computed dynamic mask for frame 15
+Kept 3230 high-confidence dynamic points for frame 15
+Attempting SAM2 refinement for frame 16...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 16 before SAM2: shape=torch.Size([384, 512]), any=True, sum=14109
+DEBUG: sam2_refined_mask for frame 16: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=14100
+DEBUG: Combined dynamic_mask for frame 16 after SAM2: shape=torch.Size([384, 512]), any=True, sum=14112
+Dynamic mask for frame 16 refined with SAM2.
+Successfully computed dynamic mask for frame 16
+Kept 417 high-confidence dynamic points for frame 16
+Attempting SAM2 refinement for frame 17...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 17 before SAM2: shape=torch.Size([384, 512]), any=True, sum=14660
+DEBUG: sam2_refined_mask for frame 17: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=14655
+DEBUG: Combined dynamic_mask for frame 17 after SAM2: shape=torch.Size([384, 512]), any=True, sum=14669
+Dynamic mask for frame 17 refined with SAM2.
+Successfully computed dynamic mask for frame 17
+Kept 39 high-confidence dynamic points for frame 17
+Attempting SAM2 refinement for frame 18...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 18 before SAM2: shape=torch.Size([384, 512]), any=True, sum=16555
+DEBUG: sam2_refined_mask for frame 18: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=16548
+DEBUG: Combined dynamic_mask for frame 18 after SAM2: shape=torch.Size([384, 512]), any=True, sum=16578
+Dynamic mask for frame 18 refined with SAM2.
+Successfully computed dynamic mask for frame 18
+Kept 1162 high-confidence dynamic points for frame 18
+Attempting SAM2 refinement for frame 19...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 19 before SAM2: shape=torch.Size([384, 512]), any=True, sum=14864
+DEBUG: sam2_refined_mask for frame 19: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=14867
+DEBUG: Combined dynamic_mask for frame 19 after SAM2: shape=torch.Size([384, 512]), any=True, sum=14877
+Dynamic mask for frame 19 refined with SAM2.
+Successfully computed dynamic mask for frame 19
+Kept 1568 high-confidence dynamic points for frame 19
+Attempting SAM2 refinement for frame 20...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 20 before SAM2: shape=torch.Size([384, 512]), any=True, sum=16482
+DEBUG: sam2_refined_mask for frame 20: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=16488
+DEBUG: Combined dynamic_mask for frame 20 after SAM2: shape=torch.Size([384, 512]), any=True, sum=16494
+Dynamic mask for frame 20 refined with SAM2.
+Successfully computed dynamic mask for frame 20
+Kept 2257 high-confidence dynamic points for frame 20
+Attempting SAM2 refinement for frame 21...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 21 before SAM2: shape=torch.Size([384, 512]), any=True, sum=18727
+DEBUG: sam2_refined_mask for frame 21: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=18713
+DEBUG: Combined dynamic_mask for frame 21 after SAM2: shape=torch.Size([384, 512]), any=True, sum=18752
+Dynamic mask for frame 21 refined with SAM2.
+Successfully computed dynamic mask for frame 21
+Kept 923 high-confidence dynamic points for frame 21
+Attempting SAM2 refinement for frame 22...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 22 before SAM2: shape=torch.Size([384, 512]), any=True, sum=11696
+DEBUG: sam2_refined_mask for frame 22: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=11696
+DEBUG: Combined dynamic_mask for frame 22 after SAM2: shape=torch.Size([384, 512]), any=True, sum=11703
+Dynamic mask for frame 22 refined with SAM2.
+Successfully computed dynamic mask for frame 22
+Kept 953 high-confidence dynamic points for frame 22
+Attempting SAM2 refinement for frame 23...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 23 before SAM2: shape=torch.Size([384, 512]), any=True, sum=12940
+DEBUG: sam2_refined_mask for frame 23: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=12941
+DEBUG: Combined dynamic_mask for frame 23 after SAM2: shape=torch.Size([384, 512]), any=True, sum=12950
+Dynamic mask for frame 23 refined with SAM2.
+Successfully computed dynamic mask for frame 23
+Kept 1683 high-confidence dynamic points for frame 23
+Attempting SAM2 refinement for frame 24...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 24 before SAM2: shape=torch.Size([384, 512]), any=True, sum=18481
+DEBUG: sam2_refined_mask for frame 24: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=18472
+DEBUG: Combined dynamic_mask for frame 24 after SAM2: shape=torch.Size([384, 512]), any=True, sum=18492
+Dynamic mask for frame 24 refined with SAM2.
+Successfully computed dynamic mask for frame 24
+Kept 1537 high-confidence dynamic points for frame 24
+Attempting SAM2 refinement for frame 25...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 25 before SAM2: shape=torch.Size([384, 512]), any=True, sum=24342
+DEBUG: sam2_refined_mask for frame 25: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=24310
+DEBUG: Combined dynamic_mask for frame 25 after SAM2: shape=torch.Size([384, 512]), any=True, sum=24379
+Dynamic mask for frame 25 refined with SAM2.
+Successfully computed dynamic mask for frame 25
+Kept 1382 high-confidence dynamic points for frame 25
+Attempting SAM2 refinement for frame 26...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 26 before SAM2: shape=torch.Size([384, 512]), any=True, sum=30563
+DEBUG: sam2_refined_mask for frame 26: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=30534
+DEBUG: Combined dynamic_mask for frame 26 after SAM2: shape=torch.Size([384, 512]), any=True, sum=30581
+Dynamic mask for frame 26 refined with SAM2.
+Successfully computed dynamic mask for frame 26
+Kept 1106 high-confidence dynamic points for frame 26
+Attempting SAM2 refinement for frame 27...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 27 before SAM2: shape=torch.Size([384, 512]), any=True, sum=162029
+DEBUG: sam2_refined_mask for frame 27: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=162044
+DEBUG: Combined dynamic_mask for frame 27 after SAM2: shape=torch.Size([384, 512]), any=True, sum=162059
+Dynamic mask for frame 27 refined with SAM2.
+Successfully computed dynamic mask for frame 27
+Kept 120574 high-confidence dynamic points for frame 27
+Attempting SAM2 refinement for frame 28...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 28 before SAM2: shape=torch.Size([384, 512]), any=True, sum=102535
+DEBUG: sam2_refined_mask for frame 28: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=102770
+DEBUG: Combined dynamic_mask for frame 28 after SAM2: shape=torch.Size([384, 512]), any=True, sum=102927
+Dynamic mask for frame 28 refined with SAM2.
+Successfully computed dynamic mask for frame 28
+Kept 67059 high-confidence dynamic points for frame 28
+Attempting SAM2 refinement for frame 29...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 29 before SAM2: shape=torch.Size([384, 512]), any=True, sum=50378
+DEBUG: sam2_refined_mask for frame 29: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=50519
+DEBUG: Combined dynamic_mask for frame 29 after SAM2: shape=torch.Size([384, 512]), any=True, sum=50587
+Dynamic mask for frame 29 refined with SAM2.
+Successfully computed dynamic mask for frame 29
+Kept 16543 high-confidence dynamic points for frame 29
+Attempting SAM2 refinement for frame 30...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 30 before SAM2: shape=torch.Size([384, 512]), any=True, sum=46446
+DEBUG: sam2_refined_mask for frame 30: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=46502
+DEBUG: Combined dynamic_mask for frame 30 after SAM2: shape=torch.Size([384, 512]), any=True, sum=46715
+Dynamic mask for frame 30 refined with SAM2.
+Successfully computed dynamic mask for frame 30
+Kept 17685 high-confidence dynamic points for frame 30
+FPS: 0.17860909894796959
+Attempting SAM2 refinement for frame 31...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 31 before SAM2: shape=torch.Size([384, 512]), any=True, sum=42284
+DEBUG: sam2_refined_mask for frame 31: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=42288
+DEBUG: Combined dynamic_mask for frame 31 after SAM2: shape=torch.Size([384, 512]), any=True, sum=42536
+Dynamic mask for frame 31 refined with SAM2.
+Successfully computed dynamic mask for frame 31
+Kept 10096 high-confidence dynamic points for frame 31
+Attempting SAM2 refinement for frame 32...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 32 before SAM2: shape=torch.Size([384, 512]), any=True, sum=28701
+DEBUG: sam2_refined_mask for frame 32: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=28666
+DEBUG: Combined dynamic_mask for frame 32 after SAM2: shape=torch.Size([384, 512]), any=True, sum=28819
+Dynamic mask for frame 32 refined with SAM2.
+Successfully computed dynamic mask for frame 32
+Kept 289 high-confidence dynamic points for frame 32
+Attempting SAM2 refinement for frame 33...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 33 before SAM2: shape=torch.Size([384, 512]), any=True, sum=39101
+DEBUG: sam2_refined_mask for frame 33: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=39148
+DEBUG: Combined dynamic_mask for frame 33 after SAM2: shape=torch.Size([384, 512]), any=True, sum=39179
+Dynamic mask for frame 33 refined with SAM2.
+Successfully computed dynamic mask for frame 33
+Kept 3359 high-confidence dynamic points for frame 33
+Attempting SAM2 refinement for frame 34...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 34 before SAM2: shape=torch.Size([384, 512]), any=True, sum=49038
+DEBUG: sam2_refined_mask for frame 34: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=49048
+DEBUG: Combined dynamic_mask for frame 34 after SAM2: shape=torch.Size([384, 512]), any=True, sum=49149
+Dynamic mask for frame 34 refined with SAM2.
+Successfully computed dynamic mask for frame 34
+Kept 8123 high-confidence dynamic points for frame 34
+Attempting SAM2 refinement for frame 35...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 35 before SAM2: shape=torch.Size([384, 512]), any=True, sum=56398
+DEBUG: sam2_refined_mask for frame 35: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=56531
+DEBUG: Combined dynamic_mask for frame 35 after SAM2: shape=torch.Size([384, 512]), any=True, sum=56555
+Dynamic mask for frame 35 refined with SAM2.
+Successfully computed dynamic mask for frame 35
+Kept 2860 high-confidence dynamic points for frame 35
+Attempting SAM2 refinement for frame 36...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 36 before SAM2: shape=torch.Size([384, 512]), any=True, sum=187400
+DEBUG: sam2_refined_mask for frame 36: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=187436
+DEBUG: Combined dynamic_mask for frame 36 after SAM2: shape=torch.Size([384, 512]), any=True, sum=187456
+Dynamic mask for frame 36 refined with SAM2.
+Successfully computed dynamic mask for frame 36
+Kept 117101 high-confidence dynamic points for frame 36
+Attempting SAM2 refinement for frame 37...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 37 before SAM2: shape=torch.Size([384, 512]), any=True, sum=37369
+DEBUG: sam2_refined_mask for frame 37: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=37296
+DEBUG: Combined dynamic_mask for frame 37 after SAM2: shape=torch.Size([384, 512]), any=True, sum=37491
+Dynamic mask for frame 37 refined with SAM2.
+Successfully computed dynamic mask for frame 37
+Kept 21505 high-confidence dynamic points for frame 37
+Attempting SAM2 refinement for frame 38...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 38 before SAM2: shape=torch.Size([384, 512]), any=True, sum=4139
+DEBUG: sam2_refined_mask for frame 38: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=4140
+DEBUG: Combined dynamic_mask for frame 38 after SAM2: shape=torch.Size([384, 512]), any=True, sum=4141
+Dynamic mask for frame 38 refined with SAM2.
+Successfully computed dynamic mask for frame 38
+Kept 1841 high-confidence dynamic points for frame 38
+Attempting SAM2 refinement for frame 39...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 39 before SAM2: shape=torch.Size([384, 512]), any=True, sum=20137
+DEBUG: sam2_refined_mask for frame 39: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=20113
+DEBUG: Combined dynamic_mask for frame 39 after SAM2: shape=torch.Size([384, 512]), any=True, sum=20149
+Dynamic mask for frame 39 refined with SAM2.
+Successfully computed dynamic mask for frame 39
+Kept 7665 high-confidence dynamic points for frame 39
+Attempting SAM2 refinement for frame 40...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 40 before SAM2: shape=torch.Size([384, 512]), any=True, sum=127897
+DEBUG: sam2_refined_mask for frame 40: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=127910
+DEBUG: Combined dynamic_mask for frame 40 after SAM2: shape=torch.Size([384, 512]), any=True, sum=128029
+Dynamic mask for frame 40 refined with SAM2.
+Successfully computed dynamic mask for frame 40
+Kept 49128 high-confidence dynamic points for frame 40
+Attempting SAM2 refinement for frame 41...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 41 before SAM2: shape=torch.Size([384, 512]), any=True, sum=31827
+DEBUG: sam2_refined_mask for frame 41: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=31822
+DEBUG: Combined dynamic_mask for frame 41 after SAM2: shape=torch.Size([384, 512]), any=True, sum=31831
+Dynamic mask for frame 41 refined with SAM2.
+Successfully computed dynamic mask for frame 41
+Kept 2498 high-confidence dynamic points for frame 41
+Attempting SAM2 refinement for frame 42...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 42 before SAM2: shape=torch.Size([384, 512]), any=True, sum=35186
+DEBUG: sam2_refined_mask for frame 42: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=35189
+DEBUG: Combined dynamic_mask for frame 42 after SAM2: shape=torch.Size([384, 512]), any=True, sum=35199
+Dynamic mask for frame 42 refined with SAM2.
+Successfully computed dynamic mask for frame 42
+Kept 2870 high-confidence dynamic points for frame 42
+Attempting SAM2 refinement for frame 43...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 43 before SAM2: shape=torch.Size([384, 512]), any=True, sum=41560
+DEBUG: sam2_refined_mask for frame 43: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=41571
+DEBUG: Combined dynamic_mask for frame 43 after SAM2: shape=torch.Size([384, 512]), any=True, sum=41585
+Dynamic mask for frame 43 refined with SAM2.
+Successfully computed dynamic mask for frame 43
+Kept 5506 high-confidence dynamic points for frame 43
+Attempting SAM2 refinement for frame 44...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 44 before SAM2: shape=torch.Size([384, 512]), any=True, sum=45858
+DEBUG: sam2_refined_mask for frame 44: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=45860
+DEBUG: Combined dynamic_mask for frame 44 after SAM2: shape=torch.Size([384, 512]), any=True, sum=45868
+Dynamic mask for frame 44 refined with SAM2.
+Successfully computed dynamic mask for frame 44
+Kept 1318 high-confidence dynamic points for frame 44
+Attempting SAM2 refinement for frame 45...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 45 before SAM2: shape=torch.Size([384, 512]), any=True, sum=25967
+DEBUG: sam2_refined_mask for frame 45: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=25965
+DEBUG: Combined dynamic_mask for frame 45 after SAM2: shape=torch.Size([384, 512]), any=True, sum=25970
+Dynamic mask for frame 45 refined with SAM2.
+Successfully computed dynamic mask for frame 45
+Kept 1116 high-confidence dynamic points for frame 45
+Attempting SAM2 refinement for frame 46...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 46 before SAM2: shape=torch.Size([384, 512]), any=True, sum=6124
+DEBUG: sam2_refined_mask for frame 46: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=6131
+DEBUG: Combined dynamic_mask for frame 46 after SAM2: shape=torch.Size([384, 512]), any=True, sum=6132
+Dynamic mask for frame 46 refined with SAM2.
+Successfully computed dynamic mask for frame 46
+Kept 357 high-confidence dynamic points for frame 46
+Attempting SAM2 refinement for frame 47...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 47 before SAM2: shape=torch.Size([384, 512]), any=True, sum=5495
+DEBUG: sam2_refined_mask for frame 47: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=5495
+DEBUG: Combined dynamic_mask for frame 47 after SAM2: shape=torch.Size([384, 512]), any=True, sum=5497
+Dynamic mask for frame 47 refined with SAM2.
+Successfully computed dynamic mask for frame 47
+Kept 2 high-confidence dynamic points for frame 47
+Attempting SAM2 refinement for frame 48...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 48 before SAM2: shape=torch.Size([384, 512]), any=True, sum=90513
+DEBUG: sam2_refined_mask for frame 48: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=90520
+DEBUG: Combined dynamic_mask for frame 48 after SAM2: shape=torch.Size([384, 512]), any=True, sum=90630
+Dynamic mask for frame 48 refined with SAM2.
+Successfully computed dynamic mask for frame 48
+Kept 43092 high-confidence dynamic points for frame 48
+Attempting SAM2 refinement for frame 49...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 49 before SAM2: shape=torch.Size([384, 512]), any=True, sum=44210
+DEBUG: sam2_refined_mask for frame 49: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=44173
+DEBUG: Combined dynamic_mask for frame 49 after SAM2: shape=torch.Size([384, 512]), any=True, sum=44320
+Dynamic mask for frame 49 refined with SAM2.
+Successfully computed dynamic mask for frame 49
+Kept 29233 high-confidence dynamic points for frame 49
+Attempting SAM2 refinement for frame 50...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 50 before SAM2: shape=torch.Size([384, 512]), any=True, sum=4751
+DEBUG: sam2_refined_mask for frame 50: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=4750
+DEBUG: Combined dynamic_mask for frame 50 after SAM2: shape=torch.Size([384, 512]), any=True, sum=4754
+Dynamic mask for frame 50 refined with SAM2.
+Successfully computed dynamic mask for frame 50
+Kept 6 high-confidence dynamic points for frame 50
+Attempting SAM2 refinement for frame 51...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 51 before SAM2: shape=torch.Size([384, 512]), any=True, sum=4392
+DEBUG: sam2_refined_mask for frame 51: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=4385
+DEBUG: Combined dynamic_mask for frame 51 after SAM2: shape=torch.Size([384, 512]), any=True, sum=4410
+Dynamic mask for frame 51 refined with SAM2.
+Successfully computed dynamic mask for frame 51
+Kept 131 high-confidence dynamic points for frame 51
+Attempting SAM2 refinement for frame 52...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 52 before SAM2: shape=torch.Size([384, 512]), any=True, sum=129992
+DEBUG: sam2_refined_mask for frame 52: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=130065
+DEBUG: Combined dynamic_mask for frame 52 after SAM2: shape=torch.Size([384, 512]), any=True, sum=130098
+Dynamic mask for frame 52 refined with SAM2.
+Successfully computed dynamic mask for frame 52
+Kept 79143 high-confidence dynamic points for frame 52
+Attempting SAM2 refinement for frame 53...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 53 before SAM2: shape=torch.Size([384, 512]), any=True, sum=20775
+DEBUG: sam2_refined_mask for frame 53: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=20774
+DEBUG: Combined dynamic_mask for frame 53 after SAM2: shape=torch.Size([384, 512]), any=True, sum=20783
+Dynamic mask for frame 53 refined with SAM2.
+Successfully computed dynamic mask for frame 53
+Kept 11628 high-confidence dynamic points for frame 53
+Attempting SAM2 refinement for frame 54...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 54 before SAM2: shape=torch.Size([384, 512]), any=True, sum=27298
+DEBUG: sam2_refined_mask for frame 54: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=27302
+DEBUG: Combined dynamic_mask for frame 54 after SAM2: shape=torch.Size([384, 512]), any=True, sum=27311
+Dynamic mask for frame 54 refined with SAM2.
+Successfully computed dynamic mask for frame 54
+Kept 7453 high-confidence dynamic points for frame 54
+Attempting SAM2 refinement for frame 55...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 55 before SAM2: shape=torch.Size([384, 512]), any=True, sum=45121
+DEBUG: sam2_refined_mask for frame 55: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=45115
+DEBUG: Combined dynamic_mask for frame 55 after SAM2: shape=torch.Size([384, 512]), any=True, sum=45133
+Dynamic mask for frame 55 refined with SAM2.
+Successfully computed dynamic mask for frame 55
+Kept 20046 high-confidence dynamic points for frame 55
+Attempting SAM2 refinement for frame 56...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 56 before SAM2: shape=torch.Size([384, 512]), any=True, sum=29355
+DEBUG: sam2_refined_mask for frame 56: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=29348
+DEBUG: Combined dynamic_mask for frame 56 after SAM2: shape=torch.Size([384, 512]), any=True, sum=29365
+Dynamic mask for frame 56 refined with SAM2.
+Successfully computed dynamic mask for frame 56
+Kept 10014 high-confidence dynamic points for frame 56
+Attempting SAM2 refinement for frame 57...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 57 before SAM2: shape=torch.Size([384, 512]), any=True, sum=24010
+DEBUG: sam2_refined_mask for frame 57: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=24004
+DEBUG: Combined dynamic_mask for frame 57 after SAM2: shape=torch.Size([384, 512]), any=True, sum=24024
+Dynamic mask for frame 57 refined with SAM2.
+Successfully computed dynamic mask for frame 57
+Kept 1314 high-confidence dynamic points for frame 57
+Attempting SAM2 refinement for frame 58...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 58 before SAM2: shape=torch.Size([384, 512]), any=True, sum=20296
+DEBUG: sam2_refined_mask for frame 58: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=20292
+DEBUG: Combined dynamic_mask for frame 58 after SAM2: shape=torch.Size([384, 512]), any=True, sum=20298
+Dynamic mask for frame 58 refined with SAM2.
+Successfully computed dynamic mask for frame 58
+Kept 415 high-confidence dynamic points for frame 58
+Attempting SAM2 refinement for frame 59...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 59 before SAM2: shape=torch.Size([384, 512]), any=True, sum=22421
+DEBUG: sam2_refined_mask for frame 59: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=22423
+DEBUG: Combined dynamic_mask for frame 59 after SAM2: shape=torch.Size([384, 512]), any=True, sum=22431
+Dynamic mask for frame 59 refined with SAM2.
+Successfully computed dynamic mask for frame 59
+Kept 228 high-confidence dynamic points for frame 59
+Attempting SAM2 refinement for frame 60...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 60 before SAM2: shape=torch.Size([384, 512]), any=True, sum=19240
+DEBUG: sam2_refined_mask for frame 60: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=19241
+DEBUG: Combined dynamic_mask for frame 60 after SAM2: shape=torch.Size([384, 512]), any=True, sum=19250
+Dynamic mask for frame 60 refined with SAM2.
+Successfully computed dynamic mask for frame 60
+Kept 109 high-confidence dynamic points for frame 60
+FPS: 0.18703945888825174
+Attempting SAM2 refinement for frame 61...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 61 before SAM2: shape=torch.Size([384, 512]), any=True, sum=65704
+DEBUG: sam2_refined_mask for frame 61: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=65658
+DEBUG: Combined dynamic_mask for frame 61 after SAM2: shape=torch.Size([384, 512]), any=True, sum=65762
+Dynamic mask for frame 61 refined with SAM2.
+Successfully computed dynamic mask for frame 61
+Kept 42303 high-confidence dynamic points for frame 61
+Attempting SAM2 refinement for frame 62...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 62 before SAM2: shape=torch.Size([384, 512]), any=True, sum=11014
+DEBUG: sam2_refined_mask for frame 62: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=11014
+DEBUG: Combined dynamic_mask for frame 62 after SAM2: shape=torch.Size([384, 512]), any=True, sum=11054
+Dynamic mask for frame 62 refined with SAM2.
+Successfully computed dynamic mask for frame 62
+Kept 7 high-confidence dynamic points for frame 62
+Attempting SAM2 refinement for frame 63...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 63 before SAM2: shape=torch.Size([384, 512]), any=True, sum=13017
+DEBUG: sam2_refined_mask for frame 63: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=12981
+DEBUG: Combined dynamic_mask for frame 63 after SAM2: shape=torch.Size([384, 512]), any=True, sum=13039
+Dynamic mask for frame 63 refined with SAM2.
+Successfully computed dynamic mask for frame 63
+Kept 61 high-confidence dynamic points for frame 63
+Attempting SAM2 refinement for frame 64...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 64 before SAM2: shape=torch.Size([384, 512]), any=True, sum=9969
+DEBUG: sam2_refined_mask for frame 64: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=9866
+DEBUG: Combined dynamic_mask for frame 64 after SAM2: shape=torch.Size([384, 512]), any=True, sum=9995
+Dynamic mask for frame 64 refined with SAM2.
+Successfully computed dynamic mask for frame 64
+Kept 34 high-confidence dynamic points for frame 64
+Attempting SAM2 refinement for frame 65...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 65 before SAM2: shape=torch.Size([384, 512]), any=True, sum=34648
+DEBUG: sam2_refined_mask for frame 65: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=34431
+DEBUG: Combined dynamic_mask for frame 65 after SAM2: shape=torch.Size([384, 512]), any=True, sum=34756
+Dynamic mask for frame 65 refined with SAM2.
+Successfully computed dynamic mask for frame 65
+Kept 3206 high-confidence dynamic points for frame 65
+Attempting SAM2 refinement for frame 66...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 66 before SAM2: shape=torch.Size([384, 512]), any=True, sum=161968
+DEBUG: sam2_refined_mask for frame 66: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=161969
+DEBUG: Combined dynamic_mask for frame 66 after SAM2: shape=torch.Size([384, 512]), any=True, sum=161995
+Dynamic mask for frame 66 refined with SAM2.
+Successfully computed dynamic mask for frame 66
+Kept 123324 high-confidence dynamic points for frame 66
+Attempting SAM2 refinement for frame 67...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 67 before SAM2: shape=torch.Size([384, 512]), any=True, sum=184900
+DEBUG: sam2_refined_mask for frame 67: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=184972
+DEBUG: Combined dynamic_mask for frame 67 after SAM2: shape=torch.Size([384, 512]), any=True, sum=184988
+Dynamic mask for frame 67 refined with SAM2.
+Successfully computed dynamic mask for frame 67
+Kept 112241 high-confidence dynamic points for frame 67
+Attempting SAM2 refinement for frame 68...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 68 before SAM2: shape=torch.Size([384, 512]), any=True, sum=136813
+DEBUG: sam2_refined_mask for frame 68: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=136848
+DEBUG: Combined dynamic_mask for frame 68 after SAM2: shape=torch.Size([384, 512]), any=True, sum=137013
+Dynamic mask for frame 68 refined with SAM2.
+Successfully computed dynamic mask for frame 68
+Kept 86390 high-confidence dynamic points for frame 68
+Attempting SAM2 refinement for frame 69...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 69 before SAM2: shape=torch.Size([384, 512]), any=True, sum=96846
+DEBUG: sam2_refined_mask for frame 69: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=96795
+DEBUG: Combined dynamic_mask for frame 69 after SAM2: shape=torch.Size([384, 512]), any=True, sum=96906
+Dynamic mask for frame 69 refined with SAM2.
+Successfully computed dynamic mask for frame 69
+Kept 49500 high-confidence dynamic points for frame 69
+Attempting SAM2 refinement for frame 70...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 70 before SAM2: shape=torch.Size([384, 512]), any=True, sum=10475
+DEBUG: sam2_refined_mask for frame 70: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=10472
+DEBUG: Combined dynamic_mask for frame 70 after SAM2: shape=torch.Size([384, 512]), any=True, sum=10499
+Dynamic mask for frame 70 refined with SAM2.
+Successfully computed dynamic mask for frame 70
+Kept 6 high-confidence dynamic points for frame 70
+Attempting SAM2 refinement for frame 71...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 71 before SAM2: shape=torch.Size([384, 512]), any=True, sum=18120
+DEBUG: sam2_refined_mask for frame 71: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=18122
+DEBUG: Combined dynamic_mask for frame 71 after SAM2: shape=torch.Size([384, 512]), any=True, sum=18187
+Dynamic mask for frame 71 refined with SAM2.
+Successfully computed dynamic mask for frame 71
+Kept 4 high-confidence dynamic points for frame 71
+Attempting SAM2 refinement for frame 72...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 72 before SAM2: shape=torch.Size([384, 512]), any=True, sum=29235
+DEBUG: sam2_refined_mask for frame 72: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=29060
+DEBUG: Combined dynamic_mask for frame 72 after SAM2: shape=torch.Size([384, 512]), any=True, sum=29245
+Dynamic mask for frame 72 refined with SAM2.
+Successfully computed dynamic mask for frame 72
+Kept 1360 high-confidence dynamic points for frame 72
+Attempting SAM2 refinement for frame 73...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 73 before SAM2: shape=torch.Size([384, 512]), any=True, sum=80483
+DEBUG: sam2_refined_mask for frame 73: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=80406
+DEBUG: Combined dynamic_mask for frame 73 after SAM2: shape=torch.Size([384, 512]), any=True, sum=80597
+Dynamic mask for frame 73 refined with SAM2.
+Successfully computed dynamic mask for frame 73
+Kept 26763 high-confidence dynamic points for frame 73
+Attempting SAM2 refinement for frame 74...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 74 before SAM2: shape=torch.Size([384, 512]), any=True, sum=137575
+DEBUG: sam2_refined_mask for frame 74: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=137572
+DEBUG: Combined dynamic_mask for frame 74 after SAM2: shape=torch.Size([384, 512]), any=True, sum=137624
+Dynamic mask for frame 74 refined with SAM2.
+Successfully computed dynamic mask for frame 74
+Kept 108094 high-confidence dynamic points for frame 74
+Attempting SAM2 refinement for frame 75...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 75 before SAM2: shape=torch.Size([384, 512]), any=True, sum=144995
+DEBUG: sam2_refined_mask for frame 75: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=144977
+DEBUG: Combined dynamic_mask for frame 75 after SAM2: shape=torch.Size([384, 512]), any=True, sum=145048
+Dynamic mask for frame 75 refined with SAM2.
+Successfully computed dynamic mask for frame 75
+Kept 117448 high-confidence dynamic points for frame 75
+Attempting SAM2 refinement for frame 76...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 76 before SAM2: shape=torch.Size([384, 512]), any=True, sum=158128
+DEBUG: sam2_refined_mask for frame 76: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=158224
+DEBUG: Combined dynamic_mask for frame 76 after SAM2: shape=torch.Size([384, 512]), any=True, sum=158312
+Dynamic mask for frame 76 refined with SAM2.
+Successfully computed dynamic mask for frame 76
+Kept 114962 high-confidence dynamic points for frame 76
+Attempting SAM2 refinement for frame 77...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 77 before SAM2: shape=torch.Size([384, 512]), any=True, sum=114732
+DEBUG: sam2_refined_mask for frame 77: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=114730
+DEBUG: Combined dynamic_mask for frame 77 after SAM2: shape=torch.Size([384, 512]), any=True, sum=114843
+Dynamic mask for frame 77 refined with SAM2.
+Successfully computed dynamic mask for frame 77
+Kept 72345 high-confidence dynamic points for frame 77
+Attempting SAM2 refinement for frame 78...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 78 before SAM2: shape=torch.Size([384, 512]), any=True, sum=169387
+DEBUG: sam2_refined_mask for frame 78: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=169559
+DEBUG: Combined dynamic_mask for frame 78 after SAM2: shape=torch.Size([384, 512]), any=True, sum=169627
+Dynamic mask for frame 78 refined with SAM2.
+Successfully computed dynamic mask for frame 78
+Kept 113785 high-confidence dynamic points for frame 78
+Attempting SAM2 refinement for frame 79...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 79 before SAM2: shape=torch.Size([384, 512]), any=True, sum=82722
+DEBUG: sam2_refined_mask for frame 79: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=82641
+DEBUG: Combined dynamic_mask for frame 79 after SAM2: shape=torch.Size([384, 512]), any=True, sum=82791
+Dynamic mask for frame 79 refined with SAM2.
+Successfully computed dynamic mask for frame 79
+Kept 65319 high-confidence dynamic points for frame 79
+Attempting SAM2 refinement for frame 80...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 80 before SAM2: shape=torch.Size([384, 512]), any=True, sum=62719
+DEBUG: sam2_refined_mask for frame 80: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=62584
+DEBUG: Combined dynamic_mask for frame 80 after SAM2: shape=torch.Size([384, 512]), any=True, sum=62841
+Dynamic mask for frame 80 refined with SAM2.
+Successfully computed dynamic mask for frame 80
+Kept 41108 high-confidence dynamic points for frame 80
+Attempting SAM2 refinement for frame 81...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 81 before SAM2: shape=torch.Size([384, 512]), any=True, sum=144872
+DEBUG: sam2_refined_mask for frame 81: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=144823
+DEBUG: Combined dynamic_mask for frame 81 after SAM2: shape=torch.Size([384, 512]), any=True, sum=144999
+Dynamic mask for frame 81 refined with SAM2.
+Successfully computed dynamic mask for frame 81
+Kept 113960 high-confidence dynamic points for frame 81
+Attempting SAM2 refinement for frame 82...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 82 before SAM2: shape=torch.Size([384, 512]), any=True, sum=142439
+DEBUG: sam2_refined_mask for frame 82: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=142437
+DEBUG: Combined dynamic_mask for frame 82 after SAM2: shape=torch.Size([384, 512]), any=True, sum=142455
+Dynamic mask for frame 82 refined with SAM2.
+Successfully computed dynamic mask for frame 82
+Kept 105509 high-confidence dynamic points for frame 82
+Attempting SAM2 refinement for frame 83...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 83 before SAM2: shape=torch.Size([384, 512]), any=True, sum=71684
+DEBUG: sam2_refined_mask for frame 83: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=71685
+DEBUG: Combined dynamic_mask for frame 83 after SAM2: shape=torch.Size([384, 512]), any=True, sum=71702
+Dynamic mask for frame 83 refined with SAM2.
+Successfully computed dynamic mask for frame 83
+Kept 59477 high-confidence dynamic points for frame 83
+Attempting SAM2 refinement for frame 84...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 84 before SAM2: shape=torch.Size([384, 512]), any=True, sum=187150
+DEBUG: sam2_refined_mask for frame 84: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=187346
+DEBUG: Combined dynamic_mask for frame 84 after SAM2: shape=torch.Size([384, 512]), any=True, sum=187415
+Dynamic mask for frame 84 refined with SAM2.
+Successfully computed dynamic mask for frame 84
+Kept 126488 high-confidence dynamic points for frame 84
+Attempting SAM2 refinement for frame 85...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 85 before SAM2: shape=torch.Size([384, 512]), any=True, sum=21440
+DEBUG: sam2_refined_mask for frame 85: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=21401
+DEBUG: Combined dynamic_mask for frame 85 after SAM2: shape=torch.Size([384, 512]), any=True, sum=21490
+Dynamic mask for frame 85 refined with SAM2.
+Successfully computed dynamic mask for frame 85
+Kept 7528 high-confidence dynamic points for frame 85
+Attempting SAM2 refinement for frame 86...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 86 before SAM2: shape=torch.Size([384, 512]), any=True, sum=94181
+DEBUG: sam2_refined_mask for frame 86: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=94213
+DEBUG: Combined dynamic_mask for frame 86 after SAM2: shape=torch.Size([384, 512]), any=True, sum=94267
+Dynamic mask for frame 86 refined with SAM2.
+Successfully computed dynamic mask for frame 86
+Kept 57080 high-confidence dynamic points for frame 86
+Attempting SAM2 refinement for frame 87...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 87 before SAM2: shape=torch.Size([384, 512]), any=True, sum=107529
+DEBUG: sam2_refined_mask for frame 87: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=107562
+DEBUG: Combined dynamic_mask for frame 87 after SAM2: shape=torch.Size([384, 512]), any=True, sum=107675
+Dynamic mask for frame 87 refined with SAM2.
+Successfully computed dynamic mask for frame 87
+Kept 61571 high-confidence dynamic points for frame 87
+Attempting SAM2 refinement for frame 88...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 88 before SAM2: shape=torch.Size([384, 512]), any=True, sum=5351
+DEBUG: sam2_refined_mask for frame 88: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=5346
+DEBUG: Combined dynamic_mask for frame 88 after SAM2: shape=torch.Size([384, 512]), any=True, sum=5354
+Dynamic mask for frame 88 refined with SAM2.
+Successfully computed dynamic mask for frame 88
+Kept 195 high-confidence dynamic points for frame 88
+Attempting SAM2 refinement for frame 89...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 89 before SAM2: shape=torch.Size([384, 512]), any=True, sum=47587
+DEBUG: sam2_refined_mask for frame 89: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=47501
+DEBUG: Combined dynamic_mask for frame 89 after SAM2: shape=torch.Size([384, 512]), any=True, sum=47709
+Dynamic mask for frame 89 refined with SAM2.
+Successfully computed dynamic mask for frame 89
+Kept 27209 high-confidence dynamic points for frame 89
+Attempting SAM2 refinement for frame 90...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 90 before SAM2: shape=torch.Size([384, 512]), any=True, sum=88882
+DEBUG: sam2_refined_mask for frame 90: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=88880
+DEBUG: Combined dynamic_mask for frame 90 after SAM2: shape=torch.Size([384, 512]), any=True, sum=88921
+Dynamic mask for frame 90 refined with SAM2.
+Successfully computed dynamic mask for frame 90
+Kept 57497 high-confidence dynamic points for frame 90
+FPS: 0.18662611484385289
+Attempting SAM2 refinement for frame 91...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 91 before SAM2: shape=torch.Size([384, 512]), any=True, sum=152442
+DEBUG: sam2_refined_mask for frame 91: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=152445
+DEBUG: Combined dynamic_mask for frame 91 after SAM2: shape=torch.Size([384, 512]), any=True, sum=152451
+Dynamic mask for frame 91 refined with SAM2.
+Successfully computed dynamic mask for frame 91
+Kept 117363 high-confidence dynamic points for frame 91
+Attempting SAM2 refinement for frame 92...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 92 before SAM2: shape=torch.Size([384, 512]), any=True, sum=27446
+DEBUG: sam2_refined_mask for frame 92: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=27381
+DEBUG: Combined dynamic_mask for frame 92 after SAM2: shape=torch.Size([384, 512]), any=True, sum=27495
+Dynamic mask for frame 92 refined with SAM2.
+Successfully computed dynamic mask for frame 92
+Kept 17742 high-confidence dynamic points for frame 92
+Attempting SAM2 refinement for frame 93...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 93 before SAM2: shape=torch.Size([384, 512]), any=True, sum=109955
+DEBUG: sam2_refined_mask for frame 93: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=109906
+DEBUG: Combined dynamic_mask for frame 93 after SAM2: shape=torch.Size([384, 512]), any=True, sum=110039
+Dynamic mask for frame 93 refined with SAM2.
+Successfully computed dynamic mask for frame 93
+Kept 68233 high-confidence dynamic points for frame 93
+Attempting SAM2 refinement for frame 94...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 94 before SAM2: shape=torch.Size([384, 512]), any=True, sum=128254
+DEBUG: sam2_refined_mask for frame 94: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=128211
+DEBUG: Combined dynamic_mask for frame 94 after SAM2: shape=torch.Size([384, 512]), any=True, sum=128440
+Dynamic mask for frame 94 refined with SAM2.
+Successfully computed dynamic mask for frame 94
+Kept 95858 high-confidence dynamic points for frame 94
+Attempting SAM2 refinement for frame 95...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 95 before SAM2: shape=torch.Size([384, 512]), any=True, sum=111667
+DEBUG: sam2_refined_mask for frame 95: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=111652
+DEBUG: Combined dynamic_mask for frame 95 after SAM2: shape=torch.Size([384, 512]), any=True, sum=111774
+Dynamic mask for frame 95 refined with SAM2.
+Successfully computed dynamic mask for frame 95
+Kept 75219 high-confidence dynamic points for frame 95
+Attempting SAM2 refinement for frame 96...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 96 before SAM2: shape=torch.Size([384, 512]), any=True, sum=17813
+DEBUG: sam2_refined_mask for frame 96: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=17806
+DEBUG: Combined dynamic_mask for frame 96 after SAM2: shape=torch.Size([384, 512]), any=True, sum=17905
+Dynamic mask for frame 96 refined with SAM2.
+Successfully computed dynamic mask for frame 96
+Kept 4901 high-confidence dynamic points for frame 96
+Attempting SAM2 refinement for frame 97...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 97 before SAM2: shape=torch.Size([384, 512]), any=True, sum=96110
+DEBUG: sam2_refined_mask for frame 97: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=96156
+DEBUG: Combined dynamic_mask for frame 97 after SAM2: shape=torch.Size([384, 512]), any=True, sum=96230
+Dynamic mask for frame 97 refined with SAM2.
+Successfully computed dynamic mask for frame 97
+Kept 66786 high-confidence dynamic points for frame 97
+Attempting SAM2 refinement for frame 98...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 98 before SAM2: shape=torch.Size([384, 512]), any=True, sum=182474
+DEBUG: sam2_refined_mask for frame 98: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=182520
+DEBUG: Combined dynamic_mask for frame 98 after SAM2: shape=torch.Size([384, 512]), any=True, sum=182529
+Dynamic mask for frame 98 refined with SAM2.
+Successfully computed dynamic mask for frame 98
+Kept 124310 high-confidence dynamic points for frame 98
+Attempting SAM2 refinement for frame 99...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 99 before SAM2: shape=torch.Size([384, 512]), any=True, sum=181214
+DEBUG: sam2_refined_mask for frame 99: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=181507
+DEBUG: Combined dynamic_mask for frame 99 after SAM2: shape=torch.Size([384, 512]), any=True, sum=181581
+Dynamic mask for frame 99 refined with SAM2.
+Successfully computed dynamic mask for frame 99
+Kept 112435 high-confidence dynamic points for frame 99
+Attempting SAM2 refinement for frame 100...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 100 before SAM2: shape=torch.Size([384, 512]), any=True, sum=30001
+DEBUG: sam2_refined_mask for frame 100: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=30007
+DEBUG: Combined dynamic_mask for frame 100 after SAM2: shape=torch.Size([384, 512]), any=True, sum=30023
+Dynamic mask for frame 100 refined with SAM2.
+Successfully computed dynamic mask for frame 100
+Kept 554 high-confidence dynamic points for frame 100
+Attempting SAM2 refinement for frame 101...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 101 before SAM2: shape=torch.Size([384, 512]), any=True, sum=24531
+DEBUG: sam2_refined_mask for frame 101: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=24527
+DEBUG: Combined dynamic_mask for frame 101 after SAM2: shape=torch.Size([384, 512]), any=True, sum=24542
+Dynamic mask for frame 101 refined with SAM2.
+Successfully computed dynamic mask for frame 101
+Kept 104 high-confidence dynamic points for frame 101
+Attempting SAM2 refinement for frame 102...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 102 before SAM2: shape=torch.Size([384, 512]), any=True, sum=109099
+DEBUG: sam2_refined_mask for frame 102: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=109226
+DEBUG: Combined dynamic_mask for frame 102 after SAM2: shape=torch.Size([384, 512]), any=True, sum=109339
+Dynamic mask for frame 102 refined with SAM2.
+Successfully computed dynamic mask for frame 102
+Kept 27393 high-confidence dynamic points for frame 102
+Attempting SAM2 refinement for frame 103...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 103 before SAM2: shape=torch.Size([384, 512]), any=True, sum=43023
+DEBUG: sam2_refined_mask for frame 103: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=43081
+DEBUG: Combined dynamic_mask for frame 103 after SAM2: shape=torch.Size([384, 512]), any=True, sum=43110
+Dynamic mask for frame 103 refined with SAM2.
+Successfully computed dynamic mask for frame 103
+Kept 2490 high-confidence dynamic points for frame 103
+Attempting SAM2 refinement for frame 104...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 104 before SAM2: shape=torch.Size([384, 512]), any=True, sum=34114
+DEBUG: sam2_refined_mask for frame 104: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=34114
+DEBUG: Combined dynamic_mask for frame 104 after SAM2: shape=torch.Size([384, 512]), any=True, sum=34126
+Dynamic mask for frame 104 refined with SAM2.
+Successfully computed dynamic mask for frame 104
+Kept 2463 high-confidence dynamic points for frame 104
+Attempting SAM2 refinement for frame 105...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 105 before SAM2: shape=torch.Size([384, 512]), any=True, sum=35647
+DEBUG: sam2_refined_mask for frame 105: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=35651
+DEBUG: Combined dynamic_mask for frame 105 after SAM2: shape=torch.Size([384, 512]), any=True, sum=35659
+Dynamic mask for frame 105 refined with SAM2.
+Successfully computed dynamic mask for frame 105
+Kept 11018 high-confidence dynamic points for frame 105
+Attempting SAM2 refinement for frame 106...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 106 before SAM2: shape=torch.Size([384, 512]), any=True, sum=28516
+DEBUG: sam2_refined_mask for frame 106: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=28514
+DEBUG: Combined dynamic_mask for frame 106 after SAM2: shape=torch.Size([384, 512]), any=True, sum=28525
+Dynamic mask for frame 106 refined with SAM2.
+Successfully computed dynamic mask for frame 106
+Kept 897 high-confidence dynamic points for frame 106
+Attempting SAM2 refinement for frame 107...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 107 before SAM2: shape=torch.Size([384, 512]), any=True, sum=18211
+DEBUG: sam2_refined_mask for frame 107: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=18203
+DEBUG: Combined dynamic_mask for frame 107 after SAM2: shape=torch.Size([384, 512]), any=True, sum=18221
+Dynamic mask for frame 107 refined with SAM2.
+Successfully computed dynamic mask for frame 107
+Kept 7772 high-confidence dynamic points for frame 107
+Attempting SAM2 refinement for frame 108...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 108 before SAM2: shape=torch.Size([384, 512]), any=True, sum=13863
+DEBUG: sam2_refined_mask for frame 108: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=13861
+DEBUG: Combined dynamic_mask for frame 108 after SAM2: shape=torch.Size([384, 512]), any=True, sum=13867
+Dynamic mask for frame 108 refined with SAM2.
+Successfully computed dynamic mask for frame 108
+Kept 3530 high-confidence dynamic points for frame 108
+Attempting SAM2 refinement for frame 109...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 109 before SAM2: shape=torch.Size([384, 512]), any=True, sum=20170
+DEBUG: sam2_refined_mask for frame 109: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=20168
+DEBUG: Combined dynamic_mask for frame 109 after SAM2: shape=torch.Size([384, 512]), any=True, sum=20172
+Dynamic mask for frame 109 refined with SAM2.
+Successfully computed dynamic mask for frame 109
+Kept 361 high-confidence dynamic points for frame 109
+Attempting SAM2 refinement for frame 110...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 110 before SAM2: shape=torch.Size([384, 512]), any=True, sum=24821
+DEBUG: sam2_refined_mask for frame 110: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=24822
+DEBUG: Combined dynamic_mask for frame 110 after SAM2: shape=torch.Size([384, 512]), any=True, sum=24832
+Dynamic mask for frame 110 refined with SAM2.
+Successfully computed dynamic mask for frame 110
+Kept 934 high-confidence dynamic points for frame 110
+Attempting SAM2 refinement for frame 111...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 111 before SAM2: shape=torch.Size([384, 512]), any=True, sum=20008
+DEBUG: sam2_refined_mask for frame 111: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=20011
+DEBUG: Combined dynamic_mask for frame 111 after SAM2: shape=torch.Size([384, 512]), any=True, sum=20058
+Dynamic mask for frame 111 refined with SAM2.
+Successfully computed dynamic mask for frame 111
+Kept 2898 high-confidence dynamic points for frame 111
+Attempting SAM2 refinement for frame 112...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 112 before SAM2: shape=torch.Size([384, 512]), any=True, sum=129295
+DEBUG: sam2_refined_mask for frame 112: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=129364
+DEBUG: Combined dynamic_mask for frame 112 after SAM2: shape=torch.Size([384, 512]), any=True, sum=129492
+Dynamic mask for frame 112 refined with SAM2.
+Successfully computed dynamic mask for frame 112
+Kept 66663 high-confidence dynamic points for frame 112
+Attempting SAM2 refinement for frame 113...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 113 before SAM2: shape=torch.Size([384, 512]), any=True, sum=58715
+DEBUG: sam2_refined_mask for frame 113: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=58707
+DEBUG: Combined dynamic_mask for frame 113 after SAM2: shape=torch.Size([384, 512]), any=True, sum=58788
+Dynamic mask for frame 113 refined with SAM2.
+Successfully computed dynamic mask for frame 113
+Kept 29873 high-confidence dynamic points for frame 113
+Attempting SAM2 refinement for frame 114...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 114 before SAM2: shape=torch.Size([384, 512]), any=True, sum=4942
+DEBUG: sam2_refined_mask for frame 114: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=4937
+DEBUG: Combined dynamic_mask for frame 114 after SAM2: shape=torch.Size([384, 512]), any=True, sum=4950
+Dynamic mask for frame 114 refined with SAM2.
+Successfully computed dynamic mask for frame 114
+Kept 883 high-confidence dynamic points for frame 114
+Attempting SAM2 refinement for frame 115...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 115 before SAM2: shape=torch.Size([384, 512]), any=True, sum=132251
+DEBUG: sam2_refined_mask for frame 115: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=132327
+DEBUG: Combined dynamic_mask for frame 115 after SAM2: shape=torch.Size([384, 512]), any=True, sum=132372
+Dynamic mask for frame 115 refined with SAM2.
+Successfully computed dynamic mask for frame 115
+Kept 87605 high-confidence dynamic points for frame 115
+Attempting SAM2 refinement for frame 116...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 116 before SAM2: shape=torch.Size([384, 512]), any=True, sum=13601
+DEBUG: sam2_refined_mask for frame 116: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=13539
+DEBUG: Combined dynamic_mask for frame 116 after SAM2: shape=torch.Size([384, 512]), any=True, sum=13638
+Dynamic mask for frame 116 refined with SAM2.
+Successfully computed dynamic mask for frame 116
+Kept 99 high-confidence dynamic points for frame 116
+Attempting SAM2 refinement for frame 117...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 117 before SAM2: shape=torch.Size([384, 512]), any=True, sum=135682
+DEBUG: sam2_refined_mask for frame 117: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=135815
+DEBUG: Combined dynamic_mask for frame 117 after SAM2: shape=torch.Size([384, 512]), any=True, sum=135937
+Dynamic mask for frame 117 refined with SAM2.
+Successfully computed dynamic mask for frame 117
+Kept 116132 high-confidence dynamic points for frame 117
+Attempting SAM2 refinement for frame 118...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 118 before SAM2: shape=torch.Size([384, 512]), any=True, sum=55311
+DEBUG: sam2_refined_mask for frame 118: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=55331
+DEBUG: Combined dynamic_mask for frame 118 after SAM2: shape=torch.Size([384, 512]), any=True, sum=55488
+Dynamic mask for frame 118 refined with SAM2.
+Successfully computed dynamic mask for frame 118
+Kept 35360 high-confidence dynamic points for frame 118
+Attempting SAM2 refinement for frame 119...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 119 before SAM2: shape=torch.Size([384, 512]), any=True, sum=119934
+DEBUG: sam2_refined_mask for frame 119: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=120028
+DEBUG: Combined dynamic_mask for frame 119 after SAM2: shape=torch.Size([384, 512]), any=True, sum=120200
+Dynamic mask for frame 119 refined with SAM2.
+Successfully computed dynamic mask for frame 119
+Kept 95241 high-confidence dynamic points for frame 119
+Attempting SAM2 refinement for frame 120...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 120 before SAM2: shape=torch.Size([384, 512]), any=True, sum=17286
+DEBUG: sam2_refined_mask for frame 120: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=17283
+DEBUG: Combined dynamic_mask for frame 120 after SAM2: shape=torch.Size([384, 512]), any=True, sum=17330
+Dynamic mask for frame 120 refined with SAM2.
+Successfully computed dynamic mask for frame 120
+Kept 3302 high-confidence dynamic points for frame 120
+FPS: 0.18378928915571238
+Attempting SAM2 refinement for frame 121...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 121 before SAM2: shape=torch.Size([384, 512]), any=True, sum=19871
+DEBUG: sam2_refined_mask for frame 121: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=19852
+DEBUG: Combined dynamic_mask for frame 121 after SAM2: shape=torch.Size([384, 512]), any=True, sum=19920
+Dynamic mask for frame 121 refined with SAM2.
+Successfully computed dynamic mask for frame 121
+Kept 8382 high-confidence dynamic points for frame 121
+Attempting SAM2 refinement for frame 122...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 122 before SAM2: shape=torch.Size([384, 512]), any=True, sum=12251
+DEBUG: sam2_refined_mask for frame 122: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=12144
+DEBUG: Combined dynamic_mask for frame 122 after SAM2: shape=torch.Size([384, 512]), any=True, sum=12277
+Dynamic mask for frame 122 refined with SAM2.
+Successfully computed dynamic mask for frame 122
+Kept 683 high-confidence dynamic points for frame 122
+Attempting SAM2 refinement for frame 123...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 123 before SAM2: shape=torch.Size([384, 512]), any=True, sum=5673
+DEBUG: sam2_refined_mask for frame 123: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=5647
+DEBUG: Combined dynamic_mask for frame 123 after SAM2: shape=torch.Size([384, 512]), any=True, sum=5684
+Dynamic mask for frame 123 refined with SAM2.
+Successfully computed dynamic mask for frame 123
+Kept 152 high-confidence dynamic points for frame 123
+Attempting SAM2 refinement for frame 124...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 124 before SAM2: shape=torch.Size([384, 512]), any=True, sum=61200
+DEBUG: sam2_refined_mask for frame 124: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=61129
+DEBUG: Combined dynamic_mask for frame 124 after SAM2: shape=torch.Size([384, 512]), any=True, sum=61321
+Dynamic mask for frame 124 refined with SAM2.
+Successfully computed dynamic mask for frame 124
+Kept 14546 high-confidence dynamic points for frame 124
+Attempting SAM2 refinement for frame 125...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 125 before SAM2: shape=torch.Size([384, 512]), any=True, sum=9766
+DEBUG: sam2_refined_mask for frame 125: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=9576
+DEBUG: Combined dynamic_mask for frame 125 after SAM2: shape=torch.Size([384, 512]), any=True, sum=9835
+Dynamic mask for frame 125 refined with SAM2.
+Successfully computed dynamic mask for frame 125
+Kept 1210 high-confidence dynamic points for frame 125
+Attempting SAM2 refinement for frame 126...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 126 before SAM2: shape=torch.Size([384, 512]), any=True, sum=7593
+DEBUG: sam2_refined_mask for frame 126: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=7418
+DEBUG: Combined dynamic_mask for frame 126 after SAM2: shape=torch.Size([384, 512]), any=True, sum=7620
+Dynamic mask for frame 126 refined with SAM2.
+Successfully computed dynamic mask for frame 126
+Kept 2071 high-confidence dynamic points for frame 126
+Attempting SAM2 refinement for frame 127...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 127 before SAM2: shape=torch.Size([384, 512]), any=True, sum=60882
+DEBUG: sam2_refined_mask for frame 127: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=60825
+DEBUG: Combined dynamic_mask for frame 127 after SAM2: shape=torch.Size([384, 512]), any=True, sum=60905
+Dynamic mask for frame 127 refined with SAM2.
+Successfully computed dynamic mask for frame 127
+Kept 12510 high-confidence dynamic points for frame 127
+Attempting SAM2 refinement for frame 128...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 128 before SAM2: shape=torch.Size([384, 512]), any=True, sum=10209
+DEBUG: sam2_refined_mask for frame 128: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=10188
+DEBUG: Combined dynamic_mask for frame 128 after SAM2: shape=torch.Size([384, 512]), any=True, sum=10231
+Dynamic mask for frame 128 refined with SAM2.
+Successfully computed dynamic mask for frame 128
+Kept 111 high-confidence dynamic points for frame 128
+Attempting SAM2 refinement for frame 129...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 129 before SAM2: shape=torch.Size([384, 512]), any=True, sum=23295
+DEBUG: sam2_refined_mask for frame 129: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=23298
+DEBUG: Combined dynamic_mask for frame 129 after SAM2: shape=torch.Size([384, 512]), any=True, sum=23374
+Dynamic mask for frame 129 refined with SAM2.
+Successfully computed dynamic mask for frame 129
+Kept 292 high-confidence dynamic points for frame 129
+Attempting SAM2 refinement for frame 130...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 130 before SAM2: shape=torch.Size([384, 512]), any=True, sum=29730
+DEBUG: sam2_refined_mask for frame 130: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=29641
+DEBUG: Combined dynamic_mask for frame 130 after SAM2: shape=torch.Size([384, 512]), any=True, sum=29827
+Dynamic mask for frame 130 refined with SAM2.
+Successfully computed dynamic mask for frame 130
+Kept 964 high-confidence dynamic points for frame 130
+Attempting SAM2 refinement for frame 131...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 131 before SAM2: shape=torch.Size([384, 512]), any=True, sum=18413
+DEBUG: sam2_refined_mask for frame 131: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=18392
+DEBUG: Combined dynamic_mask for frame 131 after SAM2: shape=torch.Size([384, 512]), any=True, sum=18436
+Dynamic mask for frame 131 refined with SAM2.
+Successfully computed dynamic mask for frame 131
+Kept 5 high-confidence dynamic points for frame 131
+Attempting SAM2 refinement for frame 132...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 132 before SAM2: shape=torch.Size([384, 512]), any=True, sum=154465
+DEBUG: sam2_refined_mask for frame 132: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=154462
+DEBUG: Combined dynamic_mask for frame 132 after SAM2: shape=torch.Size([384, 512]), any=True, sum=154486
+Dynamic mask for frame 132 refined with SAM2.
+Successfully computed dynamic mask for frame 132
+Kept 126527 high-confidence dynamic points for frame 132
+Attempting SAM2 refinement for frame 133...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 133 before SAM2: shape=torch.Size([384, 512]), any=True, sum=183930
+DEBUG: sam2_refined_mask for frame 133: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=183934
+DEBUG: Combined dynamic_mask for frame 133 after SAM2: shape=torch.Size([384, 512]), any=True, sum=183945
+Dynamic mask for frame 133 refined with SAM2.
+Successfully computed dynamic mask for frame 133
+Kept 142712 high-confidence dynamic points for frame 133
+Attempting SAM2 refinement for frame 134...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 134 before SAM2: shape=torch.Size([384, 512]), any=True, sum=14994
+DEBUG: sam2_refined_mask for frame 134: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=15003
+DEBUG: Combined dynamic_mask for frame 134 after SAM2: shape=torch.Size([384, 512]), any=True, sum=15025
+Dynamic mask for frame 134 refined with SAM2.
+Successfully computed dynamic mask for frame 134
+Kept 1839 high-confidence dynamic points for frame 134
+Attempting SAM2 refinement for frame 135...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 135 before SAM2: shape=torch.Size([384, 512]), any=True, sum=20083
+DEBUG: sam2_refined_mask for frame 135: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=20090
+DEBUG: Combined dynamic_mask for frame 135 after SAM2: shape=torch.Size([384, 512]), any=True, sum=20094
+Dynamic mask for frame 135 refined with SAM2.
+Successfully computed dynamic mask for frame 135
+Kept 264 high-confidence dynamic points for frame 135
+Attempting SAM2 refinement for frame 136...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 136 before SAM2: shape=torch.Size([384, 512]), any=True, sum=19778
+DEBUG: sam2_refined_mask for frame 136: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=19779
+DEBUG: Combined dynamic_mask for frame 136 after SAM2: shape=torch.Size([384, 512]), any=True, sum=19782
+Dynamic mask for frame 136 refined with SAM2.
+Successfully computed dynamic mask for frame 136
+Kept 175 high-confidence dynamic points for frame 136
+Attempting SAM2 refinement for frame 137...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 137 before SAM2: shape=torch.Size([384, 512]), any=True, sum=15458
+DEBUG: sam2_refined_mask for frame 137: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=15442
+DEBUG: Combined dynamic_mask for frame 137 after SAM2: shape=torch.Size([384, 512]), any=True, sum=15464
+Dynamic mask for frame 137 refined with SAM2.
+Successfully computed dynamic mask for frame 137
+Kept 102 high-confidence dynamic points for frame 137
+Attempting SAM2 refinement for frame 138...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 138 before SAM2: shape=torch.Size([384, 512]), any=True, sum=20273
+DEBUG: sam2_refined_mask for frame 138: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=20268
+DEBUG: Combined dynamic_mask for frame 138 after SAM2: shape=torch.Size([384, 512]), any=True, sum=20281
+Dynamic mask for frame 138 refined with SAM2.
+Successfully computed dynamic mask for frame 138
+Kept 23 high-confidence dynamic points for frame 138
+Attempting SAM2 refinement for frame 139...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 139 before SAM2: shape=torch.Size([384, 512]), any=True, sum=26606
+DEBUG: sam2_refined_mask for frame 139: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=26608
+DEBUG: Combined dynamic_mask for frame 139 after SAM2: shape=torch.Size([384, 512]), any=True, sum=26611
+Dynamic mask for frame 139 refined with SAM2.
+Successfully computed dynamic mask for frame 139
+Kept 1974 high-confidence dynamic points for frame 139
+Attempting SAM2 refinement for frame 140...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 140 before SAM2: shape=torch.Size([384, 512]), any=True, sum=39590
+DEBUG: sam2_refined_mask for frame 140: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=39631
+DEBUG: Combined dynamic_mask for frame 140 after SAM2: shape=torch.Size([384, 512]), any=True, sum=39645
+Dynamic mask for frame 140 refined with SAM2.
+Successfully computed dynamic mask for frame 140
+Kept 6873 high-confidence dynamic points for frame 140
+Attempting SAM2 refinement for frame 141...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 141 before SAM2: shape=torch.Size([384, 512]), any=True, sum=40160
+DEBUG: sam2_refined_mask for frame 141: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=40174
+DEBUG: Combined dynamic_mask for frame 141 after SAM2: shape=torch.Size([384, 512]), any=True, sum=40189
+Dynamic mask for frame 141 refined with SAM2.
+Successfully computed dynamic mask for frame 141
+Kept 337 high-confidence dynamic points for frame 141
+Attempting SAM2 refinement for frame 142...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 142 before SAM2: shape=torch.Size([384, 512]), any=True, sum=39931
+DEBUG: sam2_refined_mask for frame 142: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=39938
+DEBUG: Combined dynamic_mask for frame 142 after SAM2: shape=torch.Size([384, 512]), any=True, sum=39945
+Dynamic mask for frame 142 refined with SAM2.
+Successfully computed dynamic mask for frame 142
+Kept 98 high-confidence dynamic points for frame 142
+Attempting SAM2 refinement for frame 143...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 143 before SAM2: shape=torch.Size([384, 512]), any=True, sum=42629
+DEBUG: sam2_refined_mask for frame 143: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=42640
+DEBUG: Combined dynamic_mask for frame 143 after SAM2: shape=torch.Size([384, 512]), any=True, sum=42663
+Dynamic mask for frame 143 refined with SAM2.
+Successfully computed dynamic mask for frame 143
+Kept 26 high-confidence dynamic points for frame 143
+Attempting SAM2 refinement for frame 144...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 144 before SAM2: shape=torch.Size([384, 512]), any=True, sum=47928
+DEBUG: sam2_refined_mask for frame 144: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=47927
+DEBUG: Combined dynamic_mask for frame 144 after SAM2: shape=torch.Size([384, 512]), any=True, sum=47938
+Dynamic mask for frame 144 refined with SAM2.
+Successfully computed dynamic mask for frame 144
+Kept 124 high-confidence dynamic points for frame 144
+Attempting SAM2 refinement for frame 145...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 145 before SAM2: shape=torch.Size([384, 512]), any=True, sum=44505
+DEBUG: sam2_refined_mask for frame 145: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=44507
+DEBUG: Combined dynamic_mask for frame 145 after SAM2: shape=torch.Size([384, 512]), any=True, sum=44517
+Dynamic mask for frame 145 refined with SAM2.
+Successfully computed dynamic mask for frame 145
+Kept 109 high-confidence dynamic points for frame 145
+Attempting SAM2 refinement for frame 146...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 146 before SAM2: shape=torch.Size([384, 512]), any=True, sum=27608
+DEBUG: sam2_refined_mask for frame 146: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=27606
+DEBUG: Combined dynamic_mask for frame 146 after SAM2: shape=torch.Size([384, 512]), any=True, sum=27615
+Dynamic mask for frame 146 refined with SAM2.
+Successfully computed dynamic mask for frame 146
+Kept 73 high-confidence dynamic points for frame 146
+Attempting SAM2 refinement for frame 147...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 147 before SAM2: shape=torch.Size([384, 512]), any=True, sum=41831
+DEBUG: sam2_refined_mask for frame 147: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=41832
+DEBUG: Combined dynamic_mask for frame 147 after SAM2: shape=torch.Size([384, 512]), any=True, sum=41851
+Dynamic mask for frame 147 refined with SAM2.
+Successfully computed dynamic mask for frame 147
+Kept 12954 high-confidence dynamic points for frame 147
+Attempting SAM2 refinement for frame 148...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 148 before SAM2: shape=torch.Size([384, 512]), any=True, sum=33563
+DEBUG: sam2_refined_mask for frame 148: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=33563
+DEBUG: Combined dynamic_mask for frame 148 after SAM2: shape=torch.Size([384, 512]), any=True, sum=33571
+Dynamic mask for frame 148 refined with SAM2.
+Successfully computed dynamic mask for frame 148
+Kept 3723 high-confidence dynamic points for frame 148
+Attempting SAM2 refinement for frame 149...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 149 before SAM2: shape=torch.Size([384, 512]), any=True, sum=54921
+DEBUG: sam2_refined_mask for frame 149: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=54922
+DEBUG: Combined dynamic_mask for frame 149 after SAM2: shape=torch.Size([384, 512]), any=True, sum=54937
+Dynamic mask for frame 149 refined with SAM2.
+Successfully computed dynamic mask for frame 149
+Kept 1677 high-confidence dynamic points for frame 149
+Attempting SAM2 refinement for frame 150...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 150 before SAM2: shape=torch.Size([384, 512]), any=True, sum=59767
+DEBUG: sam2_refined_mask for frame 150: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=59776
+DEBUG: Combined dynamic_mask for frame 150 after SAM2: shape=torch.Size([384, 512]), any=True, sum=59787
+Dynamic mask for frame 150 refined with SAM2.
+Successfully computed dynamic mask for frame 150
+Kept 1787 high-confidence dynamic points for frame 150
+FPS: 0.1872935125377299
+Attempting SAM2 refinement for frame 151...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 151 before SAM2: shape=torch.Size([384, 512]), any=True, sum=55503
+DEBUG: sam2_refined_mask for frame 151: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=55514
+DEBUG: Combined dynamic_mask for frame 151 after SAM2: shape=torch.Size([384, 512]), any=True, sum=55528
+Dynamic mask for frame 151 refined with SAM2.
+Successfully computed dynamic mask for frame 151
+Kept 11868 high-confidence dynamic points for frame 151
+Attempting SAM2 refinement for frame 152...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 152 before SAM2: shape=torch.Size([384, 512]), any=True, sum=48918
+DEBUG: sam2_refined_mask for frame 152: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=48925
+DEBUG: Combined dynamic_mask for frame 152 after SAM2: shape=torch.Size([384, 512]), any=True, sum=48966
+Dynamic mask for frame 152 refined with SAM2.
+Successfully computed dynamic mask for frame 152
+Kept 3807 high-confidence dynamic points for frame 152
+Attempting SAM2 refinement for frame 153...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 153 before SAM2: shape=torch.Size([384, 512]), any=True, sum=53737
+DEBUG: sam2_refined_mask for frame 153: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=53740
+DEBUG: Combined dynamic_mask for frame 153 after SAM2: shape=torch.Size([384, 512]), any=True, sum=53748
+Dynamic mask for frame 153 refined with SAM2.
+Successfully computed dynamic mask for frame 153
+Kept 5978 high-confidence dynamic points for frame 153
+Attempting SAM2 refinement for frame 154...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 154 before SAM2: shape=torch.Size([384, 512]), any=True, sum=51934
+DEBUG: sam2_refined_mask for frame 154: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=51938
+DEBUG: Combined dynamic_mask for frame 154 after SAM2: shape=torch.Size([384, 512]), any=True, sum=51950
+Dynamic mask for frame 154 refined with SAM2.
+Successfully computed dynamic mask for frame 154
+Kept 5450 high-confidence dynamic points for frame 154
+Attempting SAM2 refinement for frame 155...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 155 before SAM2: shape=torch.Size([384, 512]), any=True, sum=54527
+DEBUG: sam2_refined_mask for frame 155: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=54530
+DEBUG: Combined dynamic_mask for frame 155 after SAM2: shape=torch.Size([384, 512]), any=True, sum=54548
+Dynamic mask for frame 155 refined with SAM2.
+Successfully computed dynamic mask for frame 155
+Kept 4565 high-confidence dynamic points for frame 155
+Attempting SAM2 refinement for frame 156...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 156 before SAM2: shape=torch.Size([384, 512]), any=True, sum=137810
+DEBUG: sam2_refined_mask for frame 156: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=137867
+DEBUG: Combined dynamic_mask for frame 156 after SAM2: shape=torch.Size([384, 512]), any=True, sum=137913
+Dynamic mask for frame 156 refined with SAM2.
+Successfully computed dynamic mask for frame 156
+Kept 84349 high-confidence dynamic points for frame 156
+Attempting SAM2 refinement for frame 157...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 157 before SAM2: shape=torch.Size([384, 512]), any=True, sum=27913
+DEBUG: sam2_refined_mask for frame 157: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=27824
+DEBUG: Combined dynamic_mask for frame 157 after SAM2: shape=torch.Size([384, 512]), any=True, sum=27950
+Dynamic mask for frame 157 refined with SAM2.
+Successfully computed dynamic mask for frame 157
+Kept 14816 high-confidence dynamic points for frame 157
+Attempting SAM2 refinement for frame 158...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 158 before SAM2: shape=torch.Size([384, 512]), any=True, sum=37498
+DEBUG: sam2_refined_mask for frame 158: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=37457
+DEBUG: Combined dynamic_mask for frame 158 after SAM2: shape=torch.Size([384, 512]), any=True, sum=37546
+Dynamic mask for frame 158 refined with SAM2.
+Successfully computed dynamic mask for frame 158
+Kept 17167 high-confidence dynamic points for frame 158
+Attempting SAM2 refinement for frame 159...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 159 before SAM2: shape=torch.Size([384, 512]), any=True, sum=46753
+DEBUG: sam2_refined_mask for frame 159: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=46732
+DEBUG: Combined dynamic_mask for frame 159 after SAM2: shape=torch.Size([384, 512]), any=True, sum=46855
+Dynamic mask for frame 159 refined with SAM2.
+Successfully computed dynamic mask for frame 159
+Kept 23417 high-confidence dynamic points for frame 159
+Attempting SAM2 refinement for frame 160...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 160 before SAM2: shape=torch.Size([384, 512]), any=True, sum=22597
+DEBUG: sam2_refined_mask for frame 160: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=22573
+DEBUG: Combined dynamic_mask for frame 160 after SAM2: shape=torch.Size([384, 512]), any=True, sum=22640
+Dynamic mask for frame 160 refined with SAM2.
+Successfully computed dynamic mask for frame 160
+Kept 6781 high-confidence dynamic points for frame 160
+Attempting SAM2 refinement for frame 161...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 161 before SAM2: shape=torch.Size([384, 512]), any=True, sum=36885
+DEBUG: sam2_refined_mask for frame 161: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=36842
+DEBUG: Combined dynamic_mask for frame 161 after SAM2: shape=torch.Size([384, 512]), any=True, sum=36957
+Dynamic mask for frame 161 refined with SAM2.
+Successfully computed dynamic mask for frame 161
+Kept 8584 high-confidence dynamic points for frame 161
+Attempting SAM2 refinement for frame 162...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 162 before SAM2: shape=torch.Size([384, 512]), any=True, sum=32104
+DEBUG: sam2_refined_mask for frame 162: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=32044
+DEBUG: Combined dynamic_mask for frame 162 after SAM2: shape=torch.Size([384, 512]), any=True, sum=32149
+Dynamic mask for frame 162 refined with SAM2.
+Successfully computed dynamic mask for frame 162
+Kept 5137 high-confidence dynamic points for frame 162
+Attempting SAM2 refinement for frame 163...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 163 before SAM2: shape=torch.Size([384, 512]), any=True, sum=12520
+DEBUG: sam2_refined_mask for frame 163: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=12502
+DEBUG: Combined dynamic_mask for frame 163 after SAM2: shape=torch.Size([384, 512]), any=True, sum=12531
+Dynamic mask for frame 163 refined with SAM2.
+Successfully computed dynamic mask for frame 163
+Kept 8390 high-confidence dynamic points for frame 163
+Attempting SAM2 refinement for frame 164...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 164 before SAM2: shape=torch.Size([384, 512]), any=True, sum=20624
+DEBUG: sam2_refined_mask for frame 164: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=20619
+DEBUG: Combined dynamic_mask for frame 164 after SAM2: shape=torch.Size([384, 512]), any=True, sum=20644
+Dynamic mask for frame 164 refined with SAM2.
+Successfully computed dynamic mask for frame 164
+Kept 16917 high-confidence dynamic points for frame 164
+Attempting SAM2 refinement for frame 165...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 165 before SAM2: shape=torch.Size([384, 512]), any=True, sum=13894
+DEBUG: sam2_refined_mask for frame 165: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=13893
+DEBUG: Combined dynamic_mask for frame 165 after SAM2: shape=torch.Size([384, 512]), any=True, sum=13899
+Dynamic mask for frame 165 refined with SAM2.
+Successfully computed dynamic mask for frame 165
+Kept 2752 high-confidence dynamic points for frame 165
+Attempting SAM2 refinement for frame 166...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 166 before SAM2: shape=torch.Size([384, 512]), any=True, sum=22955
+DEBUG: sam2_refined_mask for frame 166: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=22955
+DEBUG: Combined dynamic_mask for frame 166 after SAM2: shape=torch.Size([384, 512]), any=True, sum=22969
+Dynamic mask for frame 166 refined with SAM2.
+Successfully computed dynamic mask for frame 166
+Kept 15494 high-confidence dynamic points for frame 166
+Attempting SAM2 refinement for frame 167...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 167 before SAM2: shape=torch.Size([384, 512]), any=True, sum=36401
+DEBUG: sam2_refined_mask for frame 167: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=36409
+DEBUG: Combined dynamic_mask for frame 167 after SAM2: shape=torch.Size([384, 512]), any=True, sum=36419
+Dynamic mask for frame 167 refined with SAM2.
+Successfully computed dynamic mask for frame 167
+Kept 15456 high-confidence dynamic points for frame 167
+Attempting SAM2 refinement for frame 168...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 168 before SAM2: shape=torch.Size([384, 512]), any=True, sum=17681
+DEBUG: sam2_refined_mask for frame 168: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=17687
+DEBUG: Combined dynamic_mask for frame 168 after SAM2: shape=torch.Size([384, 512]), any=True, sum=17707
+Dynamic mask for frame 168 refined with SAM2.
+Successfully computed dynamic mask for frame 168
+Kept 1290 high-confidence dynamic points for frame 168
+Attempting SAM2 refinement for frame 169...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 169 before SAM2: shape=torch.Size([384, 512]), any=True, sum=5004
+DEBUG: sam2_refined_mask for frame 169: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=5001
+DEBUG: Combined dynamic_mask for frame 169 after SAM2: shape=torch.Size([384, 512]), any=True, sum=5007
+Dynamic mask for frame 169 refined with SAM2.
+Successfully computed dynamic mask for frame 169
+Kept 6 high-confidence dynamic points for frame 169
+Attempting SAM2 refinement for frame 170...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 170 before SAM2: shape=torch.Size([384, 512]), any=True, sum=7244
+DEBUG: sam2_refined_mask for frame 170: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=7240
+DEBUG: Combined dynamic_mask for frame 170 after SAM2: shape=torch.Size([384, 512]), any=True, sum=7253
+Dynamic mask for frame 170 refined with SAM2.
+Successfully computed dynamic mask for frame 170
+Kept 6 high-confidence dynamic points for frame 170
+Attempting SAM2 refinement for frame 171...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 171 before SAM2: shape=torch.Size([384, 512]), any=True, sum=14325
+DEBUG: sam2_refined_mask for frame 171: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=14321
+DEBUG: Combined dynamic_mask for frame 171 after SAM2: shape=torch.Size([384, 512]), any=True, sum=14335
+Dynamic mask for frame 171 refined with SAM2.
+Successfully computed dynamic mask for frame 171
+Kept 5857 high-confidence dynamic points for frame 171
+Attempting SAM2 refinement for frame 172...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 172 before SAM2: shape=torch.Size([384, 512]), any=True, sum=17769
+DEBUG: sam2_refined_mask for frame 172: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=17768
+DEBUG: Combined dynamic_mask for frame 172 after SAM2: shape=torch.Size([384, 512]), any=True, sum=17784
+Dynamic mask for frame 172 refined with SAM2.
+Successfully computed dynamic mask for frame 172
+Kept 1742 high-confidence dynamic points for frame 172
+Attempting SAM2 refinement for frame 173...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 173 before SAM2: shape=torch.Size([384, 512]), any=True, sum=22061
+DEBUG: sam2_refined_mask for frame 173: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=22054
+DEBUG: Combined dynamic_mask for frame 173 after SAM2: shape=torch.Size([384, 512]), any=True, sum=22079
+Dynamic mask for frame 173 refined with SAM2.
+Successfully computed dynamic mask for frame 173
+Kept 2589 high-confidence dynamic points for frame 173
+Attempting SAM2 refinement for frame 174...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 174 before SAM2: shape=torch.Size([384, 512]), any=True, sum=18405
+DEBUG: sam2_refined_mask for frame 174: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=18372
+DEBUG: Combined dynamic_mask for frame 174 after SAM2: shape=torch.Size([384, 512]), any=True, sum=18443
+Dynamic mask for frame 174 refined with SAM2.
+Successfully computed dynamic mask for frame 174
+Kept 1330 high-confidence dynamic points for frame 174
+Attempting SAM2 refinement for frame 175...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 175 before SAM2: shape=torch.Size([384, 512]), any=True, sum=34114
+DEBUG: sam2_refined_mask for frame 175: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=34115
+DEBUG: Combined dynamic_mask for frame 175 after SAM2: shape=torch.Size([384, 512]), any=True, sum=34125
+Dynamic mask for frame 175 refined with SAM2.
+Successfully computed dynamic mask for frame 175
+Kept 23191 high-confidence dynamic points for frame 175
+Attempting SAM2 refinement for frame 176...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 176 before SAM2: shape=torch.Size([384, 512]), any=True, sum=34459
+DEBUG: sam2_refined_mask for frame 176: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=34476
+DEBUG: Combined dynamic_mask for frame 176 after SAM2: shape=torch.Size([384, 512]), any=True, sum=34494
+Dynamic mask for frame 176 refined with SAM2.
+Successfully computed dynamic mask for frame 176
+Kept 16382 high-confidence dynamic points for frame 176
+Attempting SAM2 refinement for frame 177...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 177 before SAM2: shape=torch.Size([384, 512]), any=True, sum=10798
+DEBUG: sam2_refined_mask for frame 177: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=10763
+DEBUG: Combined dynamic_mask for frame 177 after SAM2: shape=torch.Size([384, 512]), any=True, sum=10817
+Dynamic mask for frame 177 refined with SAM2.
+Successfully computed dynamic mask for frame 177
+Kept 3206 high-confidence dynamic points for frame 177
+Attempting SAM2 refinement for frame 178...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 178 before SAM2: shape=torch.Size([384, 512]), any=True, sum=10533
+DEBUG: sam2_refined_mask for frame 178: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=10524
+DEBUG: Combined dynamic_mask for frame 178 after SAM2: shape=torch.Size([384, 512]), any=True, sum=10548
+Dynamic mask for frame 178 refined with SAM2.
+Successfully computed dynamic mask for frame 178
+Kept 1304 high-confidence dynamic points for frame 178
+Attempting SAM2 refinement for frame 179...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 179 before SAM2: shape=torch.Size([384, 512]), any=True, sum=33405
+DEBUG: sam2_refined_mask for frame 179: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=33484
+DEBUG: Combined dynamic_mask for frame 179 after SAM2: shape=torch.Size([384, 512]), any=True, sum=33524
+Dynamic mask for frame 179 refined with SAM2.
+Successfully computed dynamic mask for frame 179
+Kept 9745 high-confidence dynamic points for frame 179
+Attempting SAM2 refinement for frame 180...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 180 before SAM2: shape=torch.Size([384, 512]), any=True, sum=30495
+DEBUG: sam2_refined_mask for frame 180: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=30523
+DEBUG: Combined dynamic_mask for frame 180 after SAM2: shape=torch.Size([384, 512]), any=True, sum=30574
+Dynamic mask for frame 180 refined with SAM2.
+Successfully computed dynamic mask for frame 180
+Kept 8372 high-confidence dynamic points for frame 180
+FPS: 0.19195435318881177
+Attempting SAM2 refinement for frame 181...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 181 before SAM2: shape=torch.Size([384, 512]), any=True, sum=25767
+DEBUG: sam2_refined_mask for frame 181: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=25781
+DEBUG: Combined dynamic_mask for frame 181 after SAM2: shape=torch.Size([384, 512]), any=True, sum=25845
+Dynamic mask for frame 181 refined with SAM2.
+Successfully computed dynamic mask for frame 181
+Kept 5532 high-confidence dynamic points for frame 181
+Attempting SAM2 refinement for frame 182...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 182 before SAM2: shape=torch.Size([384, 512]), any=True, sum=9948
+DEBUG: sam2_refined_mask for frame 182: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=9925
+DEBUG: Combined dynamic_mask for frame 182 after SAM2: shape=torch.Size([384, 512]), any=True, sum=9966
+Dynamic mask for frame 182 refined with SAM2.
+Successfully computed dynamic mask for frame 182
+Kept 724 high-confidence dynamic points for frame 182
+Attempting SAM2 refinement for frame 183...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 183 before SAM2: shape=torch.Size([384, 512]), any=True, sum=24960
+DEBUG: sam2_refined_mask for frame 183: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=24955
+DEBUG: Combined dynamic_mask for frame 183 after SAM2: shape=torch.Size([384, 512]), any=True, sum=24970
+Dynamic mask for frame 183 refined with SAM2.
+Successfully computed dynamic mask for frame 183
+Kept 15147 high-confidence dynamic points for frame 183
+Attempting SAM2 refinement for frame 184...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 184 before SAM2: shape=torch.Size([384, 512]), any=True, sum=21998
+DEBUG: sam2_refined_mask for frame 184: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=21951
+DEBUG: Combined dynamic_mask for frame 184 after SAM2: shape=torch.Size([384, 512]), any=True, sum=22015
+Dynamic mask for frame 184 refined with SAM2.
+Successfully computed dynamic mask for frame 184
+Kept 7699 high-confidence dynamic points for frame 184
+Attempting SAM2 refinement for frame 185...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 185 before SAM2: shape=torch.Size([384, 512]), any=True, sum=14236
+DEBUG: sam2_refined_mask for frame 185: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=14188
+DEBUG: Combined dynamic_mask for frame 185 after SAM2: shape=torch.Size([384, 512]), any=True, sum=14245
+Dynamic mask for frame 185 refined with SAM2.
+Successfully computed dynamic mask for frame 185
+Kept 3646 high-confidence dynamic points for frame 185
+Attempting SAM2 refinement for frame 186...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 186 before SAM2: shape=torch.Size([384, 512]), any=True, sum=23489
+DEBUG: sam2_refined_mask for frame 186: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=23460
+DEBUG: Combined dynamic_mask for frame 186 after SAM2: shape=torch.Size([384, 512]), any=True, sum=23496
+Dynamic mask for frame 186 refined with SAM2.
+Successfully computed dynamic mask for frame 186
+Kept 7245 high-confidence dynamic points for frame 186
+Attempting SAM2 refinement for frame 187...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 187 before SAM2: shape=torch.Size([384, 512]), any=True, sum=14111
+DEBUG: sam2_refined_mask for frame 187: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=14110
+DEBUG: Combined dynamic_mask for frame 187 after SAM2: shape=torch.Size([384, 512]), any=True, sum=14128
+Dynamic mask for frame 187 refined with SAM2.
+Successfully computed dynamic mask for frame 187
+Kept 2717 high-confidence dynamic points for frame 187
+Attempting SAM2 refinement for frame 188...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 188 before SAM2: shape=torch.Size([384, 512]), any=True, sum=16611
+DEBUG: sam2_refined_mask for frame 188: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=16598
+DEBUG: Combined dynamic_mask for frame 188 after SAM2: shape=torch.Size([384, 512]), any=True, sum=16633
+Dynamic mask for frame 188 refined with SAM2.
+Successfully computed dynamic mask for frame 188
+Kept 2416 high-confidence dynamic points for frame 188
+Attempting SAM2 refinement for frame 189...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 189 before SAM2: shape=torch.Size([384, 512]), any=True, sum=19769
+DEBUG: sam2_refined_mask for frame 189: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=19843
+DEBUG: Combined dynamic_mask for frame 189 after SAM2: shape=torch.Size([384, 512]), any=True, sum=19891
+Dynamic mask for frame 189 refined with SAM2.
+Successfully computed dynamic mask for frame 189
+Kept 3162 high-confidence dynamic points for frame 189
+Attempting SAM2 refinement for frame 190...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 190 before SAM2: shape=torch.Size([384, 512]), any=True, sum=16744
+DEBUG: sam2_refined_mask for frame 190: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=16577
+DEBUG: Combined dynamic_mask for frame 190 after SAM2: shape=torch.Size([384, 512]), any=True, sum=16782
+Dynamic mask for frame 190 refined with SAM2.
+Successfully computed dynamic mask for frame 190
+Kept 2761 high-confidence dynamic points for frame 190
+Attempting SAM2 refinement for frame 191...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 191 before SAM2: shape=torch.Size([384, 512]), any=True, sum=23050
+DEBUG: sam2_refined_mask for frame 191: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=23095
+DEBUG: Combined dynamic_mask for frame 191 after SAM2: shape=torch.Size([384, 512]), any=True, sum=23172
+Dynamic mask for frame 191 refined with SAM2.
+Successfully computed dynamic mask for frame 191
+Kept 5043 high-confidence dynamic points for frame 191
+Attempting SAM2 refinement for frame 192...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 192 before SAM2: shape=torch.Size([384, 512]), any=True, sum=26614
+DEBUG: sam2_refined_mask for frame 192: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=26617
+DEBUG: Combined dynamic_mask for frame 192 after SAM2: shape=torch.Size([384, 512]), any=True, sum=26754
+Dynamic mask for frame 192 refined with SAM2.
+Successfully computed dynamic mask for frame 192
+Kept 5314 high-confidence dynamic points for frame 192
+Attempting SAM2 refinement for frame 193...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 193 before SAM2: shape=torch.Size([384, 512]), any=True, sum=26620
+DEBUG: sam2_refined_mask for frame 193: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=26618
+DEBUG: Combined dynamic_mask for frame 193 after SAM2: shape=torch.Size([384, 512]), any=True, sum=26644
+Dynamic mask for frame 193 refined with SAM2.
+Successfully computed dynamic mask for frame 193
+Kept 14938 high-confidence dynamic points for frame 193
+Attempting SAM2 refinement for frame 194...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 194 before SAM2: shape=torch.Size([384, 512]), any=True, sum=17781
+DEBUG: sam2_refined_mask for frame 194: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=17780
+DEBUG: Combined dynamic_mask for frame 194 after SAM2: shape=torch.Size([384, 512]), any=True, sum=17788
+Dynamic mask for frame 194 refined with SAM2.
+Successfully computed dynamic mask for frame 194
+Kept 8989 high-confidence dynamic points for frame 194
+Attempting SAM2 refinement for frame 195...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 195 before SAM2: shape=torch.Size([384, 512]), any=True, sum=17356
+DEBUG: sam2_refined_mask for frame 195: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=17358
+DEBUG: Combined dynamic_mask for frame 195 after SAM2: shape=torch.Size([384, 512]), any=True, sum=17375
+Dynamic mask for frame 195 refined with SAM2.
+Successfully computed dynamic mask for frame 195
+Kept 7666 high-confidence dynamic points for frame 195
+Attempting SAM2 refinement for frame 196...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 196 before SAM2: shape=torch.Size([384, 512]), any=True, sum=15796
+DEBUG: sam2_refined_mask for frame 196: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=15795
+DEBUG: Combined dynamic_mask for frame 196 after SAM2: shape=torch.Size([384, 512]), any=True, sum=15806
+Dynamic mask for frame 196 refined with SAM2.
+Successfully computed dynamic mask for frame 196
+Kept 6523 high-confidence dynamic points for frame 196
+Attempting SAM2 refinement for frame 197...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 197 before SAM2: shape=torch.Size([384, 512]), any=True, sum=10775
+DEBUG: sam2_refined_mask for frame 197: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=10717
+DEBUG: Combined dynamic_mask for frame 197 after SAM2: shape=torch.Size([384, 512]), any=True, sum=10829
+Dynamic mask for frame 197 refined with SAM2.
+Successfully computed dynamic mask for frame 197
+Kept 2550 high-confidence dynamic points for frame 197
+Attempting SAM2 refinement for frame 198...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 198 before SAM2: shape=torch.Size([384, 512]), any=True, sum=15150
+DEBUG: sam2_refined_mask for frame 198: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=15154
+DEBUG: Combined dynamic_mask for frame 198 after SAM2: shape=torch.Size([384, 512]), any=True, sum=15159
+Dynamic mask for frame 198 refined with SAM2.
+Successfully computed dynamic mask for frame 198
+Kept 3263 high-confidence dynamic points for frame 198
+Attempting SAM2 refinement for frame 199...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 199 before SAM2: shape=torch.Size([384, 512]), any=True, sum=10531
+DEBUG: sam2_refined_mask for frame 199: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=10520
+DEBUG: Combined dynamic_mask for frame 199 after SAM2: shape=torch.Size([384, 512]), any=True, sum=10571
+Dynamic mask for frame 199 refined with SAM2.
+Successfully computed dynamic mask for frame 199
+Kept 3072 high-confidence dynamic points for frame 199
+Attempting SAM2 refinement for frame 200...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 200 before SAM2: shape=torch.Size([384, 512]), any=True, sum=35032
+DEBUG: sam2_refined_mask for frame 200: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=35030
+DEBUG: Combined dynamic_mask for frame 200 after SAM2: shape=torch.Size([384, 512]), any=True, sum=35117
+Dynamic mask for frame 200 refined with SAM2.
+Successfully computed dynamic mask for frame 200
+Kept 3976 high-confidence dynamic points for frame 200
+Attempting SAM2 refinement for frame 201...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 201 before SAM2: shape=torch.Size([384, 512]), any=True, sum=33066
+DEBUG: sam2_refined_mask for frame 201: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=33022
+DEBUG: Combined dynamic_mask for frame 201 after SAM2: shape=torch.Size([384, 512]), any=True, sum=33129
+Dynamic mask for frame 201 refined with SAM2.
+Successfully computed dynamic mask for frame 201
+Kept 7232 high-confidence dynamic points for frame 201
+Attempting SAM2 refinement for frame 202...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 202 before SAM2: shape=torch.Size([384, 512]), any=True, sum=40410
+DEBUG: sam2_refined_mask for frame 202: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=40361
+DEBUG: Combined dynamic_mask for frame 202 after SAM2: shape=torch.Size([384, 512]), any=True, sum=40509
+Dynamic mask for frame 202 refined with SAM2.
+Successfully computed dynamic mask for frame 202
+Kept 6345 high-confidence dynamic points for frame 202
+Attempting SAM2 refinement for frame 203...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 203 before SAM2: shape=torch.Size([384, 512]), any=True, sum=36698
+DEBUG: sam2_refined_mask for frame 203: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=36650
+DEBUG: Combined dynamic_mask for frame 203 after SAM2: shape=torch.Size([384, 512]), any=True, sum=36763
+Dynamic mask for frame 203 refined with SAM2.
+Successfully computed dynamic mask for frame 203
+Kept 3834 high-confidence dynamic points for frame 203
+Attempting SAM2 refinement for frame 204...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 204 before SAM2: shape=torch.Size([384, 512]), any=True, sum=7873
+DEBUG: sam2_refined_mask for frame 204: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=7846
+DEBUG: Combined dynamic_mask for frame 204 after SAM2: shape=torch.Size([384, 512]), any=True, sum=7884
+Dynamic mask for frame 204 refined with SAM2.
+Successfully computed dynamic mask for frame 204
+Kept 4557 high-confidence dynamic points for frame 204
+Attempting SAM2 refinement for frame 205...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 205 before SAM2: shape=torch.Size([384, 512]), any=True, sum=5648
+DEBUG: sam2_refined_mask for frame 205: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=5647
+DEBUG: Combined dynamic_mask for frame 205 after SAM2: shape=torch.Size([384, 512]), any=True, sum=5653
+Dynamic mask for frame 205 refined with SAM2.
+Successfully computed dynamic mask for frame 205
+Kept 2444 high-confidence dynamic points for frame 205
+Attempting SAM2 refinement for frame 206...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 206 before SAM2: shape=torch.Size([384, 512]), any=True, sum=7131
+DEBUG: sam2_refined_mask for frame 206: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=7129
+DEBUG: Combined dynamic_mask for frame 206 after SAM2: shape=torch.Size([384, 512]), any=True, sum=7137
+Dynamic mask for frame 206 refined with SAM2.
+Successfully computed dynamic mask for frame 206
+Kept 2105 high-confidence dynamic points for frame 206
+Attempting SAM2 refinement for frame 207...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 207 before SAM2: shape=torch.Size([384, 512]), any=True, sum=11080
+DEBUG: sam2_refined_mask for frame 207: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=11094
+DEBUG: Combined dynamic_mask for frame 207 after SAM2: shape=torch.Size([384, 512]), any=True, sum=11112
+Dynamic mask for frame 207 refined with SAM2.
+Successfully computed dynamic mask for frame 207
+Kept 4881 high-confidence dynamic points for frame 207
+Attempting SAM2 refinement for frame 208...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 208 before SAM2: shape=torch.Size([384, 512]), any=True, sum=16877
+DEBUG: sam2_refined_mask for frame 208: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=16869
+DEBUG: Combined dynamic_mask for frame 208 after SAM2: shape=torch.Size([384, 512]), any=True, sum=16887
+Dynamic mask for frame 208 refined with SAM2.
+Successfully computed dynamic mask for frame 208
+Kept 9733 high-confidence dynamic points for frame 208
+Attempting SAM2 refinement for frame 209...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 209 before SAM2: shape=torch.Size([384, 512]), any=True, sum=18183
+DEBUG: sam2_refined_mask for frame 209: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=18164
+DEBUG: Combined dynamic_mask for frame 209 after SAM2: shape=torch.Size([384, 512]), any=True, sum=18210
+Dynamic mask for frame 209 refined with SAM2.
+Successfully computed dynamic mask for frame 209
+Kept 11856 high-confidence dynamic points for frame 209
+Attempting SAM2 refinement for frame 210...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 210 before SAM2: shape=torch.Size([384, 512]), any=True, sum=17759
+DEBUG: sam2_refined_mask for frame 210: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=17748
+DEBUG: Combined dynamic_mask for frame 210 after SAM2: shape=torch.Size([384, 512]), any=True, sum=17778
+Dynamic mask for frame 210 refined with SAM2.
+Successfully computed dynamic mask for frame 210
+Kept 11553 high-confidence dynamic points for frame 210
+FPS: 0.19347878677813146
+Attempting SAM2 refinement for frame 211...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 211 before SAM2: shape=torch.Size([384, 512]), any=True, sum=30409
+DEBUG: sam2_refined_mask for frame 211: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=30403
+DEBUG: Combined dynamic_mask for frame 211 after SAM2: shape=torch.Size([384, 512]), any=True, sum=30438
+Dynamic mask for frame 211 refined with SAM2.
+Successfully computed dynamic mask for frame 211
+Kept 18289 high-confidence dynamic points for frame 211
+Attempting SAM2 refinement for frame 212...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 212 before SAM2: shape=torch.Size([384, 512]), any=True, sum=32526
+DEBUG: sam2_refined_mask for frame 212: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=32542
+DEBUG: Combined dynamic_mask for frame 212 after SAM2: shape=torch.Size([384, 512]), any=True, sum=32621
+Dynamic mask for frame 212 refined with SAM2.
+Successfully computed dynamic mask for frame 212
+Kept 21877 high-confidence dynamic points for frame 212
+Attempting SAM2 refinement for frame 213...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 213 before SAM2: shape=torch.Size([384, 512]), any=True, sum=31255
+DEBUG: sam2_refined_mask for frame 213: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=31238
+DEBUG: Combined dynamic_mask for frame 213 after SAM2: shape=torch.Size([384, 512]), any=True, sum=31324
+Dynamic mask for frame 213 refined with SAM2.
+Successfully computed dynamic mask for frame 213
+Kept 17703 high-confidence dynamic points for frame 213
+Attempting SAM2 refinement for frame 214...
+propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]propagate in video:   0%|          | 0/2 [00:00<?, ?it/s]
+DEBUG: Original dynamic_mask for frame 214 before SAM2: shape=torch.Size([384, 512]), any=True, sum=26276
+DEBUG: sam2_refined_mask for frame 214: shape=torch.Size([384, 512]), dtype=torch.bool, device=cuda:0, any=True, sum=26251
+DEBUG: Combined dynamic_mask for frame 214 after SAM2: shape=torch.Size([384, 512]), any=True, sum=26320
+Dynamic mask for frame 214 refined with SAM2.
+Successfully computed dynamic mask for frame 214
+Kept 14576 high-confidence dynamic points for frame 214
+Saving full trajectory to  logs rgbd_dataset_freiburg3_walking_xyz.txt
+done

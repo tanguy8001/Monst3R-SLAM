@@ -14,7 +14,7 @@ from mast3r_slam.geometry import (
 from mast3r_slam.nonlinear_optimizer import check_convergence, huber
 from mast3r_slam.config import config
 from mast3r_slam.monst3r_utils import monst3r_match_asymmetric, get_dynamic_mask
-
+from thirdparty.monst3r.third_party.raft import load_RAFT
 
 
 class FrameTracker2:
@@ -22,6 +22,13 @@ class FrameTracker2:
         self.cfg = config["tracking"]
         self.mast3r = mast3r
         self.monst3r = monst3r
+
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        raft_weights_path = os.path.join(current_dir, "../thirdparty/monst3r/third_party/RAFT/models/Tartan-C-T-TSKH-spring540x960-M.pth")
+        raft_weights_path = os.path.normpath(raft_weights_path)
+        self.raft_model = load_RAFT(raft_weights_path)
+        self.raft_model = self.raft_model.to(device)
+        self.raft_model.eval()
         
         self.keyframes = frames
         self.device = device
@@ -54,7 +61,7 @@ class FrameTracker2:
         if config.get("use_dynamic_mask", False):
             try:
                 dynamic_mask = get_dynamic_mask(
-                    self.monst3r, frame, keyframe,
+                    self.monst3r, self.raft_model,frame, keyframe,
                     threshold=config.get("dynamic_mask_threshold", 0.35),
                     refine_with_sam2=config.get("refine_dynamic_mask_with_sam2", True)
                 )
@@ -158,30 +165,18 @@ class FrameTracker2:
         # Initialize final valid mask
         valid_opt = valid_opt_base.clone()
 
-        # Filter dynamic points conditionally based on confidence
+        # Filter dynamic points
         if dynamic_mask_computed and is_dynamic_point is not None:
             # Ensure shapes match to avoid broadcasting issues
             is_dynamic_point_reshaped = is_dynamic_point.view_as(valid_opt)
 
-            # Identify low-confidence points (failing any individual threshold)
-            # Note: Using individual checks, not valid_opt_base which includes valid_match_k
-            low_confidence_mask = (~valid_Cf) | (~valid_Ck) | (~valid_Q)
-
-            # Points to filter: Dynamic AND Low Confidence
-            points_to_filter = is_dynamic_point_reshaped & low_confidence_mask
-
             original_valid_count = valid_opt.sum() # Count from valid_opt_base initially
-            valid_opt = valid_opt_base & (~points_to_filter) # Remove only low-conf dynamic points from base
+            # Directly filter out all points marked as dynamic by the dynamic_mask module
+            valid_opt = valid_opt_base & (~is_dynamic_point_reshaped)
             filtered_count = original_valid_count - valid_opt.sum()
 
-            # Calculate how many dynamic points were *kept* because their confidence was high
-            # These are points that are dynamic, were in valid_opt_base, and are still in valid_opt
-            kept_dynamic_count = (is_dynamic_point_reshaped & valid_opt_base & valid_opt).sum()
-
             if filtered_count > 0:
-                print(f"Filtered {filtered_count} low-confidence dynamic points from optimization for frame {frame.frame_id}")
-            if kept_dynamic_count > 0:
-                 print(f"Kept {kept_dynamic_count} high-confidence dynamic points for frame {frame.frame_id}")
+                print(f"Filtered {filtered_count} dynamic points (identified by dynamic_mask module) from optimization for frame {frame.frame_id}")
 
         valid_kf = valid_match_k & valid_Q
 
