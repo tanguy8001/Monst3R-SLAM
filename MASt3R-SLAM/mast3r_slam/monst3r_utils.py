@@ -5,6 +5,9 @@ import einops
 from tqdm import tqdm
 import lietorch
 import os
+# Add skimage import
+from skimage.measure import label, regionprops
+import cv2 # Add cv2 import for resizing
 
 import mast3r.utils.path_to_dust3r  # noqa
 from dust3r.utils.image import ImgNorm
@@ -321,7 +324,7 @@ def monst3r_match_asymmetric(mast3r, monst3r, frame_i, frame_j, idx_i2j_init=Non
     return idx_i2j, valid_match_j, Xii, Cii, Qii, Xji, Cji, Qji
 
 @torch.inference_mode()
-def get_dynamic_mask(monst3r, raft_model, frame_i, frame_j, threshold=0.35, refine_with_sam2=True):
+def get_dynamic_mask(monst3r, raft_model, frame_i, frame_j, threshold=0.35, refine_with_sam2=True, sam2_predictor=None):
     """
     Get dynamic mask between two frames using MonST3R and RAFT.
     Optionally refines the mask using SAM2.
@@ -331,10 +334,12 @@ def get_dynamic_mask(monst3r, raft_model, frame_i, frame_j, threshold=0.35, refi
     
     Args:
         monst3r: Initialized MonST3R model.
+        raft_model: Initialized RAFT model.
         frame_i: First frame object (needs img, T_WC, K).
         frame_j: Second frame object (needs img, T_WC, K).
         threshold: Threshold for classifying pixels as dynamic based on normalized flow error (0.0-1.0).
         refine_with_sam2: Boolean flag to enable SAM2 refinement.
+        sam2_predictor: Initialized SAM2 predictor instance (required if refine_with_sam2 is True).
         
     Returns:
         dynamic_mask: Binary mask (HxW tensor) where True indicates dynamic content.
@@ -515,98 +520,85 @@ def get_dynamic_mask(monst3r, raft_model, frame_i, frame_j, threshold=0.35, refi
 
     dynamic_mask = norm_err_map > threshold # HxW boolean tensor, on device
 
-    # 10. SAM2 Refinement (Optional)
-    #if refine_with_sam2 and dynamic_mask.any():
-    #    print(f"Attempting SAM2 refinement for frame {frame_i.frame_id}...")
-    #    sam2_predictor_instance = None
-    #    prev_allow_tf32 = None
-    #    prev_allow_cudnn_tf32 = None
-    #    refined_successfully = False
-    #    try:
-    #        if device == 'cuda':
-    #            prev_allow_tf32 = torch.backends.cuda.matmul.allow_tf32
-    #            prev_allow_cudnn_tf32 = torch.backends.cudnn.allow_tf32
-    #            if torch.cuda.get_device_properties(0).major >= 8: # Ampere+
-    #                torch.backends.cuda.matmul.allow_tf32 = True
-    #                torch.backends.cudnn.allow_tf32 = True
-    #        
-    #        autocast_dtype = torch.bfloat16 if device == 'cuda' and torch.cuda.is_bf16_supported() else torch.float32
-    #        
-    #        if not os.path.exists(SAM2_CHECKPOINT_DEFAULT):
-    #            print(f"Warning: SAM2 checkpoint not found at {SAM2_CHECKPOINT_DEFAULT}. Skipping SAM2 refinement.")
-    #        elif not os.path.exists(SAM2_MODEL_CONFIG_ABSOLUTE_PATH):
-    #            print(f"Warning: SAM2 model config not found at {SAM2_MODEL_CONFIG_ABSOLUTE_PATH}. Skipping SAM2 refinement.")
-    #        else:
-    #            # Convert device object to string for device_type
-    #            device_str = device.type if isinstance(device, torch.device) else str(device) # Ensure string conversion
-    #            autocast_device_type = device_str if device_str != 'mps' else 'cpu'
-    #            autocast_enabled = device_str != 'mps'
-#
-    #            with torch.autocast(device_type=autocast_device_type, dtype=autocast_dtype, enabled=autocast_enabled):
-    #                sam2_predictor_instance = build_sam2_video_predictor(SAM2_MODEL_CONFIG_NAME_FOR_HYDRA, SAM2_CHECKPOINT_DEFAULT, device=device)
-    #            
-    #                # Prepare video tensor: NCHW format for SAM2
-    #                # Use a 2-frame video [frame_i, frame_j]
-    #                img_i_sam = frame_i.img.squeeze(0) # CHW
-    #                img_j_sam = frame_j.img.squeeze(0) # CHW
-    #                video_tensor_sam = torch.stack([img_i_sam, img_j_sam]).to(device) # 2CHW
-#
-    #                with torch.autocast(device_type=autocast_device_type, dtype=autocast_dtype, enabled=autocast_enabled):
-    #                    inference_state = sam2_predictor_instance.init_state(video_path=video_tensor_sam)
-    #                    
-    #                    initial_mask_for_sam2 = dynamic_mask.clone().to(device) # Ensure a copy is passed
-    #                    
-    #                    sam2_predictor_instance.add_new_mask(
-    #                        inference_state,
-    #                        frame_idx=0, # Mask is for frame_i
-    #                        obj_id=1,    # Arbitrary object ID
-    #                        mask=initial_mask_for_sam2,
-    #                    )
-    #                    
-    #                    sam2_refined_mask = None
-    #                    for out_frame_idx, out_obj_ids, out_mask_logits in sam2_predictor_instance.propagate_in_video(inference_state, start_frame_idx=0):
-    #                        if out_frame_idx == 0 and 1 in out_obj_ids: # Interested in frame_i (idx 0)
-    #                            obj_idx_in_list = out_obj_ids.index(1)
-    #                            # Logits to boolean mask, stays on device
-    #                            sam2_refined_mask = (out_mask_logits[obj_idx_in_list] > 0.0)
-    #                            if sam2_refined_mask.shape[0] == 1: # Squeeze if batch dim is present
-    #                                sam2_refined_mask = sam2_refined_mask.squeeze(0)
-    #                            break 
-    #                    
-    #                    if sam2_refined_mask is not None:
-    #                        # Validate SAM2 output before combining
-    #                        if sam2_refined_mask.numel() == 0:
-    #                            print(f"Warning: SAM2 produced an empty tensor mask for frame {frame_i.frame_id}. Discarding SAM2 output.")
-    #                        elif sam2_refined_mask.shape != dynamic_mask.shape:
-    #                            print(f"Warning: SAM2 produced mask with shape {sam2_refined_mask.shape} (expected {dynamic_mask.shape}) for frame {frame_i.frame_id}. Discarding SAM2 output.")
-    #                        else:
-    #                            # Both dynamic_mask and sam2_refined_mask are valid for combination
-    #                            print(f"DEBUG: Original dynamic_mask for frame {frame_i.frame_id} before SAM2: shape={dynamic_mask.shape}, any={dynamic_mask.any().item()}, sum={dynamic_mask.sum().item()}")
-    #                            print(f"DEBUG: sam2_refined_mask for frame {frame_i.frame_id}: shape={sam2_refined_mask.shape}, dtype={sam2_refined_mask.dtype}, device={sam2_refined_mask.device}, any={sam2_refined_mask.any().item()}, sum={sam2_refined_mask.sum().item()}")
-    #                            
-    #                            dynamic_mask = dynamic_mask | sam2_refined_mask # OR combine
-    #                            
-    #                            print(f"DEBUG: Combined dynamic_mask for frame {frame_i.frame_id} after SAM2: shape={dynamic_mask.shape}, any={dynamic_mask.any().item()}, sum={dynamic_mask.sum().item()}")
-    #                            print(f"Dynamic mask for frame {frame_i.frame_id} refined with SAM2.")
-    #                            refined_successfully = True
-    #                    # If sam2_refined_mask was None, or numel==0, or shape mismatched, refined_successfully remains False
-    #                    
-    #                    if not refined_successfully:
-    #                        print(f"Warning: SAM2 refinement not applied for frame {frame_i.frame_id} (SAM2 mask was None, empty, or shape mismatch).")
-    #    
-    #    except Exception as e_sam:
-    #        print(f"Error during SAM2 refinement for frame {frame_i.frame_id}: {e_sam}")
-    #    finally:
-    #        if device == 'cuda' and prev_allow_tf32 is not None:
-    #            torch.backends.cuda.matmul.allow_tf32 = prev_allow_tf32
-    #            torch.backends.cudnn.allow_tf32 = prev_allow_cudnn_tf32
-    #        if sam2_predictor_instance is not None:
-    #            del sam2_predictor_instance
-    #            if device == 'cuda':
-    #                torch.cuda.empty_cache()
+    # 10. SAM2 Refinement (Optional) using logic from test_sam.py
+    if refine_with_sam2 and sam2_predictor is not None and dynamic_mask.any():
+        print(f"Attempting SAM2 refinement for frame {frame_i.frame_id}...")
+        refined_successfully = False
+        try:
+            dynamic_mask_np = dynamic_mask.cpu().numpy()
 
-    # TODO: Implement SAM2 refinement using the new technique in test_sam.py
-    
+            # Extract dynamic points using connected components
+            labeled = label(dynamic_mask_np)
+            regions = regionprops(labeled)
+            point_prompts = []
+            min_area = 20 # Ignore tiny regions
+            for region in regions:
+                if region.area >= min_area:
+                    # centroid gives (row, col) i.e., (y, x)
+                    y, x = region.centroid
+                    point_prompts.append((int(x), int(y))) # Need (x,y) for SAM
+
+            if len(point_prompts) > 0:
+                # Prepare image for SAM2
+                # frame_i.uimg is HxWx3, float [0,1]
+                img_sam_np = frame_i.uimg.cpu().numpy()
+                # Resize to SAM2 input size (e.g., 512 as in test_sam.py, assuming square)
+                # Note: Using frame_i.uimg might be better quality than resizing frame_i.img
+                # SAM2 often uses 1024, but let's stick to 512 from test_sam for now.
+                # Check if resize_img expects HWC or CHW - it expects HWC np.uint8
+                sam2_input_size = 512
+                # resize_img returns uint8 HWC numpy array in 'unnormalized_img'
+                img_resized_sam = resize_img(img_sam_np, sam2_input_size)["unnormalized_img"]
+                h_sam, w_sam = img_resized_sam.shape[:2]
+
+                # Convert to CHW tensor [0, 1] for SAM2 state init
+                img_tensor_sam = torch.from_numpy(img_resized_sam).permute(2, 0, 1).float().to(device) / 255.0
+                img_tensor_sam = img_tensor_sam.unsqueeze(0) # Add batch dim -> 1xCxHxW
+
+                # Prepare point prompts (Nx2 tensor) in (x,y) order
+                points_sam = torch.tensor(point_prompts, dtype=torch.float, device=device).unsqueeze(0) # 1xNx2
+                labels_sam = torch.ones(points_sam.shape[1], dtype=torch.int, device=device).unsqueeze(0) # 1xN (all foreground)
+
+                # Run SAM2 inference
+                sam2_refined_mask = None
+                state = sam2_predictor.init_state(video_path=img_tensor_sam)
+                sam2_predictor.add_new_points(state, frame_idx=0, obj_id=1, points=points_sam, labels=labels_sam)
+
+                for out_frame_idx, out_obj_ids, out_mask_logits in sam2_predictor.propagate_in_video(state, start_frame_idx=0):
+                    if out_frame_idx == 0 and 1 in out_obj_ids:
+                        obj_idx = out_obj_ids.index(1)
+                        # Logits to boolean mask (HxW on device)
+                        sam2_refined_mask = (out_mask_logits[obj_idx] > 0.0)
+                        if sam2_refined_mask.shape[0] == 1: # Squeeze if batch dim is present
+                             sam2_refined_mask = sam2_refined_mask.squeeze(0)
+                        break # Only need the first frame's mask
+
+                if sam2_refined_mask is not None:
+                    # Resize SAM2 mask back to original frame dimensions (h, w)
+                    sam2_refined_mask_np = sam2_refined_mask.cpu().numpy().astype(np.uint8)
+                    sam2_refined_mask_resized_np = cv2.resize(sam2_refined_mask_np, (w, h), interpolation=cv2.INTER_NEAREST)
+                    sam2_refined_mask_resized = torch.from_numpy(sam2_refined_mask_resized_np).to(device=device, dtype=torch.bool)
+
+                    # Validate SAM2 output before combining
+                    if sam2_refined_mask_resized.shape != dynamic_mask.shape:
+                        print(f"Warning: Resized SAM2 mask shape {sam2_refined_mask_resized.shape} mismatch original {dynamic_mask.shape} for frame {frame_i.frame_id}. Discarding SAM2 output.")
+                    else:
+                        # Combine initial dynamic mask with SAM2 refinement using logical OR
+                        original_sum = dynamic_mask.sum().item()
+                        refined_sum = sam2_refined_mask_resized.sum().item()
+                        dynamic_mask = dynamic_mask | sam2_refined_mask_resized
+                        combined_sum = dynamic_mask.sum().item()
+                        print(f"Dynamic mask for frame {frame_i.frame_id} refined with SAM2. Original sum: {original_sum}, Refined sum: {refined_sum}, Combined sum: {combined_sum}")
+                        refined_successfully = True
+
+            if not refined_successfully:
+                 print(f"Warning: SAM2 refinement not applied for frame {frame_i.frame_id} (no points, SAM2 failed, or shape mismatch).")
+
+        except Exception as e_sam:
+            print(f"Error during SAM2 refinement for frame {frame_i.frame_id}: {e_sam}")
+        # Removed old SAM2 block
+
+    # TODO: Implement SAM2 refinement using the new technique in test_sam.py - DONE
 
     return dynamic_mask # on original device
 

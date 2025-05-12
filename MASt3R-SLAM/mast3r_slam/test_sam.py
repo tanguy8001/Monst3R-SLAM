@@ -101,6 +101,7 @@ def main():
                 point_prompts.append((int(x), int(y)))
 
         # --- Step C: Use dynamic points as prompts for SAM2 ---
+        # Point prompt generation based on centroids of connected components
         # Prepare image for SAM2 (resize to 512x512, uint8)
         img_resized = resize_img(img, 512)["unnormalized_img"]
         img_tensor = torch.from_numpy(img_resized).permute(2, 0, 1).float() / 255.0  # CHW

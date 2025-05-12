@@ -137,4 +137,5 @@ logs/
 screen.yaml
 *.pt
 *.ini
+*.out
 notebooks/*

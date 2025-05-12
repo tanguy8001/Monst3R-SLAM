@@ -13,7 +13,13 @@ from mast3r_slam.geometry import (
 )
 from mast3r_slam.nonlinear_optimizer import check_convergence, huber
 from mast3r_slam.config import config
-from mast3r_slam.monst3r_utils import monst3r_match_asymmetric, get_dynamic_mask
+from mast3r_slam.monst3r_utils import (
+    monst3r_match_asymmetric,
+    get_dynamic_mask,
+    build_sam2_video_predictor,
+    SAM2_CHECKPOINT_DEFAULT,
+    SAM2_MODEL_CONFIG_NAME_FOR_HYDRA,
+)
 from thirdparty.monst3r.third_party.raft import load_RAFT
 
 
@@ -32,6 +38,29 @@ class FrameTracker2:
         
         self.keyframes = frames
         self.device = device
+
+        # Initialize SAM2 predictor if needed for dynamic mask refinement
+        self.sam2_predictor = None
+        if config.get("use_dynamic_mask", False) and config.get("refine_dynamic_mask_with_sam2", True):
+            try:
+                print("Initializing SAM2 predictor for tracker...")
+                # Ensure checkpoints/configs exist (could also check in main and pass None if not found)
+                if not os.path.exists(SAM2_CHECKPOINT_DEFAULT):
+                     print(f"Warning: SAM2 checkpoint not found at {SAM2_CHECKPOINT_DEFAULT}. SAM2 refinement disabled.")
+                # Add check for config path similar to how it's done in monst3r_utils
+                elif not os.path.exists(os.path.join(os.path.dirname(SAM2_CHECKPOINT_DEFAULT), "../..", "sam2", "configs", "sam2.1", "sam2.1_hiera_l.yaml")):
+                     print(f"Warning: SAM2 config not found relative to checkpoint. SAM2 refinement disabled.")
+                else:
+                    self.sam2_predictor = build_sam2_video_predictor(
+                        SAM2_MODEL_CONFIG_NAME_FOR_HYDRA,
+                        SAM2_CHECKPOINT_DEFAULT,
+                        device=device
+                    )
+                    self.sam2_predictor.eval()
+                    print("SAM2 predictor initialized.")
+            except Exception as e:
+                print(f"Error initializing SAM2 predictor: {e}. SAM2 refinement disabled.")
+                self.sam2_predictor = None
 
         self.reset_idx_f2k()
 
@@ -56,40 +85,40 @@ class FrameTracker2:
         Qk = torch.sqrt(Qff[idx_f2k] * Qkf)
 
         # Detect dynamic objects if enabled in config
-        dynamic_mask_computed = False
-        is_dynamic_point = None
+        dynamic_mask_available_for_filtering = False  # Flag to indicate if a valid mask is ready for filtering
+        h, w = frame.img.shape[-2:] # Get frame dimensions for mask validation and fallback
+
         if config.get("use_dynamic_mask", False):
             try:
-                dynamic_mask = get_dynamic_mask(
+                computed_mask = get_dynamic_mask(
                     self.monst3r, self.raft_model, frame, keyframe,
                     threshold=config.get("dynamic_mask_threshold", 0.35),
-                    refine_with_sam2=config.get("refine_dynamic_mask_with_sam2", True)
+                    refine_with_sam2=config.get("refine_dynamic_mask_with_sam2", True),
+                    sam2_predictor=self.sam2_predictor
                 )
-                # Use dynamic mask to filter out points on moving objects
-                # Reshape dynamic_mask to match our points
-                h, w = frame.img.shape[-2:] # Use frame's shape directly
-                # Check if the returned mask is valid (not all zeros)
-                if dynamic_mask.any():
-                    reshaped_mask = dynamic_mask.reshape(-1)
-                    # Identify points corresponding to dynamic pixels
-                    is_dynamic_point = reshaped_mask[idx_f2k] > 0.5 # Boolean mask for points
-                    dynamic_mask_computed = True
+                frame.dynamic_mask = computed_mask # Store the computed mask
 
-                    # Store dynamic mask in frame for visualization
-                    frame.dynamic_mask = dynamic_mask
-                    print(f"Successfully computed dynamic mask for frame {frame.frame_id}")
+                # Validate the mask shape before enabling filtering
+                if computed_mask.shape[0] == h and computed_mask.shape[1] == w:
+                    dynamic_mask_available_for_filtering = True
+                    if computed_mask.any():
+                        print(f"Dynamic mask computed with dynamic regions for frame {frame.frame_id}.")
+                    else:
+                        print(f"Dynamic mask computed for frame {frame.frame_id}, but all regions are static.")
                 else:
-                    # Handle case where dynamic mask computation failed (e.g., no K) or produced an empty mask
-                    print(f"Dynamic mask computation resulted in an empty mask for frame {frame.frame_id}.")
-                    # Ensure frame has an empty mask placeholder if needed elsewhere
+                    print(f"Warning: Computed dynamic mask shape {computed_mask.shape} mismatch with frame image shape {(h,w)}. Using fallback static mask.")
                     frame.dynamic_mask = torch.zeros((h, w), dtype=torch.bool, device=frame.img.device)
+                    # dynamic_mask_available_for_filtering remains False due to shape mismatch
 
             except Exception as e:
                 print(f"Failed to compute dynamic mask for frame {frame.frame_id}: {str(e)}")
-                print("Continuing without dynamic mask")
-                # Create an empty mask as fallback
-                h, w = frame.img.shape[-2:]
+                print("Continuing with a fallback all-static mask.")
                 frame.dynamic_mask = torch.zeros((h, w), dtype=torch.bool, device=frame.img.device)
+                # dynamic_mask_available_for_filtering remains False
+        else:
+            # If dynamic masking is not used, ensure a fallback mask exists for debug saving
+            frame.dynamic_mask = torch.zeros((h, w), dtype=torch.bool, device=frame.img.device)
+
 
         # --- Debug: Save dynamic mask overlay ---
         if config.get("debug_save_dynamic_mask", True): # Set to False to disable saving
@@ -162,21 +191,28 @@ class FrameTracker2:
         # Calculate base validity based on confidence and matching
         valid_opt_base = valid_match_k & valid_Cf & valid_Ck & valid_Q
 
-        # Initialize final valid mask
+        # Initialize final valid mask from base
         valid_opt = valid_opt_base.clone()
 
-        # Filter dynamic points
-        if dynamic_mask_computed and is_dynamic_point is not None:
-            # Ensure shapes match to avoid broadcasting issues
-            is_dynamic_point_reshaped = is_dynamic_point.view_as(valid_opt)
+        # Filter dynamic points if a valid mask is available
+        if dynamic_mask_available_for_filtering:
+            # Reshape HxW to (H*W, 1) to match valid_opt_base shape
+            flat_dynamic_mask = frame.dynamic_mask.reshape(-1, 1)
 
-            original_valid_count = valid_opt.sum() # Count from valid_opt_base initially
-            # Directly filter out all points marked as dynamic by the dynamic_mask module
-            valid_opt = valid_opt_base & (~is_dynamic_point_reshaped)
-            filtered_count = original_valid_count - valid_opt.sum()
+            # Ensure shapes match for element-wise operation
+            if flat_dynamic_mask.shape == valid_opt_base.shape:
+                count_before_dynamic_filter = valid_opt.sum() # valid_opt is currently valid_opt_base
 
-            if filtered_count > 0:
-                print(f"Filtered {filtered_count} dynamic points (identified by dynamic_mask module) from optimization for frame {frame.frame_id}")
+                # Apply the dynamic mask: keep points that are in valid_opt AND are NOT dynamic
+                valid_opt = valid_opt & (~flat_dynamic_mask)
+                
+                filtered_count = count_before_dynamic_filter - valid_opt.sum()
+
+                if filtered_count > 0:
+                    print(f"Filtered {filtered_count} dynamic points using computed mask from optimization for frame {frame.frame_id}")
+            else:
+                # This should ideally be caught by the earlier shape check, but as a safeguard:
+                print(f"Warning: Shape mismatch during dynamic filtering. Dynamic mask shape: {flat_dynamic_mask.shape}, Valid opt base shape: {valid_opt_base.shape}. Skipping dynamic filtering.")
 
         valid_kf = valid_match_k & valid_Q
 
