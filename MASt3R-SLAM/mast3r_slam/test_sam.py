@@ -13,6 +13,7 @@ from mast3r_slam.monst3r_utils import (
     SAM2_CHECKPOINT_DEFAULT,
     SAM2_MODEL_CONFIG_NAME_FOR_HYDRA,
     build_sam2_video_predictor,
+    resize_img,
     get_dynamic_mask,
     load_monst3r
 )
@@ -83,84 +84,58 @@ def main():
         frame_prev = create_frame(idx-1, img_prev, T_WC, K=K, img_size=dataset.img_size, device=device)
         frame = create_frame(idx, img, T_WC, K=K, img_size=dataset.img_size, device=device)
 
-        # --- Compute dynamic mask (RAFT + ego-motion + optional SAM2 refinement) ---
-        dynamic_mask = get_dynamic_mask(
-            monst3r,
-            raft_model,
-            sam2_predictor, # Pass the predictor
-            frame, 
-            frame_prev, 
-            threshold=0.35, 
-            refine_with_sam2=True # Enable refinement inside the function
-        )
+        # --- Step A: Compute dynamic mask (RAFT + ego-motion) ---
+        dynamic_mask = get_dynamic_mask(monst3r, raft_model, frame, frame_prev, threshold=0.35, refine_with_sam2=False)
         dynamic_mask_np = dynamic_mask.cpu().numpy().astype(np.uint8)
 
-        print(f"Final dynamic mask stats for frame {idx}: unique={np.unique(dynamic_mask_np)}, sum={np.sum(dynamic_mask_np)}")
+        print(f"Dynamic mask stats for frame {idx}: unique={np.unique(dynamic_mask_np)}, sum={np.sum(dynamic_mask_np)}")
 
-        # --- Save the final mask overlay ---
-        # Resize original image (used for display) to a standard size like 512x512
-        img_np = (img * 0.5 + 0.5) # Scale to [0, 1] for resize_img
-        img_resized_dict = resize_img(img_np, 512, square_ok=True)
-        img_resized_display = img_resized_dict["unnormalized_img"] # uint8 H'xW'x3
+        # --- Step B: Extract dynamic points (connected components) ---
+        labeled = label(dynamic_mask_np)
+        regions = regionprops(labeled)
+        point_prompts = []
+        min_area = 20  # Ignore tiny regions
+        for region in regions:
+            if region.area > min_area:
+                y, x = region.centroid
+                point_prompts.append((int(x), int(y)))
 
-        # Resize the final mask to match the display image size
-        h_display, w_display = img_resized_display.shape[:2]
-        mask_float = torch.from_numpy(dynamic_mask_np).float().unsqueeze(0).unsqueeze(0).to(device) # 1x1xHxW
-        mask_resized_display = torch.nn.functional.interpolate(
-            mask_float,
-            size=(h_display, w_display),
-            mode='nearest'
-        ).squeeze().cpu().numpy().astype(np.uint8) # H'xW'
+        # --- Step C: Use dynamic points as prompts for SAM2 ---
+        # Prepare image for SAM2 (resize to 512x512, uint8)
+        img_resized = resize_img(img, 512)["unnormalized_img"]
+        img_tensor = torch.from_numpy(img_resized).permute(2, 0, 1).float() / 255.0  # CHW
+        img_tensor = img_tensor.unsqueeze(0).to(device)
+        # Prepare point prompts for SAM2 (N,2) in (x,y) order
+        if len(point_prompts) > 0:
+            points = torch.tensor(point_prompts, dtype=torch.float, device=device).unsqueeze(0)  # 1xNx2
+            labels = torch.ones(points.shape[1], dtype=torch.int, device=device).unsqueeze(0)    # 1xN, all foreground
 
-        save_path = os.path.join(args.output_dir, f"frame_{idx:04d}_refined.png")
-        save_mask_overlay(img_resized_display, mask_resized_display, save_path)
+            with torch.no_grad():
+                state = sam2_predictor.init_state(video_path=img_tensor)
+                sam2_predictor.add_new_points(state, frame_idx=0, obj_id=1, points=points, labels=labels)
+                mask = None
 
-        # --- Steps B and C (Extracting points, running SAM2 separately) are now handled inside get_dynamic_mask ---
-        # labeled = label(dynamic_mask_np)
-        # regions = regionprops(labeled)
-        # point_prompts = []
-        # min_area = 20  # Ignore tiny regions
-        # for region in regions:
-        #     if region.area > min_area:
-        #         y, x = region.centroid
-        #         point_prompts.append((int(x), int(y)))
-
-        # # --- Step C: Use dynamic points as prompts for SAM2 ---
-        # # Prepare image for SAM2 (resize to 512x512, uint8)
-        # img_resized = resize_img(img, 512)["unnormalized_img"]
-        # img_tensor = torch.from_numpy(img_resized).permute(2, 0, 1).float() / 255.0  # CHW
-        # img_tensor = img_tensor.unsqueeze(0).to(device)
-        # # Prepare point prompts for SAM2 (N,2) in (x,y) order
-        # if len(point_prompts) > 0:
-        #     points = torch.tensor(point_prompts, dtype=torch.float, device=device).unsqueeze(0)  # 1xNx2
-        #     labels = torch.ones(points.shape[1], dtype=torch.int, device=device).unsqueeze(0)    # 1xN, all foreground
-
-        #     with torch.no_grad():
-        #         state = sam2_predictor.init_state(video_path=img_tensor)
-        #         sam2_predictor.add_new_points(state, frame_idx=0, obj_id=1, points=points, labels=labels)
-        #         mask = None
-
-        #         for out_frame_idx, out_obj_ids, out_mask_logits in sam2_predictor.propagate_in_video(state, start_frame_idx=0):
+                for out_frame_idx, out_obj_ids, out_mask_logits in sam2_predictor.propagate_in_video(state, start_frame_idx=0):
                     
-        #             if out_frame_idx == 0 and 1 in out_obj_ids:
-        #                 obj_idx = out_obj_ids.index(1)
-        #                 mask = (out_mask_logits[obj_idx] > 0).cpu().numpy().astype(np.uint8)
+                    if out_frame_idx == 0 and 1 in out_obj_ids:
+                        obj_idx = out_obj_ids.index(1)
+                        mask = (out_mask_logits[obj_idx] > 0).cpu().numpy().astype(np.uint8)
                         
 
-        #         if mask is None:
-        #             mask = np.zeros(img_resized.shape[:2], dtype=np.uint8)
-        # else:
-        #     mask = np.zeros(img_resized.shape[:2], dtype=np.uint8)
+                if mask is None:
+                    mask = np.zeros(img_resized.shape[:2], dtype=np.uint8)
+        else:
+            mask = np.zeros(img_resized.shape[:2], dtype=np.uint8)
 
-        # #print(f"Mask stats for frame {idx}: shape={mask.shape}, unique={np.unique(mask)}, sum={np.sum(mask)}")
+        #print(f"Mask stats for frame {idx}: shape={mask.shape}, unique={np.unique(mask)}, sum={np.sum(mask)}")
 
-        # save_path = os.path.join(args.output_dir, f"frame_{idx:04d}.png")
-        # #print(f"Saving mask to {save_path}")
-        # save_mask_overlay(img_resized, mask, save_path)
+        save_path = os.path.join(args.output_dir, f"frame_{idx:04d}.png")
+        #print(f"Saving mask to {save_path}")
+        save_mask_overlay(img_resized, mask, save_path)
         
-        # #mask_path = os.path.join(args.output_dir, f"frame_{idx:04d}_mask.png")
-        # #mask_to_save = np.squeeze(mask)
-        # #Image.fromarray((mask_to_save * 255).astype(np.uint8)).save(mask_path)
+        #mask_path = os.path.join(args.output_dir, f"frame_{idx:04d}_mask.png")
+        #mask_to_save = np.squeeze(mask)
+        #Image.fromarray((mask_to_save * 255).astype(np.uint8)).save(mask_path)
 
 if __name__ == "__main__":
     main()

@@ -20,8 +20,6 @@ from thirdparty.monst3r.dust3r.utils.goem_opt import OccMask
 from thirdparty.monst3r.dust3r.model import AsymmetricCroCo3DStereo
 from thirdparty.monst3r.dust3r.utils.goem_opt import DepthBasedWarping
 from thirdparty.monst3r.third_party.sam2.sam2.build_sam import build_sam2_video_predictor
-from mast3r_slam.dataloader import resize_img # Added import for resize_img
-from skimage.measure import label, regionprops # Added for connected components
 
 _MONST3R_UTILS_DIR = os.path.dirname(os.path.abspath(__file__))
 _MONST3R_BASE_PATH = os.path.normpath(os.path.join(_MONST3R_UTILS_DIR, "..", "thirdparty", "monst3r"))
@@ -323,7 +321,7 @@ def monst3r_match_asymmetric(mast3r, monst3r, frame_i, frame_j, idx_i2j_init=Non
     return idx_i2j, valid_match_j, Xii, Cii, Qii, Xji, Cji, Qji
 
 @torch.inference_mode()
-def get_dynamic_mask(monst3r, raft_model, sam2_predictor, frame_i, frame_j, threshold=0.35, refine_with_sam2=True):
+def get_dynamic_mask(monst3r, raft_model, frame_i, frame_j, threshold=0.35, refine_with_sam2=True):
     """
     Get dynamic mask between two frames using MonST3R and RAFT.
     Optionally refines the mask using SAM2.
@@ -333,8 +331,6 @@ def get_dynamic_mask(monst3r, raft_model, sam2_predictor, frame_i, frame_j, thre
     
     Args:
         monst3r: Initialized MonST3R model.
-        raft_model: Initialized RAFT model.
-        sam2_predictor: Initialized SAM2 predictor.
         frame_i: First frame object (needs img, T_WC, K).
         frame_j: Second frame object (needs img, T_WC, K).
         threshold: Threshold for classifying pixels as dynamic based on normalized flow error (0.0-1.0).
@@ -520,126 +516,97 @@ def get_dynamic_mask(monst3r, raft_model, sam2_predictor, frame_i, frame_j, thre
     dynamic_mask = norm_err_map > threshold # HxW boolean tensor, on device
 
     # 10. SAM2 Refinement (Optional)
-    if refine_with_sam2 and dynamic_mask.any() and sam2_predictor is not None:
-        print(f"Attempting SAM2 refinement for frame {frame_i.frame_id}...")
-        prev_allow_tf32 = None
-        prev_allow_cudnn_tf32 = None
-        refined_successfully = False
-        try:
-            if device == 'cuda':
-                prev_allow_tf32 = torch.backends.cuda.matmul.allow_tf32
-                prev_allow_cudnn_tf32 = torch.backends.cudnn.allow_tf32
-                if torch.cuda.get_device_properties(0).major >= 8: # Ampere+
-                    torch.backends.cuda.matmul.allow_tf32 = True
-                    torch.backends.cudnn.allow_tf32 = True
-            
-            autocast_dtype = torch.bfloat16 if device == 'cuda' and torch.cuda.is_bf16_supported() else torch.float32
-            device_str = device.type if isinstance(device, torch.device) else str(device)
-            autocast_device_type = device_str if device_str != 'mps' else 'cpu'
-            autocast_enabled = device_str != 'mps'
+    #if refine_with_sam2 and dynamic_mask.any():
+    #    print(f"Attempting SAM2 refinement for frame {frame_i.frame_id}...")
+    #    sam2_predictor_instance = None
+    #    prev_allow_tf32 = None
+    #    prev_allow_cudnn_tf32 = None
+    #    refined_successfully = False
+    #    try:
+    #        if device == 'cuda':
+    #            prev_allow_tf32 = torch.backends.cuda.matmul.allow_tf32
+    #            prev_allow_cudnn_tf32 = torch.backends.cudnn.allow_tf32
+    #            if torch.cuda.get_device_properties(0).major >= 8: # Ampere+
+    #                torch.backends.cuda.matmul.allow_tf32 = True
+    #                torch.backends.cudnn.allow_tf32 = True
+    #        
+    #        autocast_dtype = torch.bfloat16 if device == 'cuda' and torch.cuda.is_bf16_supported() else torch.float32
+    #        
+    #        if not os.path.exists(SAM2_CHECKPOINT_DEFAULT):
+    #            print(f"Warning: SAM2 checkpoint not found at {SAM2_CHECKPOINT_DEFAULT}. Skipping SAM2 refinement.")
+    #        elif not os.path.exists(SAM2_MODEL_CONFIG_ABSOLUTE_PATH):
+    #            print(f"Warning: SAM2 model config not found at {SAM2_MODEL_CONFIG_ABSOLUTE_PATH}. Skipping SAM2 refinement.")
+    #        else:
+    #            # Convert device object to string for device_type
+    #            device_str = device.type if isinstance(device, torch.device) else str(device) # Ensure string conversion
+    #            autocast_device_type = device_str if device_str != 'mps' else 'cpu'
+    #            autocast_enabled = device_str != 'mps'
+#
+    #            with torch.autocast(device_type=autocast_device_type, dtype=autocast_dtype, enabled=autocast_enabled):
+    #                sam2_predictor_instance = build_sam2_video_predictor(SAM2_MODEL_CONFIG_NAME_FOR_HYDRA, SAM2_CHECKPOINT_DEFAULT, device=device)
+    #            
+    #                # Prepare video tensor: NCHW format for SAM2
+    #                # Use a 2-frame video [frame_i, frame_j]
+    #                img_i_sam = frame_i.img.squeeze(0) # CHW
+    #                img_j_sam = frame_j.img.squeeze(0) # CHW
+    #                video_tensor_sam = torch.stack([img_i_sam, img_j_sam]).to(device) # 2CHW
+#
+    #                with torch.autocast(device_type=autocast_device_type, dtype=autocast_dtype, enabled=autocast_enabled):
+    #                    inference_state = sam2_predictor_instance.init_state(video_path=video_tensor_sam)
+    #                    
+    #                    initial_mask_for_sam2 = dynamic_mask.clone().to(device) # Ensure a copy is passed
+    #                    
+    #                    sam2_predictor_instance.add_new_mask(
+    #                        inference_state,
+    #                        frame_idx=0, # Mask is for frame_i
+    #                        obj_id=1,    # Arbitrary object ID
+    #                        mask=initial_mask_for_sam2,
+    #                    )
+    #                    
+    #                    sam2_refined_mask = None
+    #                    for out_frame_idx, out_obj_ids, out_mask_logits in sam2_predictor_instance.propagate_in_video(inference_state, start_frame_idx=0):
+    #                        if out_frame_idx == 0 and 1 in out_obj_ids: # Interested in frame_i (idx 0)
+    #                            obj_idx_in_list = out_obj_ids.index(1)
+    #                            # Logits to boolean mask, stays on device
+    #                            sam2_refined_mask = (out_mask_logits[obj_idx_in_list] > 0.0)
+    #                            if sam2_refined_mask.shape[0] == 1: # Squeeze if batch dim is present
+    #                                sam2_refined_mask = sam2_refined_mask.squeeze(0)
+    #                            break 
+    #                    
+    #                    if sam2_refined_mask is not None:
+    #                        # Validate SAM2 output before combining
+    #                        if sam2_refined_mask.numel() == 0:
+    #                            print(f"Warning: SAM2 produced an empty tensor mask for frame {frame_i.frame_id}. Discarding SAM2 output.")
+    #                        elif sam2_refined_mask.shape != dynamic_mask.shape:
+    #                            print(f"Warning: SAM2 produced mask with shape {sam2_refined_mask.shape} (expected {dynamic_mask.shape}) for frame {frame_i.frame_id}. Discarding SAM2 output.")
+    #                        else:
+    #                            # Both dynamic_mask and sam2_refined_mask are valid for combination
+    #                            print(f"DEBUG: Original dynamic_mask for frame {frame_i.frame_id} before SAM2: shape={dynamic_mask.shape}, any={dynamic_mask.any().item()}, sum={dynamic_mask.sum().item()}")
+    #                            print(f"DEBUG: sam2_refined_mask for frame {frame_i.frame_id}: shape={sam2_refined_mask.shape}, dtype={sam2_refined_mask.dtype}, device={sam2_refined_mask.device}, any={sam2_refined_mask.any().item()}, sum={sam2_refined_mask.sum().item()}")
+    #                            
+    #                            dynamic_mask = dynamic_mask | sam2_refined_mask # OR combine
+    #                            
+    #                            print(f"DEBUG: Combined dynamic_mask for frame {frame_i.frame_id} after SAM2: shape={dynamic_mask.shape}, any={dynamic_mask.any().item()}, sum={dynamic_mask.sum().item()}")
+    #                            print(f"Dynamic mask for frame {frame_i.frame_id} refined with SAM2.")
+    #                            refined_successfully = True
+    #                    # If sam2_refined_mask was None, or numel==0, or shape mismatched, refined_successfully remains False
+    #                    
+    #                    if not refined_successfully:
+    #                        print(f"Warning: SAM2 refinement not applied for frame {frame_i.frame_id} (SAM2 mask was None, empty, or shape mismatch).")
+    #    
+    #    except Exception as e_sam:
+    #        print(f"Error during SAM2 refinement for frame {frame_i.frame_id}: {e_sam}")
+    #    finally:
+    #        if device == 'cuda' and prev_allow_tf32 is not None:
+    #            torch.backends.cuda.matmul.allow_tf32 = prev_allow_tf32
+    #            torch.backends.cudnn.allow_tf32 = prev_allow_cudnn_tf32
+    #        if sam2_predictor_instance is not None:
+    #            del sam2_predictor_instance
+    #            if device == 'cuda':
+    #                torch.cuda.empty_cache()
 
-            # --- Extract dynamic points (connected components from initial mask) ---
-            dynamic_mask_np_sam = dynamic_mask.cpu().numpy().astype(np.uint8)
-            labeled_sam = label(dynamic_mask_np_sam)
-            regions_sam = regionprops(labeled_sam)
-            point_prompts_sam = []
-            min_area_sam = 20  # Ignore tiny regions, consistent with test_sam.py
-
-            for region in regions_sam:
-                if region.area > min_area_sam:
-                    # centroid is (row, col) which is (y, x)
-                    # SAM2 expects points as (x, y)
-                    y_coord, x_coord = region.centroid 
-                    point_prompts_sam.append((int(x_coord), int(y_coord)))
-            
-            if not point_prompts_sam:
-                print(f"No suitable point prompts found from initial dynamic mask for frame {frame_i.frame_id}. Skipping SAM2 refinement.")
-            else:
-                # --- Prepare image for SAM2 (use frame_i's image) ---
-                # resize_img expects a numpy array (H, W, C) and returns 'unnormalized_img' as numpy
-                # frame_i.img is a tensor BxCxHxW, values in [-1, 1]
-                img_i_np = frame_i.img.squeeze(0).permute(1, 2, 0).cpu().numpy() # HxWx3, [-1, 1]
-                img_i_np = (img_i_np * 0.5 + 0.5) # Scale to [0, 1] for resize_img
-                
-                # Use the original image of frame_i, resized appropriately for SAM2 (e.g., 512 long edge)
-                # The resize_img function from dataloader.py can be used.
-                # It expects a NumPy array [0,1] and outputs 'unnormalized_img' as uint8 [0,255] HxWx3
-                img_resized_sam_dict = resize_img(img_i_np, 512, square_ok=True) # Using 512 as in test_sam.py
-                img_resized_sam = img_resized_sam_dict["unnormalized_img"] # H'xW'x3, uint8
-                
-                # Convert to CHW tensor for SAM2, normalized to [0,1]
-                img_tensor_sam = torch.from_numpy(img_resized_sam).permute(2, 0, 1).float() / 255.0
-                img_tensor_sam = img_tensor_sam.unsqueeze(0).to(device) # 1xCxH'xW'
-
-                points_sam = torch.tensor(point_prompts_sam, dtype=torch.float, device=device).unsqueeze(0)  # 1xNx2
-                labels_sam = torch.ones(points_sam.shape[1], dtype=torch.int, device=device).unsqueeze(0) # 1xN
-
-                with torch.no_grad(), torch.autocast(device_type=autocast_device_type, dtype=autocast_dtype, enabled=autocast_enabled):
-                    # SAM2 operates on a "video" even for a single frame, so we pass the single image tensor
-                    inference_state_sam = sam2_predictor.init_state(video_path=img_tensor_sam)
-                    sam2_predictor.add_new_points(
-                        inference_state_sam,
-                        frame_idx=0, # Processing the first (and only) frame in our "video"
-                        obj_id=1,    # Arbitrary object ID
-                        points=points_sam,
-                        labels=labels_sam
-                    )
-                    
-                    sam2_refined_mask_logits = None
-                    for out_frame_idx_sam, out_obj_ids_sam, out_mask_logits_sam in sam2_predictor.propagate_in_video(inference_state_sam, start_frame_idx=0):
-                        if out_frame_idx_sam == 0 and 1 in out_obj_ids_sam:
-                            obj_idx_in_list_sam = out_obj_ids_sam.index(1)
-                            sam2_refined_mask_logits = out_mask_logits_sam[obj_idx_in_list_sam] # CxH'xW' (usually 1xH'xW')
-                            break
-                    
-                    if sam2_refined_mask_logits is not None:
-                        sam2_refined_mask_pred = (sam2_refined_mask_logits > 0.0).squeeze() # H'xW', bool
-                        
-                        # We need to resize sam2_refined_mask_pred (H'xW') back to original dynamic_mask shape (HxW)
-                        # dynamic_mask is HxW, on device
-                        # sam2_refined_mask_pred is H'xW', on device
-                        # Original dynamic_mask shape:
-                        h_orig, w_orig = dynamic_mask.shape
-
-                        # Convert boolean tensor to float for interpolation, add batch and channel dims
-                        sam2_refined_mask_float = sam2_refined_mask_pred.float().unsqueeze(0).unsqueeze(0) # 1x1xH'xW'
-                        
-                        # Interpolate. mode='nearest' for masks
-                        sam2_refined_mask_resized = torch.nn.functional.interpolate(
-                            sam2_refined_mask_float,
-                            size=(h_orig, w_orig),
-                            mode='nearest'
-                        ).squeeze().bool() # HxW, bool
-
-                        if sam2_refined_mask_resized.numel() == 0:
-                            print(f"Warning: SAM2 produced an empty tensor mask after resize for frame {frame_i.frame_id}. Discarding SAM2 output.")
-                        elif sam2_refined_mask_resized.shape != dynamic_mask.shape:
-                            print(f"Warning: SAM2 produced mask with shape {sam2_refined_mask_resized.shape} (expected {dynamic_mask.shape}) after resize for frame {frame_i.frame_id}. Discarding SAM2 output.")
-                        else:
-                            dynamic_mask = dynamic_mask | sam2_refined_mask_resized # OR combine
-                            print(f"Dynamic mask for frame {frame_i.frame_id} refined with SAM2.")
-                            refined_successfully = True
-                    
-                    if not refined_successfully and sam2_refined_mask_logits is None:
-                         print(f"Warning: SAM2 did not produce a mask for frame {frame_i.frame_id}.")
-                    elif not refined_successfully : # Catches other non-successful cases like empty or shape mismatch
-                         print(f"Warning: SAM2 refinement not applied for frame {frame_i.frame_id} (mask was None, empty, or shape mismatch).")
-
-        except Exception as e_sam:
-            print(f"Error during SAM2 refinement for frame {frame_i.frame_id}: {e_sam}")
-        finally:
-            if device == 'cuda' and prev_allow_tf32 is not None:
-                torch.backends.cuda.matmul.allow_tf32 = prev_allow_tf32
-            if device == 'cuda' and prev_allow_cudnn_tf32 is not None:
-                torch.backends.cudnn.allow_tf32 = prev_allow_cudnn_tf32
-            # No need to del sam2_predictor here as it's passed in
-            if device == 'cuda':
-                torch.cuda.empty_cache()
-    elif refine_with_sam2 and not dynamic_mask.any():
-        print(f"Skipping SAM2 refinement for frame {frame_i.frame_id} as initial dynamic mask is empty.")
-    elif refine_with_sam2 and sam2_predictor is None:
-        print(f"Warning: SAM2 predictor not provided for frame {frame_i.frame_id}. Skipping SAM2 refinement.")
-
+    # TODO: Implement SAM2 refinement using the new technique in test_sam.py
+    
 
     return dynamic_mask # on original device
 
@@ -688,52 +655,37 @@ def _resize_pil_image(img, long_edge_size):
 
 
 def resize_img(img, size, square_ok=False, return_transformation=False):
-    assert size == 224 or size == 512 or size == 1024 # Added 1024 for SAM which might use it
+    assert size == 224 or size == 512
     # numpy to PIL format
-    img_pil = PIL.Image.fromarray(np.uint8(img * 255)) # Ensure input is [0,1] float, convert to uint8 PIL
-    W1, H1 = img_pil.size
+    img = PIL.Image.fromarray(np.uint8(img * 255))
+    W1, H1 = img.size
     if size == 224:
         # resize short side to 224 (then crop)
-        img_pil = _resize_pil_image(img_pil, round(size * max(W1 / H1, H1 / W1)))
-    else: # For 512, 1024 (SAM-like sizes)
-        # resize long side to 'size'
-        img_pil = _resize_pil_image(img_pil, size)
-    
-    W, H = img_pil.size
+        img = _resize_pil_image(img, round(size * max(W1 / H1, H1 / W1)))
+    else:
+        # resize long side to 512
+        img = _resize_pil_image(img, size)
+    W, H = img.size
     cx, cy = W // 2, H // 2
-
-    if size == 224: # DUST3R-like crop
+    if size == 224:
         half = min(cx, cy)
-        img_pil = img_pil.crop((cx - half, cy - half, cx + half, cy + half))
-    else: # SAM-like crop (center crop to a multiple of 16, potentially non-square if original was not square)
-        # Ensure dimensions are multiples of, e.g., 16 or 32, if required by a model
-        # For SAM, often a square input is preferred or achieved via padding.
-        # Here, we'll do a center crop that maintains aspect ratio as much as possible
-        # while ensuring dimensions are suitable if needed.
-        # The current DUST3R crop logic for size != 224 might be too aggressive for SAM.
-        # Let's use a simpler center crop for SAM-like sizes (512, 1024) for now.
-        # If specific padding/cropping is needed by SAM2, that should be handled more precisely.
-        # For now, we are cropping to the new H, W after resizing long edge to `size`.
-        # No further cropping for 512/1024 beyond the initial resize unless specific model needs it.
-        # The original DUST3R crop for size!=224:
-        # halfw, halfh = ((2 * cx) // 16) * 8, ((2 * cy) // 16) * 8
-        # if not (square_ok) and W == H: # This condition seems specific
-        #     halfh = 3 * halfw / 4
-        # img = img.crop((cx - halfw, cy - halfh, cx + halfw, cy + halfh))
-        # For SAM, let's assume the resized image `img_pil` is what we want, or if square is needed, pad it.
-        # For now, just use the resized `img_pil` without the DUST3R specific non-square logic for 512.
-        pass # img_pil is already resized with long edge to `size`
+        img = img.crop((cx - half, cy - half, cx + half, cy + half))
+    else:
+        halfw, halfh = ((2 * cx) // 16) * 8, ((2 * cy) // 16) * 8
+        if not (square_ok) and W == H:
+            halfh = 3 * halfw / 4
+        img = img.crop((cx - halfw, cy - halfh, cx + halfw, cy + halfh))
 
     res = dict(
-        img=ImgNorm(img_pil)[None], # This normalizes to [-1, 1]
-        true_shape=np.int32([img_pil.size[::-1]]), # H, W of the processed image
-        unnormalized_img=np.asarray(img_pil), # uint8 HxWx3 version of processed image
+        img=ImgNorm(img)[None],
+        true_shape=np.int32([img.size[::-1]]),
+        unnormalized_img=np.asarray(img),
     )
     if return_transformation:
         scale_w = W1 / W
         scale_h = H1 / H
-        half_crop_w = (W - img_pil.size[0]) / 2
-        half_crop_h = (H - img_pil.size[1]) / 2
+        half_crop_w = (W - img.size[0]) / 2
+        half_crop_h = (H - img.size[1]) / 2
         return res, (scale_w, scale_h, half_crop_w, half_crop_h)
 
     return res

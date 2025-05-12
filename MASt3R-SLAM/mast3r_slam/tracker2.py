@@ -61,7 +61,7 @@ class FrameTracker2:
         if config.get("use_dynamic_mask", False):
             try:
                 dynamic_mask = get_dynamic_mask(
-                    self.monst3r, self.raft_model,frame, keyframe,
+                    self.monst3r, self.raft_model, frame, keyframe,
                     threshold=config.get("dynamic_mask_threshold", 0.35),
                     refine_with_sam2=config.get("refine_dynamic_mask_with_sam2", True)
                 )
