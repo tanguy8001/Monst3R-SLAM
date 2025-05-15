@@ -354,23 +354,9 @@ def get_dynamic_mask(monst3r, raft_model, frame_i, frame_j, threshold=0.35, refi
     if not hasattr(frame_i, 'K') or not hasattr(frame_j, 'K') or frame_i.K is None or frame_j.K is None:
         print("Warning: Cannot compute dynamic mask without camera calibration (K).")
         return empty_mask
-
-    ## 2. Load RAFT model (Consider caching this outside if called frequently)
-    #try:
-    #    # Construct path relative to this file
-    #    current_dir = os.path.dirname(os.path.abspath(__file__))
-    #    raft_weights_path = os.path.join(current_dir, "../thirdparty/monst3r/third_party/RAFT/models/Tartan-C-T-TSKH-spring540x960-M.pth")
-    #    raft_weights_path = os.path.normpath(raft_weights_path) # Normalize path (e.g., remove ..)
-    #    # Use the TartanAir checkpoint as in get_flow
-    #    raft_model = load_RAFT(raft_weights_path)
-    #    raft_model = raft_model.to(device)
-    #    raft_model.eval()
-    #except Exception as e:
-    #    print(f"Error loading RAFT model: {e}")
-    #    return empty_mask
     
 
-    # 3. Compute Optical Flow (RAFT)
+    # 2. Compute Optical Flow (RAFT)
     try:
         # Prepare images for RAFT (needs BCHW format, scaled to [0, 255])
         # frame.img is already BCHW [-1, 1]
@@ -399,7 +385,7 @@ def get_dynamic_mask(monst3r, raft_model, frame_i, frame_j, threshold=0.35, refi
          if 'raft_model' in locals() and raft_model is not None:
              del raft_model # Clean up GPU memory
 
-    # 4. Get Relative Pose T_ji (transform points from i's frame to j's frame)
+    # 3. Get Relative Pose T_ji (transform points from i's frame to j's frame)
     T_WC_i = frame_i.T_WC
     T_WC_j = frame_j.T_WC
     if isinstance(T_WC_i, torch.Tensor): T_WC_i = lietorch.Sim3(T_WC_i)
@@ -417,7 +403,7 @@ def get_dynamic_mask(monst3r, raft_model, frame_i, frame_j, threshold=0.35, refi
     R_ji = T_ji_mat[..., :3, :3] # Extract Bx3x3 rotation
     T_ji_vec = T_ji_mat[..., :3, 3].unsqueeze(-1) # Extract Bx3 translation, add last dim
 
-    # 5. Get Depth Map for frame_i
+    # 4. Get Depth Map for frame_i
     try:
         if frame_i.feat is None:
              frame_i.feat, frame_i.pos, _ = monst3r._encode_image(frame_i.img, frame_i.img_true_shape)
@@ -430,7 +416,7 @@ def get_dynamic_mask(monst3r, raft_model, frame_i, frame_j, threshold=0.35, refi
         print(f"Error computing depth map for frame_i: {e}")
         return empty_mask
 
-    # 6. Get Intrinsics
+    # 5. Get Intrinsics
     K_i = frame_i.K.unsqueeze(0) # 1x3x3
     K_j = frame_j.K.unsqueeze(0) # 1x3x3
     try:
@@ -440,7 +426,7 @@ def get_dynamic_mask(monst3r, raft_model, frame_i, frame_j, threshold=0.35, refi
         return empty_mask
 
 
-    # 7. Compute Ego-Motion Flow
+    # 6. Compute Ego-Motion Flow
     try:
         depth_warper = DepthBasedWarping().to(device)
         
@@ -460,11 +446,11 @@ def get_dynamic_mask(monst3r, raft_model, frame_i, frame_j, threshold=0.35, refi
         T_j_world = T_ji # 1x3x1
 
         # ego_flow_ij, _ = depth_warper(R_i_world, T_i_world, R_j_world, T_j_world, inv_depth_i, K_j, inv_K_i)
-        # Let's try the call signature from docs: DepthBasedWarping.__call__(self, R1, T1, R2, T2, disp1, K2, invK1):
+        # We try the call signature from docs: DepthBasedWarping.__call__(self, R1, T1, R2, T2, disp1, K2, invK1):
         # R1, T1: pose of view 1; R2, T2: pose of view 2; disp1: disparity map of view 1; K2: intrinsics of view 2; invK1: inverse intrinsics of view 1
         # It calculates the flow FROM view 1 TO view 2.
         # So R1,T1 should be T_WC_i and R2,T2 should be T_WC_j
-        # Directly use the matrix components as this was successful in fallback
+        # Directly use the matrix components
         R1 = T_WC_i.matrix()[..., :3, :3]
         T1 = T_WC_i.matrix()[..., :3, 3].unsqueeze(-1)
         R2 = T_WC_j.matrix()[..., :3, :3]
@@ -505,12 +491,12 @@ def get_dynamic_mask(monst3r, raft_model, frame_i, frame_j, threshold=0.35, refi
         if 'depth_warper' in locals() and depth_warper is not None:
             del depth_warper
 
-    # 8. Compute Error Map
+    # 7. Compute Error Map
     # Use only the flow components (first 2 channels)
     flow_diff = flow_ij - ego_flow_ij[:2, ...]
     err_map = torch.norm(flow_diff, dim=0) # HxW
 
-    # 9. Normalize and Threshold
+    # 8. Normalize and Threshold
     min_err = torch.min(err_map)
     max_err = torch.max(err_map)
     if max_err > min_err:
@@ -520,9 +506,10 @@ def get_dynamic_mask(monst3r, raft_model, frame_i, frame_j, threshold=0.35, refi
 
     dynamic_mask = norm_err_map > threshold # HxW boolean tensor, on device
 
-    # 10. SAM2 Refinement (Optional) using logic from test_sam.py
+    # 9. SAM2 Refinement using logic from test_sam.py
     if refine_with_sam2 and sam2_predictor is not None and dynamic_mask.any():
         print(f"Attempting SAM2 refinement for frame {frame_i.frame_id}...")
+        sam2_predictor.eval()
         refined_successfully = False
         try:
             dynamic_mask_np = dynamic_mask.cpu().numpy()
@@ -536,42 +523,35 @@ def get_dynamic_mask(monst3r, raft_model, frame_i, frame_j, threshold=0.35, refi
                 if region.area >= min_area:
                     # centroid gives (row, col) i.e., (y, x)
                     y, x = region.centroid
-                    point_prompts.append((int(x), int(y))) # Need (x,y) for SAM
+                    point_prompts.append((int(x), int(y))) # Need (x,y) for SAM2
 
             if len(point_prompts) > 0:
                 # Prepare image for SAM2
-                # frame_i.uimg is HxWx3, float [0,1]
                 img_sam_np = frame_i.uimg.cpu().numpy()
-                # Resize to SAM2 input size (e.g., 512 as in test_sam.py, assuming square)
-                # Note: Using frame_i.uimg might be better quality than resizing frame_i.img
-                # SAM2 often uses 1024, but let's stick to 512 from test_sam for now.
-                # Check if resize_img expects HWC or CHW - it expects HWC np.uint8
-                sam2_input_size = 512
-                # resize_img returns uint8 HWC numpy array in 'unnormalized_img'
-                img_resized_sam = resize_img(img_sam_np, sam2_input_size)["unnormalized_img"]
+                SAM2_INPUT_SIZE = 512
+                img_resized_sam = resize_img(img_sam_np, SAM2_INPUT_SIZE)["unnormalized_img"]
                 h_sam, w_sam = img_resized_sam.shape[:2]
 
                 # Convert to CHW tensor [0, 1] for SAM2 state init
                 img_tensor_sam = torch.from_numpy(img_resized_sam).permute(2, 0, 1).float().to(device) / 255.0
-                img_tensor_sam = img_tensor_sam.unsqueeze(0) # Add batch dim -> 1xCxHxW
+                img_tensor_sam = img_tensor_sam.unsqueeze(0) # 1xCxHxW
 
                 # Prepare point prompts (Nx2 tensor) in (x,y) order
                 points_sam = torch.tensor(point_prompts, dtype=torch.float, device=device).unsqueeze(0) # 1xNx2
                 labels_sam = torch.ones(points_sam.shape[1], dtype=torch.int, device=device).unsqueeze(0) # 1xN (all foreground)
+                
+                with torch.no_grad():
+                    sam2_refined_mask = None
+                    state = sam2_predictor.init_state(video_path=img_tensor_sam)
+                    sam2_predictor.add_new_points(state, frame_idx=0, obj_id=1, points=points_sam, labels=labels_sam)
 
-                # Run SAM2 inference
-                sam2_refined_mask = None
-                state = sam2_predictor.init_state(video_path=img_tensor_sam)
-                sam2_predictor.add_new_points(state, frame_idx=0, obj_id=1, points=points_sam, labels=labels_sam)
-
-                for out_frame_idx, out_obj_ids, out_mask_logits in sam2_predictor.propagate_in_video(state, start_frame_idx=0):
-                    if out_frame_idx == 0 and 1 in out_obj_ids:
-                        obj_idx = out_obj_ids.index(1)
-                        # Logits to boolean mask (HxW on device)
-                        sam2_refined_mask = (out_mask_logits[obj_idx] > 0.0)
-                        if sam2_refined_mask.shape[0] == 1: # Squeeze if batch dim is present
-                             sam2_refined_mask = sam2_refined_mask.squeeze(0)
-                        break # Only need the first frame's mask
+                    for out_frame_idx, out_obj_ids, out_mask_logits in sam2_predictor.propagate_in_video(state, start_frame_idx=0):
+                        if out_frame_idx == 0 and 1 in out_obj_ids:
+                            obj_idx = out_obj_ids.index(1)
+                            sam2_refined_mask = (out_mask_logits[obj_idx] > 0.0)
+                            if sam2_refined_mask.shape[0] == 1:
+                                 sam2_refined_mask = sam2_refined_mask.squeeze(0)
+                            break # TODO: Only need the first frame's mask. Need to use the other function for memory!!!
 
                 if sam2_refined_mask is not None:
                     # Resize SAM2 mask back to original frame dimensions (h, w)
@@ -579,16 +559,14 @@ def get_dynamic_mask(monst3r, raft_model, frame_i, frame_j, threshold=0.35, refi
                     sam2_refined_mask_resized_np = cv2.resize(sam2_refined_mask_np, (w, h), interpolation=cv2.INTER_NEAREST)
                     sam2_refined_mask_resized = torch.from_numpy(sam2_refined_mask_resized_np).to(device=device, dtype=torch.bool)
 
-                    # Validate SAM2 output before combining
+                    # TODO: Simplify debugging later
                     if sam2_refined_mask_resized.shape != dynamic_mask.shape:
                         print(f"Warning: Resized SAM2 mask shape {sam2_refined_mask_resized.shape} mismatch original {dynamic_mask.shape} for frame {frame_i.frame_id}. Discarding SAM2 output.")
                     else:
-                        # Combine initial dynamic mask with SAM2 refinement using logical OR
                         original_sum = dynamic_mask.sum().item()
                         refined_sum = sam2_refined_mask_resized.sum().item()
-                        dynamic_mask = dynamic_mask | sam2_refined_mask_resized
-                        combined_sum = dynamic_mask.sum().item()
-                        print(f"Dynamic mask for frame {frame_i.frame_id} refined with SAM2. Original sum: {original_sum}, Refined sum: {refined_sum}, Combined sum: {combined_sum}")
+                        dynamic_mask = sam2_refined_mask_resized
+                        print(f"Dynamic mask for frame {frame_i.frame_id} refined with SAM2. Original sum: {original_sum}, Refined sum: {refined_sum}")
                         refined_successfully = True
 
             if not refined_successfully:
@@ -596,11 +574,8 @@ def get_dynamic_mask(monst3r, raft_model, frame_i, frame_j, threshold=0.35, refi
 
         except Exception as e_sam:
             print(f"Error during SAM2 refinement for frame {frame_i.frame_id}: {e_sam}")
-        # Removed old SAM2 block
 
-    # TODO: Implement SAM2 refinement using the new technique in test_sam.py - DONE
-
-    return dynamic_mask # on original device
+    return dynamic_mask
 
     
 def get_flow(self, sintel_ckpt=False): #TODO: test with gt flow

@@ -3,7 +3,7 @@ inherit: "config/base.yaml"
 use_calib: True
 use_dynamic_mask: True
 debug_save_dynamic_mask: True
-refine_dynamic_mask_with_sam2: False
+refine_dynamic_mask_with_sam2: True
 
 dynamic_mask_threshold: 0.35
 dynamic_points_weight: 0.8

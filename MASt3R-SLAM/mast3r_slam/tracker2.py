@@ -19,6 +19,7 @@ from mast3r_slam.monst3r_utils import (
     build_sam2_video_predictor,
     SAM2_CHECKPOINT_DEFAULT,
     SAM2_MODEL_CONFIG_NAME_FOR_HYDRA,
+    SAM2_MODEL_CONFIG_ABSOLUTE_PATH,
 )
 from thirdparty.monst3r.third_party.raft import load_RAFT
 
@@ -39,17 +40,14 @@ class FrameTracker2:
         self.keyframes = frames
         self.device = device
 
-        # Initialize SAM2 predictor if needed for dynamic mask refinement
         self.sam2_predictor = None
         if config.get("use_dynamic_mask", False) and config.get("refine_dynamic_mask_with_sam2", True):
             try:
                 print("Initializing SAM2 predictor for tracker...")
-                # Ensure checkpoints/configs exist (could also check in main and pass None if not found)
                 if not os.path.exists(SAM2_CHECKPOINT_DEFAULT):
                      print(f"Warning: SAM2 checkpoint not found at {SAM2_CHECKPOINT_DEFAULT}. SAM2 refinement disabled.")
-                # Add check for config path similar to how it's done in monst3r_utils
-                elif not os.path.exists(os.path.join(os.path.dirname(SAM2_CHECKPOINT_DEFAULT), "../..", "sam2", "configs", "sam2.1", "sam2.1_hiera_l.yaml")):
-                     print(f"Warning: SAM2 config not found relative to checkpoint. SAM2 refinement disabled.")
+                elif not os.path.exists(SAM2_MODEL_CONFIG_ABSOLUTE_PATH):
+                     print(f"Warning: SAM2 config not found at {SAM2_MODEL_CONFIG_ABSOLUTE_PATH}. SAM2 refinement disabled.")
                 else:
                     self.sam2_predictor = build_sam2_video_predictor(
                         SAM2_MODEL_CONFIG_NAME_FOR_HYDRA,
@@ -121,7 +119,7 @@ class FrameTracker2:
 
 
         # --- Debug: Save dynamic mask overlay ---
-        if config.get("debug_save_dynamic_mask", True): # Set to False to disable saving
+        if config.get("debug_save_dynamic_mask", True):
              try:
                  # Get necessary data (ensure they are on CPU)
                  img_to_save = frame.uimg.cpu().numpy() # HWC float [0,1]
@@ -205,6 +203,7 @@ class FrameTracker2:
 
                 # Apply the dynamic mask: keep points that are in valid_opt AND are NOT dynamic
                 valid_opt = valid_opt & (~flat_dynamic_mask)
+                # valid_opt = ~flat_dynamic_mask is worse!
                 
                 filtered_count = count_before_dynamic_filter - valid_opt.sum()
 
