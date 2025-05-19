@@ -94,7 +94,7 @@ class FrameTracker2:
                     refine_with_sam2=config.get("refine_dynamic_mask_with_sam2", True),
                     sam2_predictor=self.sam2_predictor
                 )
-                frame.dynamic_mask = computed_mask # Store the computed mask
+                frame.dynamic_mask = computed_mask
 
                 # Validate the mask shape before enabling filtering
                 if computed_mask.shape[0] == h and computed_mask.shape[1] == w:
@@ -180,19 +180,13 @@ class FrameTracker2:
             frame, keyframe, idx_f2k, img_size, use_calib, K
         )
 
-        # Get valid
-        # Use canonical confidence average
         valid_Cf = Cf > self.cfg["C_conf"]
         valid_Ck = Ck > self.cfg["C_conf"]
         valid_Q = Qk > self.cfg["Q_conf"]
 
-        # Calculate base validity based on confidence and matching
         valid_opt_base = valid_match_k & valid_Cf & valid_Ck & valid_Q
-
-        # Initialize final valid mask from base
         valid_opt = valid_opt_base.clone()
 
-        # Filter dynamic points if a valid mask is available
         if dynamic_mask_available_for_filtering:
             # Reshape HxW to (H*W, 1) to match valid_opt_base shape
             flat_dynamic_mask = frame.dynamic_mask.reshape(-1, 1)
@@ -212,6 +206,46 @@ class FrameTracker2:
             else:
                 # This should ideally be caught by the earlier shape check, but as a safeguard:
                 print(f"Warning: Shape mismatch during dynamic filtering. Dynamic mask shape: {flat_dynamic_mask.shape}, Valid opt base shape: {valid_opt_base.shape}. Skipping dynamic filtering.")
+
+        # --- Debug: Save final valid_opt mask ---
+        if config.get("debug_save_final_valid_opt_mask", True):
+            try:
+                # Get image dimensions h, w (already available)
+                # valid_opt is (H*W, 1) or similar, needs reshape to (H,W)
+                mask_for_saving = valid_opt.squeeze().reshape(h, w) # Squeeze if (N,1), then reshape
+
+                # Get necessary data (ensure they are on CPU)
+                img_to_save = frame.uimg.cpu().numpy() # HWC float [0,1]
+                mask_to_save_np = mask_for_saving.cpu().numpy() # HxW boolean
+
+                # Convert image to uint8 PIL
+                if img_to_save.shape[0] == 3: # Handle potential CHW case
+                    img_to_save = np.transpose(img_to_save, (1, 2, 0))
+                img_pil = PIL.Image.fromarray((img_to_save * 255).astype(np.uint8))
+                img_pil = img_pil.convert("RGBA") # Ensure RGBA for overlay
+
+                # Create colored mask overlay (semi-transparent green for distinction)
+                overlay_color = (0, 255, 0, 128) # Green with 50% alpha
+                overlay = PIL.Image.new('RGBA', img_pil.size, (0, 0, 0, 0))
+                mask_pixels = np.zeros((*mask_to_save_np.shape, 4), dtype=np.uint8)
+                mask_pixels[mask_to_save_np] = overlay_color
+                mask_image = PIL.Image.fromarray(mask_pixels, 'RGBA')
+
+                overlay.paste(mask_image, (0, 0), mask_image)
+
+                img_with_mask = PIL.Image.alpha_composite(img_pil, overlay)
+                img_with_mask = img_with_mask.convert("RGB")
+
+                dataset_name = config.get("dataset", {}).get("name", "unknown_dataset")
+                video_name = config.get("dataset", {}).get("sequence", config.get("dataset", {}).get("video", "unknown_video"))
+                save_dir = os.path.join("logs", dataset_name, video_name, "debug_final_valid_opt_mask")
+                os.makedirs(save_dir, exist_ok=True)
+                save_path = os.path.join(save_dir, f"frame_{frame.frame_id:06d}_final_opt.png")
+                
+                img_with_mask.save(save_path)
+            except Exception as e:
+                print(f"Error saving final valid_opt mask overlay for frame {frame.frame_id}: {e}")
+        # --- End Debug ---
 
         valid_kf = valid_match_k & valid_Q
 
