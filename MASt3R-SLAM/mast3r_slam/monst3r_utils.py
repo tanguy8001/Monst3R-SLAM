@@ -5,9 +5,8 @@ import einops
 from tqdm import tqdm
 import lietorch
 import os
-# Add skimage import
 from skimage.measure import label, regionprops
-import cv2 # Add cv2 import for resizing
+import cv2
 
 import mast3r.utils.path_to_dust3r  # noqa
 from dust3r.utils.image import ImgNorm
