@@ -30,6 +30,7 @@ class Frame:
     N_updates: int = 0
     K: Optional[torch.Tensor] = None
     dynamic_mask: Optional[torch.Tensor] = None
+    keyframe_dynamic_mask: Optional[torch.Tensor] = None
 
     def __init__(
         self,
@@ -48,6 +49,8 @@ class Frame:
         self.uimg = uimg
         self.T_WC = T_WC
         self.K = K
+        self.dynamic_mask = None
+        self.keyframe_dynamic_mask = None
 
     def get_score(self, C):
         filtering_score = config["tracking"]["filtering_score"]

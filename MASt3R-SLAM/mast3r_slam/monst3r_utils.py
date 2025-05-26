@@ -323,7 +323,7 @@ def monst3r_match_asymmetric(mast3r, monst3r, frame_i, frame_j, idx_i2j_init=Non
     return idx_i2j, valid_match_j, Xii, Cii, Qii, Xji, Cji, Qji
 
 @torch.inference_mode()
-def get_dynamic_mask(monst3r, raft_model, frame_i, frame_j, threshold=0.35, refine_with_sam2=True, sam2_predictor=None):
+def get_dynamic_mask(monst3r, raft_model, frame_i, frame_j, threshold=0.35, refine_with_sam2=True, sam2_predictor=None, only_dynamic_points=True):
     """
     Get dynamic mask between two frames using MonST3R and RAFT.
     Optionally refines the mask using SAM2.
@@ -505,24 +505,24 @@ def get_dynamic_mask(monst3r, raft_model, frame_i, frame_j, threshold=0.35, refi
 
     dynamic_mask = norm_err_map > threshold # HxW boolean tensor, on device
 
+    # Extract point prompts from dynamic mask (always do this, not just for SAM2)
+    dynamic_mask_np = dynamic_mask.cpu().numpy()
+    labeled = label(dynamic_mask_np)
+    regions = regionprops(labeled)
+    point_prompts = []
+    min_area = 20 # Ignore tiny regions
+    for region in regions:
+        if region.area >= min_area:
+            # centroid gives (row, col) i.e., (y, x)
+            y, x = region.centroid
+            point_prompts.append((int(x), int(y))) # Need (x,y) for inpainting
+
     # 9. SAM2 Refinement using logic from test_sam.py
     if refine_with_sam2 and sam2_predictor is not None and dynamic_mask.any():
         print(f"Attempting SAM2 refinement for frame {frame_i.frame_id}...")
         sam2_predictor.eval()
         refined_successfully = False
         try:
-            dynamic_mask_np = dynamic_mask.cpu().numpy()
-
-            # Extract dynamic points using connected components
-            labeled = label(dynamic_mask_np)
-            regions = regionprops(labeled)
-            point_prompts = []
-            min_area = 20 # Ignore tiny regions
-            for region in regions:
-                if region.area >= min_area:
-                    # centroid gives (row, col) i.e., (y, x)
-                    y, x = region.centroid
-                    point_prompts.append((int(x), int(y))) # Need (x,y) for SAM2
 
             if len(point_prompts) > 0:
                 # Prepare image for SAM2
@@ -530,20 +530,16 @@ def get_dynamic_mask(monst3r, raft_model, frame_i, frame_j, threshold=0.35, refi
                 SAM2_INPUT_SIZE = 512
                 img_resized_sam = resize_img(img_sam_np, SAM2_INPUT_SIZE)["unnormalized_img"]
                 h_sam, w_sam = img_resized_sam.shape[:2]
-
                 # Convert to CHW tensor [0, 1] for SAM2 state init
                 img_tensor_sam = torch.from_numpy(img_resized_sam).permute(2, 0, 1).float().to(device) / 255.0
                 img_tensor_sam = img_tensor_sam.unsqueeze(0) # 1xCxHxW
-
                 # Prepare point prompts (Nx2 tensor) in (x,y) order
                 points_sam = torch.tensor(point_prompts, dtype=torch.float, device=device).unsqueeze(0) # 1xNx2
                 labels_sam = torch.ones(points_sam.shape[1], dtype=torch.int, device=device).unsqueeze(0) # 1xN (all foreground)
-                
                 with torch.no_grad():
                     sam2_refined_mask = None
                     state = sam2_predictor.init_state(video_path=img_tensor_sam)
                     sam2_predictor.add_new_points(state, frame_idx=0, obj_id=1, points=points_sam, labels=labels_sam)
-
                     for out_frame_idx, out_obj_ids, out_mask_logits in sam2_predictor.propagate_in_video(state, start_frame_idx=0):
                         if out_frame_idx == 0 and 1 in out_obj_ids:
                             obj_idx = out_obj_ids.index(1)
@@ -551,13 +547,11 @@ def get_dynamic_mask(monst3r, raft_model, frame_i, frame_j, threshold=0.35, refi
                             if sam2_refined_mask.shape[0] == 1:
                                  sam2_refined_mask = sam2_refined_mask.squeeze(0)
                             break # TODO: Only need the first frame's mask. Need to use the other function for memory!!!
-
                 if sam2_refined_mask is not None:
                     # Resize SAM2 mask back to original frame dimensions (h, w)
                     sam2_refined_mask_np = sam2_refined_mask.cpu().numpy().astype(np.uint8)
                     sam2_refined_mask_resized_np = cv2.resize(sam2_refined_mask_np, (w, h), interpolation=cv2.INTER_NEAREST)
                     sam2_refined_mask_resized = torch.from_numpy(sam2_refined_mask_resized_np).to(device=device, dtype=torch.bool)
-
                     # TODO: Simplify debugging later
                     if sam2_refined_mask_resized.shape != dynamic_mask.shape:
                         print(f"Warning: Resized SAM2 mask shape {sam2_refined_mask_resized.shape} mismatch original {dynamic_mask.shape} for frame {frame_i.frame_id}. Discarding SAM2 output.")
@@ -567,14 +561,13 @@ def get_dynamic_mask(monst3r, raft_model, frame_i, frame_j, threshold=0.35, refi
                         dynamic_mask = sam2_refined_mask_resized
                         print(f"Dynamic mask for frame {frame_i.frame_id} refined with SAM2. Original sum: {original_sum}, Refined sum: {refined_sum}")
                         refined_successfully = True
-
             if not refined_successfully:
                  print(f"Warning: SAM2 refinement not applied for frame {frame_i.frame_id} (no points, SAM2 failed, or shape mismatch).")
 
         except Exception as e_sam:
             print(f"Error during SAM2 refinement for frame {frame_i.frame_id}: {e_sam}")
 
-    return dynamic_mask
+    return dynamic_mask, point_prompts
 
     
 def get_flow(self, sintel_ckpt=False): #TODO: test with gt flow
