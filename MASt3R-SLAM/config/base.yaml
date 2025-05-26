@@ -9,9 +9,9 @@ single_thread: False
 
 # Dynamic object detection
 use_dynamic_mask: True
-dynamic_mask_threshold: 0.35
+dynamic_mask_threshold: 0.8
 dynamic_points_weight: 0.8
-refine_dynamic_mask_with_sam2: True  # Requires SAM2 setup
+refine_dynamic_mask_with_sam2: False  # Requires SAM2 setup
 
 # Inpainting integration (recommended for dynamic scenes)
 use_inpainting: True
