@@ -3,6 +3,7 @@ import numpy as np
 import sys
 import os
 from pathlib import Path
+import PIL.Image
 
 # Add the inpaint directory to path
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -77,7 +78,7 @@ class InpaintingPipeline:
             self.sam_predictor = None
             self.lama_model = None
     
-    def inpaint_frame_with_points(self, frame_img, point_prompts, dilate_kernel_size=15):
+    def inpaint_frame_with_points(self, frame_img, point_prompts, dilate_kernel_size=15, debug_save=False, frame_id=None, dataset_name="unknown_dataset", video_name="unknown_video"):
         """
         Inpaint dynamic regions in a frame using point prompts.
         
@@ -85,18 +86,23 @@ class InpaintingPipeline:
             frame_img: Input image as numpy array (H, W, 3) in [0, 255] range
             point_prompts: List of (x, y) coordinates marking dynamic objects
             dilate_kernel_size: Size of dilation kernel for masks
+            debug_save: Whether to save debug visualizations of SAM masks
+            frame_id: Current frame ID for saving debug images
+            dataset_name: Name of dataset for organizing debug output
+            video_name: Name of video sequence for organizing debug output
             
         Returns:
             inpainted_img: Inpainted image as numpy array (H, W, 3) in [0, 255] range
             combined_mask: Combined binary mask of all inpainted regions
+            sam_masks: Original SAM-generated masks before dilation (for visualization)
         """
         if self.sam_predictor is None or self.lama_model is None:
             print("Warning: Inpainting models not available. Returning original image.")
-            return frame_img, np.zeros((frame_img.shape[0], frame_img.shape[1]), dtype=bool)
+            return frame_img, np.zeros((frame_img.shape[0], frame_img.shape[1]), dtype=bool), None
         
         if not point_prompts:
             print("No point prompts provided. Returning original image.")
-            return frame_img, np.zeros((frame_img.shape[0], frame_img.shape[1]), dtype=bool)
+            return frame_img, np.zeros((frame_img.shape[0], frame_img.shape[1]), dtype=bool), None
         
         try:
             # Convert point prompts to required format
@@ -115,7 +121,39 @@ class InpaintingPipeline:
             
             if len(masks) == 0:
                 print("No masks generated. Returning original image.")
-                return frame_img, np.zeros((frame_img.shape[0], frame_img.shape[1]), dtype=bool)
+                return frame_img, np.zeros((frame_img.shape[0], frame_img.shape[1]), dtype=bool), None
+            
+            # Save the original SAM masks for visualization
+            original_sam_masks = masks.copy()
+            
+            # Save visualization of SAM masks if debug_save is enabled
+            if debug_save and frame_id is not None:
+                try:
+                    # Create a visualization of the masks
+                    img_pil = PIL.Image.fromarray(frame_img)
+                    img_pil = img_pil.convert("RGBA")
+                    overlay = PIL.Image.new('RGBA', img_pil.size, (0, 0, 0, 0))
+                    
+                    # Combine all masks with different colors for visualization
+                    colors = [(255, 0, 0, 128), (0, 255, 0, 128), (0, 0, 255, 128), (255, 255, 0, 128), (255, 0, 255, 128)]
+                    
+                    for i, mask in enumerate(original_sam_masks):
+                        mask_color = colors[i % len(colors)]
+                        mask_pixels = np.zeros((*mask.shape, 4), dtype=np.uint8)
+                        mask_pixels[mask] = mask_color
+                        mask_image = PIL.Image.fromarray(mask_pixels, 'RGBA')
+                        overlay.paste(mask_image, (0, 0), mask_image)
+                    
+                    img_with_masks = PIL.Image.alpha_composite(img_pil, overlay)
+                    img_with_masks = img_with_masks.convert("RGB")
+                    
+                    # Save the visualization
+                    save_dir = os.path.join("logs", dataset_name, video_name, "debug_sam_masks")
+                    os.makedirs(save_dir, exist_ok=True)
+                    save_path = os.path.join(save_dir, f"frame_{frame_id:06d}_sam_masks.png")
+                    img_with_masks.save(save_path)
+                except Exception as e:
+                    print(f"Error saving SAM masks visualization: {e}")
             
             # Convert masks to uint8 and dilate
             masks = masks.astype(np.uint8) * 255
@@ -138,12 +176,12 @@ class InpaintingPipeline:
             # Convert combined mask to boolean
             combined_mask_bool = (combined_mask > 127).astype(bool)
             
-            return inpainted_img, combined_mask_bool
+            return inpainted_img, combined_mask_bool, original_sam_masks
             
         except Exception as e:
             print(f"Error during inpainting: {e}")
             print("Returning original image.")
-            return frame_img, np.zeros((frame_img.shape[0], frame_img.shape[1]), dtype=bool)
+            return frame_img, np.zeros((frame_img.shape[0], frame_img.shape[1]), dtype=bool), None
     
     def inpaint_frame_with_mask(self, frame_img, dynamic_mask, dilate_kernel_size=15):
         """

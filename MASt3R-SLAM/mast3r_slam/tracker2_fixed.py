@@ -118,12 +118,23 @@ class FrameTracker2:
                         frame_img_np = frame.uimg.cpu().numpy()  # Use uimg which is (H, W, 3) in [0, 1]
                         frame_img_np = (frame_img_np * 255).astype(np.uint8)  # Convert to [0, 255] uint8
                         
-                        # Perform inpainting
-                        inpainted_img_np, inpaint_mask = self.inpainting_pipeline.inpaint_frame_with_points(
+                        # Get dataset and video name for saving debug images
+                        dataset_name = config.get("dataset", {}).get("name", "unknown_dataset")
+                        video_name = config.get("dataset", {}).get("sequence", config.get("dataset", {}).get("video", "unknown_video"))
+                        
+                        # Perform inpainting with debug visualization enabled
+                        inpainted_img_np, inpaint_mask, sam_masks = self.inpainting_pipeline.inpaint_frame_with_points(
                             frame_img_np, 
                             point_prompts,
-                            dilate_kernel_size=config.get("inpainting_dilate_kernel", 15)
+                            dilate_kernel_size=config.get("inpainting_dilate_kernel", 15),
+                            debug_save=config.get("debug_save_sam_masks", True),
+                            frame_id=frame.frame_id,
+                            dataset_name=dataset_name,
+                            video_name=video_name
                         )
+                        
+                        # Store SAM masks for later use if needed
+                        frame.sam_masks = sam_masks
                         
                         # Convert back to tensor format and update frame.img
                         inpainted_img_normalized = inpainted_img_np.astype(np.float32) / 255.0  # Back to [0, 1]
@@ -135,6 +146,74 @@ class FrameTracker2:
                         frame.inpaint_mask = torch.from_numpy(inpaint_mask).to(frame.img.device)
                         
                         print(f"Successfully inpainted frame {frame.frame_id}.")
+                        
+                        # Create a combined visualization showing original image, point prompts, SAM masks, and inpainted result
+                        if (config.get("debug_save_sam_masks", True) or config.get("debug_save_point_prompts", True)) and sam_masks is not None:
+                            try:
+                                # Original image with overlay of dynamic mask
+                                img_original = frame_img_np.copy()
+                                
+                                # Create image with point prompts overlay
+                                from PIL import ImageDraw
+                                img_with_points = PIL.Image.fromarray(img_original)
+                                draw = ImageDraw.Draw(img_with_points)
+                                
+                                # Draw point prompts as colored circles
+                                point_colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (255, 0, 255), (0, 255, 255)]
+                                for i, (x, y) in enumerate(point_prompts):
+                                    color = point_colors[i % len(point_colors)]
+                                    radius = 5
+                                    # Draw filled circle
+                                    draw.ellipse([x-radius, y-radius, x+radius, y+radius], fill=color, outline=(255, 255, 255), width=2)
+                                    # Draw center dot
+                                    draw.ellipse([x-1, y-1, x+1, y+1], fill=(255, 255, 255))
+                                
+                                img_with_points_np = np.array(img_with_points)
+                                
+                                # Create the SAM mask overlay image
+                                img_pil = PIL.Image.fromarray(img_original)
+                                img_pil = img_pil.convert("RGBA")
+                                overlay = PIL.Image.new('RGBA', img_pil.size, (0, 0, 0, 0))
+                                
+                                # Create a combined SAM mask (for visualization)
+                                combined_sam_mask = np.zeros_like(sam_masks[0], dtype=bool)
+                                for mask in sam_masks:
+                                    combined_sam_mask |= mask
+                                
+                                # Add the combined SAM mask with red color
+                                mask_pixels = np.zeros((*combined_sam_mask.shape, 4), dtype=np.uint8)
+                                mask_pixels[combined_sam_mask] = (255, 0, 0, 128)
+                                mask_image = PIL.Image.fromarray(mask_pixels, 'RGBA')
+                                overlay.paste(mask_image, (0, 0), mask_image)
+                                img_with_sam_mask = PIL.Image.alpha_composite(img_pil, overlay)
+                                img_with_sam_mask = img_with_sam_mask.convert("RGB")
+                                
+                                # Convert to numpy for concatenation
+                                sam_mask_np = np.array(img_with_sam_mask)
+                                
+                                # Save comparison visualization if SAM masks debugging is enabled
+                                if config.get("debug_save_sam_masks", True):
+                                    # Create a 4-way comparison: original + points, SAM masks, inpainted result, side-by-side
+                                    comparison = np.concatenate([img_with_points_np, sam_mask_np, inpainted_img_np], axis=1)
+                                    comparison_pil = PIL.Image.fromarray(comparison)
+                                    
+                                    # Save the comparison visualization
+                                    save_dir = os.path.join("logs", dataset_name, video_name, "debug_sam_comparison")
+                                    os.makedirs(save_dir, exist_ok=True)
+                                    save_path = os.path.join(save_dir, f"frame_{frame.frame_id:06d}_comparison.png")
+                                    comparison_pil.save(save_path)
+                                
+                                # Save point prompts visualization separately if enabled
+                                if config.get("debug_save_point_prompts", True):
+                                    point_prompts_save_dir = os.path.join("logs", dataset_name, video_name, "debug_point_prompts")
+                                    os.makedirs(point_prompts_save_dir, exist_ok=True)
+                                    point_prompts_save_path = os.path.join(point_prompts_save_dir, f"frame_{frame.frame_id:06d}_points.png")
+                                    img_with_points.save(point_prompts_save_path)
+                                    
+                                    print(f"Saved point prompts debug: {len(point_prompts)} points at {point_prompts}")
+                                
+                            except Exception as e:
+                                print(f"Error saving SAM comparison visualization: {e}")
                         
                     # Option 2: Fallback to mask-based inpainting if point prompts don't work
                     elif (config.get("use_inpainting", True) and 

@@ -24,6 +24,8 @@ inpainting_lama_ckpt: "thirdparty/inpaint/pretrained_models/big-lama"
 # Debug visualization (disable by default for performance)
 debug_save_dynamic_mask: True
 debug_save_inpainting: True
+debug_save_sam_masks: True  # Save SAM-generated masks before inpainting
+debug_save_point_prompts: True  # Save point prompts fed to SAM
 debug_save_final_valid_opt_mask: False
 
 dataset:

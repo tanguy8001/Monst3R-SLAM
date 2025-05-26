@@ -148,7 +148,7 @@ def get_dynamic_mask(mast3r, raft_model, frame_i, frame_j, threshold=0.35, refin
     labeled = label(dynamic_mask_np)
     regions = regionprops(labeled)
     point_prompts = []
-    min_area = 20 # Ignore tiny regions
+    min_area = 30 # Ignore tiny regions
     for region in regions:
         if region.area >= min_area:
             # centroid gives (row, col) i.e., (y, x)
