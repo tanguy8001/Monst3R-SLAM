@@ -27,6 +27,7 @@ debug_save_inpainting: True
 debug_save_sam_masks: True  # Save SAM-generated masks before inpainting
 debug_save_point_prompts: True  # Save point prompts fed to SAM
 debug_save_final_valid_opt_mask: False
+debug_save_error_maps: True  # Save detailed error map analysis for threshold tuning
 
 dataset:
   subsample: 1
