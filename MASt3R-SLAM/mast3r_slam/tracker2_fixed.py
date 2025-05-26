@@ -68,8 +68,8 @@ class FrameTracker2:
             try:
                 print("Initializing inpainting pipeline...")
                 self.inpainting_pipeline = InpaintingPipeline(
-                    sam_model_type=config.get("inpainting_sam_model", "vit_l"),
-                    sam_ckpt=config.get("inpainting_sam_ckpt", "thirdparty/inpaint/pretrained_models/sam_vit_l_0b3195.pth"),
+                    sam_model_type=config.get("inpainting_sam_model", "vit_b"),
+                    sam_ckpt=config.get("inpainting_sam_ckpt", "thirdparty/inpaint/pretrained_models/sam_vit_b_01ec64.pth"),
                     lama_config=config.get("inpainting_lama_config", "thirdparty/inpaint/lama/configs/prediction/default.yaml"),
                     lama_ckpt=config.get("inpainting_lama_ckpt", "thirdparty/inpaint/pretrained_models/big-lama"),
                     device=device

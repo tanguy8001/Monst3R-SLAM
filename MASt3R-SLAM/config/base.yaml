@@ -16,8 +16,8 @@ refine_dynamic_mask_with_sam2: True  # Requires SAM2 setup
 # Inpainting integration (recommended for dynamic scenes)
 use_inpainting: True
 inpainting_dilate_kernel: 15
-inpainting_sam_model: "vit_l"
-inpainting_sam_ckpt: "thirdparty/inpaint/pretrained_models/sam_vit_l_0b3195.pth"
+inpainting_sam_model: "vit_b"
+inpainting_sam_ckpt: "thirdparty/inpaint/pretrained_models/sam_vit_b_01ec64.pth"
 inpainting_lama_config: "thirdparty/inpaint/lama/configs/prediction/default.yaml"
 inpainting_lama_ckpt: "thirdparty/inpaint/pretrained_models/big-lama"
 
