@@ -1,3 +1,6 @@
 [submodule "MASt3R-SLAM/MASt3R-SLAM/thirdparty/monst3r"]
 	path = MASt3R-SLAM/MASt3R-SLAM/thirdparty/monst3r
 	url = https://github.com/Junyi42/monst3r.git
+[submodule "MASt3R-SLAM/MASt3R-SLAM/thirdparty/inpaint"]
+	path = MASt3R-SLAM/MASt3R-SLAM/thirdparty/inpaint
+	url = https://github.com/geekyutao/Inpaint-Anything.git
