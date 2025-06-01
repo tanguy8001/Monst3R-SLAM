@@ -9,7 +9,7 @@ single_thread: False
 
 # Dynamic object detection
 use_dynamic_mask: True
-dynamic_mask_threshold: 0.8
+dynamic_mask_threshold: 0.7
 dynamic_points_weight: 0.8
 refine_dynamic_mask_with_sam2: False  # Requires SAM2 setup
 

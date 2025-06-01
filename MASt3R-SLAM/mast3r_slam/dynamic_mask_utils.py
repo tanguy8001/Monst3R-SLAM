@@ -19,9 +19,6 @@ SAM2_CHECKPOINT_DEFAULT = os.path.join(_MONST3R_BASE_PATH, "third_party", "sam2"
 SAM2_MODEL_CONFIG_ABSOLUTE_PATH = os.path.join(_MONST3R_BASE_PATH, "third_party", "sam2", "sam2", "configs", "sam2.1/sam2.1_hiera_l.yaml")
 SAM2_MODEL_CONFIG_NAME_FOR_HYDRA = "configs/sam2.1/sam2.1_hiera_l.yaml"
 
-# Cache for tracking depth ranges of known dynamic objects
-_dynamic_depth_ranges = {}
-
 def save_error_map_debug(frame_i, flow_ij, ego_flow_ij, err_map, norm_err_map, threshold):
     """
     Save debug visualizations of the optical flow, ego-motion flow, error map, and thresholded masks.
@@ -297,58 +294,16 @@ def analyze_threshold_performance(dataset_name="unknown_dataset", video_name="un
         traceback.print_exc()
         return None
 
-def get_depth_range_from_mask(depth_map, mask, min_valid_depth=0.1):
-    """
-    Get the depth range from a masked depth map, excluding invalid depths.
-    
-    Args:
-        depth_map: Depth map (HxW tensor)
-        mask: Binary mask where True indicates regions to analyze (HxW tensor)
-        min_valid_depth: Minimum valid depth value
-        
-    Returns:
-        min_depth, max_depth: The min and max valid depth values in the masked region
-    """
-    # Apply mask to depth map
-    masked_depth = depth_map[mask]
-    
-    # Filter out invalid depth values (e.g., zeros or very small values)
-    valid_depths = masked_depth[masked_depth > min_valid_depth]
-    
-    if len(valid_depths) == 0:
-        return None, None
-    
-    min_depth = valid_depths.min().item()
-    max_depth = valid_depths.max().item()
-    
-    return min_depth, max_depth
 
-def is_depth_in_range(depth_value, depth_range, margin_factor=0.2):
-    """
-    Check if a depth value is within the specified range with some margin.
-    
-    Args:
-        depth_value: The depth value to check
-        depth_range: Tuple of (min_depth, max_depth)
-        margin_factor: Factor to expand the range by (e.g., 0.2 = 20% extra on each side)
-        
-    Returns:
-        True if depth is in range (with margin), False otherwise
-    """
-    if depth_range[0] is None or depth_range[1] is None:
-        return False
-    
-    min_depth, max_depth = depth_range
-    range_size = max_depth - min_depth
-    margin = range_size * margin_factor
-    
-    return (depth_value >= min_depth - margin) and (depth_value <= max_depth + margin)
 
 @torch.inference_mode()
 def get_dynamic_mask(mast3r, raft_model, frame_i, frame_j, threshold=0.35, refine_with_sam2=True, sam2_predictor=None, only_dynamic_points=True):
     """
-    Get dynamic mask between two frames using MASt3R and RAFT.
-    Uses an adaptive approach based on flow difference and depth consistency to identify dynamic objects.
+    Extract point prompts for dynamic objects by analyzing flow differences between two frames.
+    
+    This function computes optical flow vs ego-motion flow difference and extracts point coordinates
+    from regions where the error exceeds the threshold. These points are then used by the inpainting
+    pipeline to generate final masks and perform inpainting.
     
     Args:
         mast3r: Initialized MASt3R model.
@@ -356,12 +311,12 @@ def get_dynamic_mask(mast3r, raft_model, frame_i, frame_j, threshold=0.35, refin
         frame_i: First frame object (needs img, T_WC, K).
         frame_j: Second frame object (needs img, T_WC, K).
         threshold: Threshold for classifying pixels as dynamic based on normalized flow error (0.0-1.0).
-        refine_with_sam2: Boolean flag to enable SAM2 refinement.
-        sam2_predictor: Initialized SAM2 predictor instance (required if refine_with_sam2 is True).
+        refine_with_sam2: Boolean flag to enable SAM2 refinement (currently unused).
+        sam2_predictor: Initialized SAM2 predictor instance (currently unused).
         
     Returns:
-        dynamic_mask: Binary mask (HxW tensor) where True indicates dynamic content.
-        point_prompts: List of (x,y) coordinates for dynamic object points.
+        dynamic_mask: Binary mask (HxW tensor) where True indicates dynamic content (for debugging).
+        point_prompts: List of (x,y) coordinates for dynamic object points (main output for inpainting).
     """
     device = frame_i.img.device
     h, w = frame_i.img.shape[-2:]
@@ -455,7 +410,7 @@ def get_dynamic_mask(mast3r, raft_model, frame_i, frame_j, threshold=0.35, refin
     flow_diff = flow_ij - ego_flow_ij[:2, ...]
     err_map = torch.norm(flow_diff, dim=0) # HxW
 
-    # 8. Normalize and Threshold to get "absolutely moving objects" (MOa)
+    # 8. Normalize and Threshold
     min_err = torch.min(err_map)
     max_err = torch.max(err_map)
     if max_err > min_err:
@@ -471,75 +426,9 @@ def get_dynamic_mask(mast3r, raft_model, frame_i, frame_j, threshold=0.35, refin
     except Exception as e:
         print(f"Error saving debug visualizations: {e}")
     
-    # Use a higher threshold for absolutely moving objects
-    abs_moving_threshold = max(0.6, threshold + 0.25)
-    absolutely_moving_mask = norm_err_map > abs_moving_threshold
-    
-    # Use the regular threshold for potential movable objects
-    movable_mask = norm_err_map > threshold
-    
-    # Get depth range from absolutely moving objects (R̂ in the paper)
-    abs_moving_depth_range = get_depth_range_from_mask(depth_i, absolutely_moving_mask)
-    
-    # If we couldn't get a valid depth range from absolutely moving objects in this frame,
-    # use previously observed depth ranges if available
-    if abs_moving_depth_range[0] is None and frame_i.frame_id > 0:
-        # Try to use cached depth range from previous frames
-        for prev_frame_id in range(frame_i.frame_id-1, max(0, frame_i.frame_id-10), -1):
-            if prev_frame_id in _dynamic_depth_ranges:
-                abs_moving_depth_range = _dynamic_depth_ranges[prev_frame_id]
-                print(f"Using cached depth range from frame {prev_frame_id}: {abs_moving_depth_range}")
-                break
-    
-    # Store depth range for future frames if valid
-    if abs_moving_depth_range[0] is not None:
-        _dynamic_depth_ranges[frame_i.frame_id] = abs_moving_depth_range
-        print(f"Frame {frame_i.frame_id} dynamic depth range: {abs_moving_depth_range}")
-    
-    # Final dynamic mask
-    dynamic_mask = torch.zeros_like(movable_mask)
-    
-    # Only proceed with depth-based filtering if we have a valid depth range
-    if abs_moving_depth_range[0] is not None:
-        # Extract connected components from the movable mask
-        movable_mask_np = movable_mask.cpu().numpy()
-        labeled_movable = label(movable_mask_np)
-        regions_movable = regionprops(labeled_movable)
-        
-        # Check each movable region
-        for region in regions_movable:
-            # Skip very small regions
-            if region.area < 30:
-                continue
-            
-            # Get mask for this region
-            region_mask_np = labeled_movable == region.label
-            region_mask = torch.from_numpy(region_mask_np).to(device)
-            
-            # Get depth values for this region
-            region_depths = depth_i[region_mask]
-            
-            # Compute intersection with absolutely moving objects
-            intersects_with_abs_moving = (region_mask & absolutely_moving_mask).any().item()
-            
-            # Check if depth is within range of absolutely moving objects
-            depth_in_range = False
-            if len(region_depths) > 0:
-                # Check if at least some percentage of pixels are in the depth range
-                valid_depths = region_depths[region_depths > 0.1]  # Filter out invalid depths
-                if len(valid_depths) > 0:
-                    median_depth = valid_depths.median().item()
-                    depth_in_range = is_depth_in_range(median_depth, abs_moving_depth_range)
-            
-            # Apply the conditions from the paper:
-            # 1. Movable object intersects with absolutely moving object
-            # 2. At least one depth value falls within the depth range of absolutely moving objects
-            if intersects_with_abs_moving and depth_in_range:
-                dynamic_mask = dynamic_mask | region_mask
-                print(f"Region classified as dynamic: area={region.area}, median_depth={median_depth if 'median_depth' in locals() else 'unknown'}")
-    else:
-        # Fallback if no depth range is available: use the original method
-        dynamic_mask = movable_mask
+    # Use single threshold from config
+    dynamic_mask = norm_err_map > threshold
+    print(f"Frame {frame_i.frame_id}: Dynamic mask created with threshold {threshold:.3f}, {dynamic_mask.sum().item()} pixels marked as dynamic")
 
     # Extract better point prompts from the refined dynamic mask
     dynamic_mask_np = dynamic_mask.cpu().numpy()
@@ -587,49 +476,49 @@ def get_dynamic_mask(mast3r, raft_model, frame_i, frame_j, threshold=0.35, refin
     # Remove duplicate points
     point_prompts = list(set(point_prompts))
     
-    # 9. SAM2 Refinement
-    if refine_with_sam2 and sam2_predictor is not None and dynamic_mask.any() and len(point_prompts) > 0:
-        print(f"Attempting SAM2 refinement for frame {frame_i.frame_id}...")
-        sam2_predictor.eval()
-        refined_successfully = False
-        try:
-            # Prepare image for SAM2
-            img_sam_np = frame_i.uimg.cpu().numpy()
-            SAM2_INPUT_SIZE = 512
-            img_resized_sam = resize_img(img_sam_np, SAM2_INPUT_SIZE)["unnormalized_img"]
-            h_sam, w_sam = img_resized_sam.shape[:2]
-            # Convert to CHW tensor [0, 1] for SAM2 state init
-            img_tensor_sam = torch.from_numpy(img_resized_sam).permute(2, 0, 1).float().to(device) / 255.0
-            img_tensor_sam = img_tensor_sam.unsqueeze(0) # 1xCxHxW
-            # Prepare point prompts (Nx2 tensor) in (x,y) order
-            points_sam = torch.tensor(point_prompts, dtype=torch.float, device=device).unsqueeze(0) # 1xNx2
-            labels_sam = torch.ones(points_sam.shape[1], dtype=torch.int, device=device).unsqueeze(0) # 1xN (all foreground)
-            with torch.no_grad():
-                sam2_refined_mask = None
-                state = sam2_predictor.init_state(video_path=img_tensor_sam)
-                sam2_predictor.add_new_points(state, frame_idx=0, obj_id=1, points=points_sam, labels=labels_sam)
-                for out_frame_idx, out_obj_ids, out_mask_logits in sam2_predictor.propagate_in_video(state, start_frame_idx=0):
-                    if out_frame_idx == 0 and 1 in out_obj_ids:
-                        obj_idx = out_obj_ids.index(1)
-                        sam2_refined_mask = (out_mask_logits[obj_idx] > 0.0)
-                        if sam2_refined_mask.shape[0] == 1:
-                             sam2_refined_mask = sam2_refined_mask.squeeze(0)
-                        break
-            if sam2_refined_mask is not None:
-                # Resize SAM2 mask back to original frame dimensions (h, w)
-                sam2_refined_mask_np = sam2_refined_mask.cpu().numpy().astype(np.uint8)
-                sam2_refined_mask_resized_np = cv2.resize(sam2_refined_mask_np, (w, h), interpolation=cv2.INTER_NEAREST)
-                sam2_refined_mask_resized = torch.from_numpy(sam2_refined_mask_resized_np).to(device=device, dtype=torch.bool)
-                
-                if sam2_refined_mask_resized.shape != dynamic_mask.shape:
-                    print(f"Warning: Resized SAM2 mask shape {sam2_refined_mask_resized.shape} mismatch original {dynamic_mask.shape} for frame {frame_i.frame_id}. Discarding SAM2 output.")
-                else:
-                    original_sum = dynamic_mask.sum().item()
-                    refined_sum = sam2_refined_mask_resized.sum().item()
-                    dynamic_mask = sam2_refined_mask_resized
-                    print(f"Dynamic mask for frame {frame_i.frame_id} refined with SAM2. Original sum: {original_sum}, Refined sum: {refined_sum}")
-                    refined_successfully = True
-        except Exception as e_sam:
-            print(f"Error during SAM2 refinement for frame {frame_i.frame_id}: {e_sam}")
+    ## 9. SAM2 Refinement
+    #if refine_with_sam2 and sam2_predictor is not None and dynamic_mask.any() and len(point_prompts) > 0:
+    #    print(f"Attempting SAM2 refinement for frame {frame_i.frame_id}...")
+    #    sam2_predictor.eval()
+    #    refined_successfully = False
+    #    try:
+    #        # Prepare image for SAM2
+    #        img_sam_np = frame_i.uimg.cpu().numpy()
+    #        SAM2_INPUT_SIZE = 512
+    #        img_resized_sam = resize_img(img_sam_np, SAM2_INPUT_SIZE)["unnormalized_img"]
+    #        h_sam, w_sam = img_resized_sam.shape[:2]
+    #        # Convert to CHW tensor [0, 1] for SAM2 state init
+    #        img_tensor_sam = torch.from_numpy(img_resized_sam).permute(2, 0, 1).float().to(device) / 255.0
+    #        img_tensor_sam = img_tensor_sam.unsqueeze(0) # 1xCxHxW
+    #        # Prepare point prompts (Nx2 tensor) in (x,y) order
+    #        points_sam = torch.tensor(point_prompts, dtype=torch.float, device=device).unsqueeze(0) # 1xNx2
+    #        labels_sam = torch.ones(points_sam.shape[1], dtype=torch.int, device=device).unsqueeze(0) # 1xN (all foreground)
+    #        with torch.no_grad():
+    #            sam2_refined_mask = None
+    #            state = sam2_predictor.init_state(video_path=img_tensor_sam)
+    #            sam2_predictor.add_new_points(state, frame_idx=0, obj_id=1, points=points_sam, labels=labels_sam)
+    #            for out_frame_idx, out_obj_ids, out_mask_logits in sam2_predictor.propagate_in_video(state, start_frame_idx=0):
+    #                if out_frame_idx == 0 and 1 in out_obj_ids:
+    #                    obj_idx = out_obj_ids.index(1)
+    #                    sam2_refined_mask = (out_mask_logits[obj_idx] > 0.0)
+    #                    if sam2_refined_mask.shape[0] == 1:
+    #                         sam2_refined_mask = sam2_refined_mask.squeeze(0)
+    #                    break
+    #        if sam2_refined_mask is not None:
+    #            # Resize SAM2 mask back to original frame dimensions (h, w)
+    #            sam2_refined_mask_np = sam2_refined_mask.cpu().numpy().astype(np.uint8)
+    #            sam2_refined_mask_resized_np = cv2.resize(sam2_refined_mask_np, (w, h), interpolation=cv2.INTER_NEAREST)
+    #            sam2_refined_mask_resized = torch.from_numpy(sam2_refined_mask_resized_np).to(device=device, dtype=torch.bool)
+    #            
+    #            if sam2_refined_mask_resized.shape != dynamic_mask.shape:
+    #                print(f"Warning: Resized SAM2 mask shape {sam2_refined_mask_resized.shape} mismatch original {dynamic_mask.shape} for frame {frame_i.frame_id}. Discarding SAM2 output.")
+    #            else:
+    #                original_sum = dynamic_mask.sum().item()
+    #                refined_sum = sam2_refined_mask_resized.sum().item()
+    #                dynamic_mask = sam2_refined_mask_resized
+    #                print(f"Dynamic mask for frame {frame_i.frame_id} refined with SAM2. Original sum: {original_sum}, Refined sum: {refined_sum}")
+    #                refined_successfully = True
+    #    except Exception as e_sam:
+    #        print(f"Error during SAM2 refinement for frame {frame_i.frame_id}: {e_sam}")
 
     return dynamic_mask, point_prompts 

@@ -92,208 +92,156 @@ class FrameTracker2:
 
         if config.get("use_dynamic_mask", False):
             try:
-                computed_mask, point_prompts = get_dynamic_mask(
+                # Step 1: Extract point prompts from regions where flow error > threshold
+                _, point_prompts = get_dynamic_mask(
                     self.mast3r, self.raft_model, frame, keyframe,
                     threshold=config.get("dynamic_mask_threshold", 0.35),
                     refine_with_sam2=config.get("refine_dynamic_mask_with_sam2", True),
                     sam2_predictor=self.sam2_predictor,
                     only_dynamic_points=config.get("only_dynamic_points", True)
                 )
-                frame.dynamic_mask = computed_mask
-                frame.point_prompts = point_prompts
                 
-                if computed_mask.shape[0] == h and computed_mask.shape[1] == w:
-                    if computed_mask.any():
-                        print(f"Dynamic mask computed with dynamic regions for frame {frame.frame_id}.")
+                # Step 2: Use point prompts for SAM segmentation + LAMA inpainting
+                if (config.get("use_inpainting", True) and 
+                    self.inpainting_pipeline is not None and 
+                    point_prompts and len(point_prompts) > 0):
                     
-                    # Option 1: Use inpainting if available and point prompts exist
-                    if (config.get("use_inpainting", True) and 
-                        self.inpainting_pipeline is not None and 
-                        point_prompts and len(point_prompts) > 0):
-                        
-                        print(f"Inpainting dynamic regions for frame {frame.frame_id} using {len(point_prompts)} point prompts.")
-                        
-                        # Convert frame.img to numpy format expected by inpainting
-                        # frame.img is typically (1, 3, H, W) in [-1, 1] range
-                        frame_img_np = frame.uimg.cpu().numpy()  # Use uimg which is (H, W, 3) in [0, 1]
-                        frame_img_np = (frame_img_np * 255).astype(np.uint8)  # Convert to [0, 255] uint8
-                        
-                        # Get dataset and video name for saving debug images
-                        dataset_name = config.get("dataset", {}).get("name", "unknown_dataset")
-                        video_name = config.get("dataset", {}).get("sequence", config.get("dataset", {}).get("video", "unknown_video"))
-                        
-                        # Perform inpainting with debug visualization enabled
-                        inpainted_img_np, inpaint_mask, sam_masks = self.inpainting_pipeline.inpaint_frame_with_points(
-                            frame_img_np, 
-                            point_prompts,
-                            dilate_kernel_size=config.get("inpainting_dilate_kernel", 15),
-                            debug_save=config.get("debug_save_sam_masks", True),
-                            frame_id=frame.frame_id,
-                            dataset_name=dataset_name,
-                            video_name=video_name
-                        )
-                        
-                        # Store SAM masks for later use if needed
-                        frame.sam_masks = sam_masks
-                        
-                        # Convert back to tensor format and update frame.img
-                        inpainted_img_normalized = inpainted_img_np.astype(np.float32) / 255.0  # Back to [0, 1]
-                        inpainted_img_tensor = torch.from_numpy(inpainted_img_normalized).to(frame.img.device)
-                        inpainted_img_tensor = inpainted_img_tensor.permute(2, 0, 1).unsqueeze(0)  # (1, 3, H, W)
-                        inpainted_img_tensor = (inpainted_img_tensor * 2.0) - 1.0  # Convert to [-1, 1] range
-                        
-                        frame.img = inpainted_img_tensor
-                        frame.inpaint_mask = torch.from_numpy(inpaint_mask).to(frame.img.device)
-                        
-                        print(f"Successfully inpainted frame {frame.frame_id}.")
-                        
-                        # Create a combined visualization showing original image, point prompts, SAM masks, and inpainted result
-                        if (config.get("debug_save_sam_masks", True) or config.get("debug_save_point_prompts", True)) and sam_masks is not None:
-                            try:
-                                # Original image with overlay of dynamic mask
-                                img_original = frame_img_np.copy()
-                                
-                                # Create image with point prompts overlay
-                                from PIL import ImageDraw
-                                img_with_points = PIL.Image.fromarray(img_original)
-                                draw = ImageDraw.Draw(img_with_points)
-                                
-                                # Draw point prompts as colored circles
-                                point_colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (255, 0, 255), (0, 255, 255)]
-                                for i, (x, y) in enumerate(point_prompts):
-                                    color = point_colors[i % len(point_colors)]
-                                    radius = 5
-                                    # Draw filled circle
-                                    draw.ellipse([x-radius, y-radius, x+radius, y+radius], fill=color, outline=(255, 255, 255), width=2)
-                                    # Draw center dot
-                                    draw.ellipse([x-1, y-1, x+1, y+1], fill=(255, 255, 255))
-                                
-                                img_with_points_np = np.array(img_with_points)
-                                
-                                # Create the SAM mask overlay image
-                                img_pil = PIL.Image.fromarray(img_original)
-                                img_pil = img_pil.convert("RGBA")
-                                overlay = PIL.Image.new('RGBA', img_pil.size, (0, 0, 0, 0))
-                                
-                                # Create a combined SAM mask (for visualization)
-                                combined_sam_mask = np.zeros_like(sam_masks[0], dtype=bool)
-                                for mask in sam_masks:
-                                    combined_sam_mask |= mask
-                                
-                                # Add the combined SAM mask with red color
-                                mask_pixels = np.zeros((*combined_sam_mask.shape, 4), dtype=np.uint8)
-                                mask_pixels[combined_sam_mask] = (255, 0, 0, 128)
-                                mask_image = PIL.Image.fromarray(mask_pixels, 'RGBA')
-                                overlay.paste(mask_image, (0, 0), mask_image)
-                                img_with_sam_mask = PIL.Image.alpha_composite(img_pil, overlay)
-                                img_with_sam_mask = img_with_sam_mask.convert("RGB")
-                                
-                                # Convert to numpy for concatenation
-                                sam_mask_np = np.array(img_with_sam_mask)
-                                
-                                # Save comparison visualization if SAM masks debugging is enabled
-                                if config.get("debug_save_sam_masks", True):
-                                    # Create a 4-way comparison: original + points, SAM masks, inpainted result, side-by-side
-                                    comparison = np.concatenate([img_with_points_np, sam_mask_np, inpainted_img_np], axis=1)
-                                    comparison_pil = PIL.Image.fromarray(comparison)
-                                    
-                                    # Save the comparison visualization
-                                    save_dir = os.path.join("logs", dataset_name, video_name, "debug_sam_comparison")
-                                    os.makedirs(save_dir, exist_ok=True)
-                                    save_path = os.path.join(save_dir, f"frame_{frame.frame_id:06d}_comparison.png")
-                                    comparison_pil.save(save_path)
-                                
-                                # Save point prompts visualization separately if enabled
-                                if config.get("debug_save_point_prompts", True):
-                                    point_prompts_save_dir = os.path.join("logs", dataset_name, video_name, "debug_point_prompts")
-                                    os.makedirs(point_prompts_save_dir, exist_ok=True)
-                                    point_prompts_save_path = os.path.join(point_prompts_save_dir, f"frame_{frame.frame_id:06d}_points.png")
-                                    img_with_points.save(point_prompts_save_path)
-                                    
-                                    print(f"Saved point prompts debug: {len(point_prompts)} points at {point_prompts}")
-                                
-                            except Exception as e:
-                                print(f"Error saving SAM comparison visualization: {e}")
-                        
-                    # Option 2: Fallback to mask-based inpainting if point prompts don't work
-                    elif (config.get("use_inpainting", True) and 
-                          self.inpainting_pipeline is not None and 
-                          computed_mask.any()):
-                        
-                        print(f"Inpainting dynamic regions for frame {frame.frame_id} using mask fallback.")
-                        
-                        # Convert frame.img to numpy format
-                        frame_img_np = frame.uimg.cpu().numpy()
-                        frame_img_np = (frame_img_np * 255).astype(np.uint8)
-                        
-                        # Convert mask to numpy
-                        mask_np = computed_mask.cpu().numpy()
-                        
-                        # Perform mask-based inpainting
-                        inpainted_img_np = self.inpainting_pipeline.inpaint_frame_with_mask(
-                            frame_img_np,
-                            mask_np,
-                            dilate_kernel_size=config.get("inpainting_dilate_kernel", 15)
-                        )
-                        
-                        # Convert back to tensor format
-                        inpainted_img_normalized = inpainted_img_np.astype(np.float32) / 255.0
-                        inpainted_img_tensor = torch.from_numpy(inpainted_img_normalized).to(frame.img.device)
-                        inpainted_img_tensor = inpainted_img_tensor.permute(2, 0, 1).unsqueeze(0)
-                        inpainted_img_tensor = (inpainted_img_tensor * 2.0) - 1.0
-                        
-                        frame.img = inpainted_img_tensor
-                        
-                        print(f"Successfully inpainted frame {frame.frame_id} using mask fallback.")
+                    print(f"Step 2: Inpainting dynamic regions for frame {frame.frame_id} using {len(point_prompts)} point prompts.")
                     
-                    # Option 3: Fallback to black masking (original behavior)
-                    else:
-                        print(f"Using black masking fallback for frame {frame.frame_id}.")
-                        masked_input_img_tensor = frame.img.clone()
-                        expanded_mask = computed_mask.unsqueeze(0).expand_as(masked_input_img_tensor)
-                        masked_input_img_tensor[expanded_mask] = 0.0  # Mask with black
-                        frame.img = masked_input_img_tensor
-                        
-                else:
-                    print(f"Warning: Computed dynamic mask shape {computed_mask.shape} mismatch with frame image shape {(h,w)}. No processing applied.")
-                    frame.dynamic_mask = torch.zeros((h, w), dtype=torch.bool, device=frame.img.device)
-                    frame.point_prompts = []
+                    # Convert frame.img to numpy format expected by inpainting
+                    # frame.img is typically (1, 3, H, W) in [-1, 1] range
+                    frame_img_np = frame.uimg.cpu().numpy()  # Use uimg which is (H, W, 3) in [0, 1]
+                    frame_img_np = (frame_img_np * 255).astype(np.uint8)  # Convert to [0, 255] uint8
+                    
+                    # Get dataset and video name for saving debug images
+                    dataset_name = config.get("dataset", {}).get("name", "unknown_dataset")
+                    video_name = config.get("dataset", {}).get("sequence", config.get("dataset", {}).get("video", "unknown_video"))
+                    
+                    # Perform inpainting with debug visualization enabled
+                    inpainted_img_np, inpaint_mask, sam_masks = self.inpainting_pipeline.inpaint_frame_with_points(
+                        frame_img_np, 
+                        point_prompts,
+                        dilate_kernel_size=config.get("inpainting_dilate_kernel", 15),
+                        debug_save=config.get("debug_save_sam_masks", True),
+                        frame_id=frame.frame_id,
+                        dataset_name=dataset_name,
+                        video_name=video_name
+                    )
+                    
+                    # Convert back to tensor format and update BOTH frame.img and frame.uimg
+                    inpainted_img_normalized = inpainted_img_np.astype(np.float32) / 255.0  # Back to [0, 1]
+                    
+                    # Update frame.uimg (H, W, 3) in [0, 1] range
+                    frame.uimg = torch.from_numpy(inpainted_img_normalized).to(frame.uimg.device)
+                    
+                    # Update frame.img (1, 3, H, W) in [-1, 1] range
+                    inpainted_img_tensor = torch.from_numpy(inpainted_img_normalized).to(frame.img.device)
+                    inpainted_img_tensor = inpainted_img_tensor.permute(2, 0, 1).unsqueeze(0)  # (1, 3, H, W)
+                    inpainted_img_tensor = (inpainted_img_tensor * 2.0) - 1.0  # Convert to [-1, 1] range
+                    frame.img = inpainted_img_tensor
+                    
+                    frame.inpaint_mask = torch.from_numpy(inpaint_mask).to(frame.img.device)
+                    
+                    print(f"Successfully inpainted frame {frame.frame_id}.")
+                    
+                    # Create a combined visualization showing original image, point prompts, SAM masks, and inpainted result
+                    if (config.get("debug_save_sam_masks", True) or config.get("debug_save_point_prompts", True)) and sam_masks is not None:
+                        try:
+                            # Original image with overlay of dynamic mask
+                            img_original = frame_img_np.copy()
+                            
+                            # Create image with point prompts overlay
+                            from PIL import ImageDraw
+                            img_with_points = PIL.Image.fromarray(img_original)
+                            draw = ImageDraw.Draw(img_with_points)
+                            
+                            # Draw point prompts as colored circles
+                            point_colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (255, 0, 255), (0, 255, 255)]
+                            for i, (x, y) in enumerate(point_prompts):
+                                color = point_colors[i % len(point_colors)]
+                                radius = 5
+                                # Draw filled circle
+                                draw.ellipse([x-radius, y-radius, x+radius, y+radius], fill=color, outline=(255, 255, 255), width=2)
+                                # Draw center dot
+                                draw.ellipse([x-1, y-1, x+1, y+1], fill=(255, 255, 255))
+                            
+                            img_with_points_np = np.array(img_with_points)
+                            
+                            # Create the SAM mask overlay image
+                            img_pil = PIL.Image.fromarray(img_original)
+                            img_pil = img_pil.convert("RGBA")
+                            overlay = PIL.Image.new('RGBA', img_pil.size, (0, 0, 0, 0))
+                            
+                            # Create a combined SAM mask (for visualization)
+                            combined_sam_mask = np.zeros_like(sam_masks[0], dtype=bool)
+                            for mask in sam_masks:
+                                combined_sam_mask |= mask
+                            
+                            # Add the combined SAM mask with red color
+                            mask_pixels = np.zeros((*combined_sam_mask.shape, 4), dtype=np.uint8)
+                            mask_pixels[combined_sam_mask] = (255, 0, 0, 128)
+                            mask_image = PIL.Image.fromarray(mask_pixels, 'RGBA')
+                            overlay.paste(mask_image, (0, 0), mask_image)
+                            img_with_sam_mask = PIL.Image.alpha_composite(img_pil, overlay)
+                            img_with_sam_mask = img_with_sam_mask.convert("RGB")
+                            
+                            # Convert to numpy for concatenation
+                            sam_mask_np = np.array(img_with_sam_mask)
+                            
+                            # Save comparison visualization if SAM masks debugging is enabled
+                            if config.get("debug_save_sam_masks", True):
+                                # Create a 4-way comparison: original + points, SAM masks, inpainted result, side-by-side
+                                comparison = np.concatenate([img_with_points_np, sam_mask_np, inpainted_img_np], axis=1)
+                                comparison_pil = PIL.Image.fromarray(comparison)
+                                
+                                # Save the comparison visualization
+                                save_dir = os.path.join("logs", dataset_name, video_name, "debug_sam_comparison")
+                                os.makedirs(save_dir, exist_ok=True)
+                                save_path = os.path.join(save_dir, f"frame_{frame.frame_id:06d}_comparison.png")
+                                comparison_pil.save(save_path)
+                            
+                            ## Save point prompts visualization separately if enabled
+                            #if config.get("debug_save_point_prompts", True):
+                            #    point_prompts_save_dir = os.path.join("logs", dataset_name, video_name, "debug_point_prompts")
+                            #    os.makedirs(point_prompts_save_dir, exist_ok=True)
+                            #    point_prompts_save_path = os.path.join(point_prompts_save_dir, f"frame_{frame.frame_id:06d}_points.png")
+                            #    img_with_points.save(point_prompts_save_path)
+                            #    
+                            #    print(f"Saved point prompts debug: {len(point_prompts)} points at {point_prompts}")
+                            
+                        except Exception as e:
+                            print(f"Error saving SAM comparison visualization: {e}")
                     
             except Exception as e:
                 print(f"Failed to process dynamic content for frame {frame.frame_id}: {str(e)}")
                 print("Continuing without dynamic processing. Using fallback all-static mask.")
-                frame.dynamic_mask = torch.zeros((h, w), dtype=torch.bool, device=frame.img.device)
-                frame.point_prompts = []
-        else:
-            frame.dynamic_mask = torch.zeros((h, w), dtype=torch.bool, device=frame.img.device)
-            frame.point_prompts = []
 
 
-        # --- Debug: Save inpainting results ---
-        if (config.get("debug_save_inpainting", False) and 
-            hasattr(frame, 'inpaint_mask') and frame.inpaint_mask is not None):
-            try:
-                original_img = frame.uimg.cpu().numpy()
-                inpainted_img = (frame.img.squeeze().permute(1, 2, 0).cpu().numpy() + 1.0) / 2.0  # Convert from [-1,1] to [0,1]
-                
-                if original_img.shape[0] == 3:
-                    original_img = np.transpose(original_img, (1, 2, 0))
-                
-                # Create comparison image
-                comparison = np.concatenate([original_img, inpainted_img], axis=1)
-                comparison_pil = PIL.Image.fromarray((comparison * 255).astype(np.uint8))
-                
-                dataset_name = config.get("dataset", {}).get("name", "unknown_dataset")
-                video_name = config.get("dataset", {}).get("sequence", config.get("dataset", {}).get("video", "unknown_video"))
-                save_dir = os.path.join("logs", dataset_name, video_name, "debug_inpainting")
-                os.makedirs(save_dir, exist_ok=True)
-                save_path = os.path.join(save_dir, f"frame_{frame.frame_id:06d}_inpainted.png")
-                comparison_pil.save(save_path)
-            except Exception as e:
-                print(f"Error saving inpainting debug for frame {frame.frame_id}: {e}")
-        #--- End Debug ---
+        ## --- Debug: Save inpainting results ---
+        #if (config.get("debug_save_inpainting", False) and 
+        #    hasattr(frame, 'inpaint_mask') and frame.inpaint_mask is not None):
+        #    try:
+        #        original_img = frame.uimg.cpu().numpy()
+        #        inpainted_img = (frame.img.squeeze().permute(1, 2, 0).cpu().numpy() + 1.0) / 2.0  # Convert from [-1,1] to [0,1]
+        #        
+        #        if original_img.shape[0] == 3:
+        #            original_img = np.transpose(original_img, (1, 2, 0))
+        #        
+        #        # Create comparison image
+        #        comparison = np.concatenate([original_img, inpainted_img], axis=1)
+        #        comparison_pil = PIL.Image.fromarray((comparison * 255).astype(np.uint8))
+        #        
+        #        dataset_name = config.get("dataset", {}).get("name", "unknown_dataset")
+        #        video_name = config.get("dataset", {}).get("sequence", config.get("dataset", {}).get("video", "unknown_video"))
+        #        save_dir = os.path.join("logs", dataset_name, video_name, "debug_inpainting")
+        #        os.makedirs(save_dir, exist_ok=True)
+        #        save_path = os.path.join(save_dir, f"frame_{frame.frame_id:06d}_inpainted.png")
+        #        comparison_pil.save(save_path)
+        #    except Exception as e:
+        #        print(f"Error saving inpainting debug for frame {frame.frame_id}: {e}")
+        ##--- End Debug ---
 
-        # === Matching process ===
+        # === Matching process (uses potentially inpainted frame.img) ===
         idx_f2k, valid_match_k, Xff, Cff, Qff, Xkf, Ckf, Qkf = mast3r_match_asymmetric(
             model=self.mast3r, frame_i=frame, frame_j=keyframe, idx_i2j_init=self.idx_f2k
         )
@@ -305,32 +253,32 @@ class FrameTracker2:
         valid_match_k = valid_match_k[0]
         Qk = torch.sqrt(Qff[idx_f2k] * Qkf)
 
-        # --- Debug: Save dynamic mask overlay ---
-        if config.get("debug_save_dynamic_mask", True) and frame.dynamic_mask is not None:
-            try:
-                img_to_save = frame.uimg.cpu().numpy()
-                mask_to_save = frame.dynamic_mask.cpu().numpy()
-                if img_to_save.shape[0] == 3:
-                    img_to_save = np.transpose(img_to_save, (1, 2, 0))
-                img_pil = PIL.Image.fromarray((img_to_save * 255).astype(np.uint8))
-                img_pil = img_pil.convert("RGBA")
-                overlay_color = (255, 0, 0, 128)
-                overlay = PIL.Image.new('RGBA', img_pil.size, (0, 0, 0, 0))
-                mask_pixels = np.zeros((*mask_to_save.shape, 4), dtype=np.uint8)
-                mask_pixels[mask_to_save] = overlay_color
-                mask_image = PIL.Image.fromarray(mask_pixels, 'RGBA')
-                overlay.paste(mask_image, (0, 0), mask_image)
-                img_with_mask = PIL.Image.alpha_composite(img_pil, overlay)
-                img_with_mask = img_with_mask.convert("RGB")
-                dataset_name = config.get("dataset", {}).get("name", "unknown_dataset")
-                video_name = config.get("dataset", {}).get("sequence", config.get("dataset", {}).get("video", "unknown_video"))
-                save_dir = os.path.join("logs", dataset_name, video_name, "debug_dynamic_mask")
-                os.makedirs(save_dir, exist_ok=True)
-                save_path = os.path.join(save_dir, f"frame_{frame.frame_id:06d}.png")
-                img_with_mask.save(save_path)
-            except Exception as e:
-                print(f"Error saving dynamic mask overlay for frame {frame.frame_id}: {e}")
-        #--- End Debug ---
+        ## --- Debug: Save dynamic mask overlay ---
+        #if config.get("debug_save_dynamic_mask", True) and frame.dynamic_mask is not None:
+        #    try:
+        #        img_to_save = frame.uimg.cpu().numpy()
+        #        mask_to_save = frame.dynamic_mask.cpu().numpy()
+        #        if img_to_save.shape[0] == 3:
+        #            img_to_save = np.transpose(img_to_save, (1, 2, 0))
+        #        img_pil = PIL.Image.fromarray((img_to_save * 255).astype(np.uint8))
+        #        img_pil = img_pil.convert("RGBA")
+        #        overlay_color = (255, 0, 0, 128)
+        #        overlay = PIL.Image.new('RGBA', img_pil.size, (0, 0, 0, 0))
+        #        mask_pixels = np.zeros((*mask_to_save.shape, 4), dtype=np.uint8)
+        #        mask_pixels[mask_to_save] = overlay_color
+        #        mask_image = PIL.Image.fromarray(mask_pixels, 'RGBA')
+        #        overlay.paste(mask_image, (0, 0), mask_image)
+        #        img_with_mask = PIL.Image.alpha_composite(img_pil, overlay)
+        #        img_with_mask = img_with_mask.convert("RGB")
+        #        dataset_name = config.get("dataset", {}).get("name", "unknown_dataset")
+        #        video_name = config.get("dataset", {}).get("sequence", config.get("dataset", {}).get("video", "unknown_video"))
+        #        save_dir = os.path.join("logs", dataset_name, video_name, "debug_dynamic_mask")
+        #        os.makedirs(save_dir, exist_ok=True)
+        #        save_path = os.path.join(save_dir, f"frame_{frame.frame_id:06d}.png")
+        #        img_with_mask.save(save_path)
+        #    except Exception as e:
+        #        print(f"Error saving dynamic mask overlay for frame {frame.frame_id}: {e}")
+        ##--- End Debug ---
 
         frame.update_pointmap(Xff, Cff) # Eq. (9) in paper. Populates frame.X_canon, frame.C_canon
 

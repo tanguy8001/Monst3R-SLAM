@@ -28,4 +28,4 @@ debug_save_inpainting: True
 
 # Dataset configuration for calibrated mode
 dataset:
-  subsample: 8  # Higher subsampling for better accuracy with calibration
+  subsample: 2  # Higher subsampling for better accuracy with calibration

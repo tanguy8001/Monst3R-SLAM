@@ -2,6 +2,8 @@ import PIL
 import numpy as np
 import torch
 import einops
+import os
+import cv2
 
 import mast3r.utils.path_to_dust3r  # noqa
 from dust3r.utils.image import ImgNorm
@@ -183,6 +185,8 @@ def mast3r_match_symmetric(model, feat_i, pos_i, feat_j, pos_j, shape_i, shape_j
 
 @torch.inference_mode
 def mast3r_asymmetric_inference(model, frame_i, frame_j):
+
+    
     if frame_i.feat is None:
         frame_i.feat, frame_i.pos, _ = model._encode_image(
             frame_i.img, frame_i.img_true_shape
@@ -191,6 +195,36 @@ def mast3r_asymmetric_inference(model, frame_i, frame_j):
         frame_j.feat, frame_j.pos, _ = model._encode_image(
             frame_j.img, frame_j.img_true_shape
         )
+        
+    # Debug: Save input images
+    try:
+        from mast3r_slam.config import config as global_config # Use a different name to avoid conflict
+        if global_config.get("debug_save_inference_inputs", True): # New config flag
+            dataset_name = global_config.get("dataset", {}).get("name", "unknown_dataset")
+            video_name = global_config.get("dataset", {}).get("sequence", global_config.get("dataset", {}).get("video", "unknown_video"))
+            
+            save_dir = os.path.join("logs", dataset_name, video_name, "debug_inference_inputs")
+            os.makedirs(save_dir, exist_ok=True)
+
+            # Process and save frame_i.img
+            img_i_np = frame_i.img.squeeze(0).permute(1, 2, 0).cpu().numpy() # CHW to HWC
+            img_i_np = (img_i_np * 0.5 + 0.5) * 255.0 # Denormalize from [-1, 1] to [0, 255]
+            img_i_np = img_i_np.astype(np.uint8)
+            img_i_bgr = cv2.cvtColor(img_i_np, cv2.COLOR_RGB2BGR)
+            cv2.imwrite(os.path.join(save_dir, f"frame_{frame_i.frame_id:06d}_input_i.png"), img_i_bgr)
+
+            # Process and save frame_j.img
+            img_j_np = frame_j.img.squeeze(0).permute(1, 2, 0).cpu().numpy() # CHW to HWC
+            img_j_np = (img_j_np * 0.5 + 0.5) * 255.0 # Denormalize from [-1, 1] to [0, 255]
+            img_j_np = img_j_np.astype(np.uint8)
+            img_j_bgr = cv2.cvtColor(img_j_np, cv2.COLOR_RGB2BGR)
+            cv2.imwrite(os.path.join(save_dir, f"frame_{frame_j.frame_id:06d}_input_j.png"), img_j_bgr) # Removed keyframe id
+            
+            print(f"Saved inference input debug images for frame {frame_i.frame_id} and frame {frame_j.frame_id}")
+
+    except Exception as e:
+        print(f"Error saving inference input debug images: {e}")
+
 
     feat1, feat2 = frame_i.feat, frame_j.feat
     pos1, pos2 = frame_i.pos, frame_j.pos

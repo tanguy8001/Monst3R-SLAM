@@ -47,8 +47,7 @@ class InpaintingPipeline:
         self.sam_ckpt = sam_ckpt
         self.lama_config = lama_config
         self.lama_ckpt = lama_ckpt
-        
-        # Initialize models
+
         self.sam_predictor = None
         self.lama_model = None
         self._init_models()
@@ -104,120 +103,75 @@ class InpaintingPipeline:
             print("No point prompts provided. Returning original image.")
             return frame_img, np.zeros((frame_img.shape[0], frame_img.shape[1]), dtype=bool), None
         
-        try:
-            # Convert point prompts to required format
-            point_coords = [[float(x), float(y)] for x, y in point_prompts]
-            point_labels = [1] * len(point_prompts)  # All points are foreground
-            
-            # Generate masks using SAM
-            masks, scores, logits = predict_masks_with_sam(
-                frame_img,
-                point_coords,
-                point_labels,
-                model_type=self.sam_model_type,
-                ckpt_p=self.sam_ckpt,
-                device=self.device
-            )
-            
-            if len(masks) == 0:
-                print("No masks generated. Returning original image.")
-                return frame_img, np.zeros((frame_img.shape[0], frame_img.shape[1]), dtype=bool), None
-            
-            # Save the original SAM masks for visualization
-            original_sam_masks = masks.copy()
-            
-            # Save visualization of SAM masks if debug_save is enabled
-            if debug_save and frame_id is not None:
-                try:
-                    # Create a visualization of the masks
-                    img_pil = PIL.Image.fromarray(frame_img)
-                    img_pil = img_pil.convert("RGBA")
-                    overlay = PIL.Image.new('RGBA', img_pil.size, (0, 0, 0, 0))
-                    
-                    # Combine all masks with different colors for visualization
-                    colors = [(255, 0, 0, 128), (0, 255, 0, 128), (0, 0, 255, 128), (255, 255, 0, 128), (255, 0, 255, 128)]
-                    
-                    for i, mask in enumerate(original_sam_masks):
-                        mask_color = colors[i % len(colors)]
-                        mask_pixels = np.zeros((*mask.shape, 4), dtype=np.uint8)
-                        mask_pixels[mask] = mask_color
-                        mask_image = PIL.Image.fromarray(mask_pixels, 'RGBA')
-                        overlay.paste(mask_image, (0, 0), mask_image)
-                    
-                    img_with_masks = PIL.Image.alpha_composite(img_pil, overlay)
-                    img_with_masks = img_with_masks.convert("RGB")
-                    
-                    # Save the visualization
-                    save_dir = os.path.join("logs", dataset_name, video_name, "debug_sam_masks")
-                    os.makedirs(save_dir, exist_ok=True)
-                    save_path = os.path.join(save_dir, f"frame_{frame_id:06d}_sam_masks.png")
-                    img_with_masks.save(save_path)
-                except Exception as e:
-                    print(f"Error saving SAM masks visualization: {e}")
-            
-            # Convert masks to uint8 and dilate
-            masks = masks.astype(np.uint8) * 255
-            if dilate_kernel_size is not None:
-                masks = [dilate_mask(mask, dilate_kernel_size) for mask in masks]
-            
-            # Combine all masks
-            combined_mask = np.zeros_like(masks[0])
-            for mask in masks:
-                combined_mask = np.maximum(combined_mask, mask)
-            
-            # Inpaint using LAMA
-            inpainted_img = inpaint_img_with_builded_lama(
-                model=self.lama_model,
-                img=frame_img,
-                mask=combined_mask,
-                device=self.device
-            )
-            
-            # Convert combined mask to boolean
-            combined_mask_bool = (combined_mask > 127).astype(bool)
-            
-            return inpainted_img, combined_mask_bool, original_sam_masks
-            
-        except Exception as e:
-            print(f"Error during inpainting: {e}")
-            print("Returning original image.")
+        # Convert point prompts to required format
+        point_coords = [[float(x), float(y)] for x, y in point_prompts]
+        point_labels = [1] * len(point_prompts)  # All points are foreground
+        
+        # Generate masks using SAM
+        masks, scores, logits = predict_masks_with_sam(
+            frame_img,
+            point_coords,
+            point_labels,
+            model_type=self.sam_model_type,
+            ckpt_p=self.sam_ckpt,
+            device=self.device
+        )
+        
+        if len(masks) == 0:
+            print("No masks generated. Returning original image.")
             return frame_img, np.zeros((frame_img.shape[0], frame_img.shape[1]), dtype=bool), None
-    
-    def inpaint_frame_with_mask(self, frame_img, dynamic_mask, dilate_kernel_size=15):
-        """
-        Inpaint dynamic regions in a frame using a binary mask.
         
-        Args:
-            frame_img: Input image as numpy array (H, W, 3) in [0, 255] range
-            dynamic_mask: Binary mask (H, W) where True indicates dynamic regions
-            dilate_kernel_size: Size of dilation kernel for mask
-            
-        Returns:
-            inpainted_img: Inpainted image as numpy array (H, W, 3) in [0, 255] range
-        """
-        if self.lama_model is None:
-            print("Warning: LAMA model not available. Returning original image.")
-            return frame_img
+        # Save the original SAM masks for visualization
+        original_sam_masks = masks.copy()
         
-        try:
-            # Convert boolean mask to uint8
-            mask_uint8 = (dynamic_mask.astype(np.uint8)) * 255
-            
-            # Dilate mask
-            if dilate_kernel_size is not None:
-                mask_uint8 = dilate_mask(mask_uint8, dilate_kernel_size)
-            
-            # Inpaint using LAMA
-            inpainted_img = inpaint_img_with_builded_lama(
-                model=self.lama_model,
-                img=frame_img,
-                mask=mask_uint8,
-                device=self.device
-            )
-            
-            return inpainted_img
-            
-        except Exception as e:
-            print(f"Error during inpainting: {e}")
-            print("Returning original image.")
-            return frame_img 
+        ## Save visualization of SAM masks if debug_save is enabled
+        #if debug_save and frame_id is not None:
+        #    try:
+        #        # Create a visualization of the masks
+        #        img_pil = PIL.Image.fromarray(frame_img)
+        #        img_pil = img_pil.convert("RGBA")
+        #        overlay = PIL.Image.new('RGBA', img_pil.size, (0, 0, 0, 0))
+        #        
+        #        # Combine all masks with different colors for visualization
+        #        colors = [(255, 0, 0, 128), (0, 255, 0, 128), (0, 0, 255, 128), (255, 255, 0, 128), (255, 0, 255, 128)]
+        #        
+        #        for i, mask in enumerate(original_sam_masks):
+        #            mask_color = colors[i % len(colors)]
+        #            mask_pixels = np.zeros((*mask.shape, 4), dtype=np.uint8)
+        #            mask_pixels[mask] = mask_color
+        #            mask_image = PIL.Image.fromarray(mask_pixels, 'RGBA')
+        #            overlay.paste(mask_image, (0, 0), mask_image)
+        #        
+        #        img_with_masks = PIL.Image.alpha_composite(img_pil, overlay)
+        #        img_with_masks = img_with_masks.convert("RGB")
+        #        
+        #        # Save the visualization
+        #        save_dir = os.path.join("logs", dataset_name, video_name, "debug_sam_masks")
+        #        os.makedirs(save_dir, exist_ok=True)
+        #        save_path = os.path.join(save_dir, f"frame_{frame_id:06d}_sam_masks.png")
+        #        img_with_masks.save(save_path)
+        #    except Exception as e:
+        #        print(f"Error saving SAM masks visualization: {e}")
+        
+        # Convert masks to uint8 and dilate
+        masks = masks.astype(np.uint8) * 255
+        if dilate_kernel_size is not None:
+            masks = [dilate_mask(mask, dilate_kernel_size) for mask in masks]
+        
+        # Combine all masks
+        combined_mask = np.zeros_like(masks[0])
+        for mask in masks:
+            combined_mask = np.maximum(combined_mask, mask)
+        
+        # Inpaint using LAMA
+        inpainted_img = inpaint_img_with_builded_lama(
+            model=self.lama_model,
+            img=frame_img,
+            mask=combined_mask,
+            device=self.device
+        )
+        
+        # Convert combined mask to boolean
+        combined_mask_bool = (combined_mask > 127).astype(bool)
+        
+        return inpainted_img, combined_mask_bool, original_sam_masks
