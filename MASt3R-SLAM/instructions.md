@@ -3,6 +3,8 @@ which conda
 
 python main_monster_slam.py --dataset datasets/tum2/rgbd_dataset_freiburg3_walking_xyz/ --config config/calib.yaml
 
+evo_ape tum datasets/tum2/rgbd_dataset_freiburg3_walking_xyz/groundtruth.txt /work/courses/3dv/24/MASt3R-SLAM/logs/rgbd_dataset_freiburg3_walking_xyz.txt -as --plot --plot_mode xz --save_results results/rgbd_dataset_freiburg3_walking_xyz.zip --save_plot results/rgbd_dataset_freiburg3_walking_xyz.pdf
+
 conda create -n 3dv python=3.11 cmake=3.14.0
 conda activate 3dv
 # CUDA 11.8

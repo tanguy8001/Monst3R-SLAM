@@ -52,7 +52,6 @@ class FactorGraph:
             Qji,
             Qij,
         ) = monst3r_match_symmetric(
-            mast3r=self.mast3r, 
             monst3r=self.monst3r, 
             feat_i=feat_i, pos_i=pos_i, 
             feat_j=feat_j, pos_j=pos_j, 

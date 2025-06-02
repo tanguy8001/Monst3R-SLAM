@@ -13,24 +13,23 @@ from mast3r_slam.geometry import (
 )
 from mast3r_slam.nonlinear_optimizer import check_convergence, huber
 from mast3r_slam.config import config
-from mast3r_slam.mast3r_utils import (
-    mast3r_match_asymmetric,
-)
-from mast3r_slam.dynamic_mask_utils import (
+from mast3r_slam.monst3r_utils import (
+    monst3r_match_asymmetric,
+    monst3r_match_asymmetric_with_dynamic_mask,
     get_dynamic_mask,
     build_sam2_video_predictor,
     SAM2_CHECKPOINT_DEFAULT,
     SAM2_MODEL_CONFIG_NAME_FOR_HYDRA,
     SAM2_MODEL_CONFIG_ABSOLUTE_PATH,
 )
-from mast3r_slam.inpainting_utils import InpaintingPipeline
 from thirdparty.monst3r.third_party.raft import load_RAFT
 
 
 class FrameTracker2:
-    def __init__(self, mast3r, frames, device):
+    def __init__(self, mast3r, monst3r, frames, device):
         self.cfg = config["tracking"]
         self.mast3r = mast3r
+        self.monst3r = monst3r
 
         current_dir = os.path.dirname(os.path.abspath(__file__))
         raft_weights_path = os.path.join(current_dir, "../thirdparty/monst3r/third_party/RAFT/models/Tartan-C-T-TSKH-spring540x960-M.pth")
@@ -62,23 +61,6 @@ class FrameTracker2:
                 print(f"Error initializing SAM2 predictor: {e}. SAM2 refinement disabled.")
                 self.sam2_predictor = None
 
-        # Initialize inpainting pipeline if enabled
-        self.inpainting_pipeline = None
-        if config.get("use_inpainting", True):  # Enable by default
-            try:
-                print("Initializing inpainting pipeline...")
-                self.inpainting_pipeline = InpaintingPipeline(
-                    sam_model_type=config.get("inpainting_sam_model", "vit_h"),
-                    sam_ckpt=config.get("inpainting_sam_ckpt", "thirdparty/inpaint/segment_anything/checkpoints/sam_vit_h_4b8939.pth"),
-                    lama_config=config.get("inpainting_lama_config", "thirdparty/inpaint/lama/configs/prediction/default.yaml"),
-                    lama_ckpt=config.get("inpainting_lama_ckpt", "thirdparty/inpaint/pretrained_models/big-lama"),
-                    device=device
-                )
-                print("Inpainting pipeline initialized successfully.")
-            except Exception as e:
-                print(f"Error initializing inpainting pipeline: {e}. Inpainting disabled.")
-                self.inpainting_pipeline = None
-
         self.reset_idx_f2k()
 
     # Initialize with identity indexing of size (1,n)
@@ -89,135 +71,56 @@ class FrameTracker2:
         keyframe = self.keyframes.last_keyframe()
 
         h, w = frame.img.shape[-2:]
-
+        
+        # Compute dynamic mask for pointmap filtering (but don't apply to images)
+        frame_dynamic_mask = None
+        keyframe_dynamic_mask = None
+        
         if config.get("use_dynamic_mask", False):
             try:
-                computed_mask, point_prompts = get_dynamic_mask(
-                    self.mast3r, self.raft_model, frame, keyframe,
+                computed_mask = get_dynamic_mask(
+                    self.monst3r, self.raft_model, frame, keyframe,
                     threshold=config.get("dynamic_mask_threshold", 0.35),
                     refine_with_sam2=config.get("refine_dynamic_mask_with_sam2", True),
-                    sam2_predictor=self.sam2_predictor,
-                    only_dynamic_points=config.get("only_dynamic_points", True)
+                    sam2_predictor=self.sam2_predictor
                 )
+
                 frame.dynamic_mask = computed_mask
-                frame.point_prompts = point_prompts
-                
+
                 if computed_mask.shape[0] == h and computed_mask.shape[1] == w:
+                    frame_dynamic_mask = computed_mask
                     if computed_mask.any():
-                        print(f"Dynamic mask computed with dynamic regions for frame {frame.frame_id}.")
-                    
-                    # Option 1: Use inpainting if available and point prompts exist
-                    if (config.get("use_inpainting", True) and 
-                        self.inpainting_pipeline is not None and 
-                        point_prompts and len(point_prompts) > 0):
-                        
-                        print(f"Inpainting dynamic regions for frame {frame.frame_id} using {len(point_prompts)} point prompts.")
-                        
-                        # Convert frame.img to numpy format expected by inpainting
-                        # frame.img is typically (1, 3, H, W) in [-1, 1] range
-                        frame_img_np = frame.uimg.cpu().numpy()  # Use uimg which is (H, W, 3) in [0, 1]
-                        frame_img_np = (frame_img_np * 255).astype(np.uint8)  # Convert to [0, 255] uint8
-                        
-                        # Perform inpainting
-                        inpainted_img_np, inpaint_mask = self.inpainting_pipeline.inpaint_frame_with_points(
-                            frame_img_np, 
-                            point_prompts,
-                            dilate_kernel_size=config.get("inpainting_dilate_kernel", 15)
-                        )
-                        
-                        # Convert back to tensor format and update frame.img
-                        inpainted_img_normalized = inpainted_img_np.astype(np.float32) / 255.0  # Back to [0, 1]
-                        inpainted_img_tensor = torch.from_numpy(inpainted_img_normalized).to(frame.img.device)
-                        inpainted_img_tensor = inpainted_img_tensor.permute(2, 0, 1).unsqueeze(0)  # (1, 3, H, W)
-                        inpainted_img_tensor = (inpainted_img_tensor * 2.0) - 1.0  # Convert to [-1, 1] range
-                        
-                        frame.img = inpainted_img_tensor
-                        frame.inpaint_mask = torch.from_numpy(inpaint_mask).to(frame.img.device)
-                        
-                        print(f"Successfully inpainted frame {frame.frame_id}.")
-                        
-                    # Option 2: Fallback to mask-based inpainting if point prompts don't work
-                    elif (config.get("use_inpainting", True) and 
-                          self.inpainting_pipeline is not None and 
-                          computed_mask.any()):
-                        
-                        print(f"Inpainting dynamic regions for frame {frame.frame_id} using mask fallback.")
-                        
-                        # Convert frame.img to numpy format
-                        frame_img_np = frame.uimg.cpu().numpy()
-                        frame_img_np = (frame_img_np * 255).astype(np.uint8)
-                        
-                        # Convert mask to numpy
-                        mask_np = computed_mask.cpu().numpy()
-                        
-                        # Perform mask-based inpainting
-                        inpainted_img_np = self.inpainting_pipeline.inpaint_frame_with_mask(
-                            frame_img_np,
-                            mask_np,
-                            dilate_kernel_size=config.get("inpainting_dilate_kernel", 15)
-                        )
-                        
-                        # Convert back to tensor format
-                        inpainted_img_normalized = inpainted_img_np.astype(np.float32) / 255.0
-                        inpainted_img_tensor = torch.from_numpy(inpainted_img_normalized).to(frame.img.device)
-                        inpainted_img_tensor = inpainted_img_tensor.permute(2, 0, 1).unsqueeze(0)
-                        inpainted_img_tensor = (inpainted_img_tensor * 2.0) - 1.0
-                        
-                        frame.img = inpainted_img_tensor
-                        
-                        print(f"Successfully inpainted frame {frame.frame_id} using mask fallback.")
-                    
-                    # Option 3: Fallback to black masking (original behavior)
-                    else:
-                        print(f"Using black masking fallback for frame {frame.frame_id}.")
-                        masked_input_img_tensor = frame.img.clone()
-                        expanded_mask = computed_mask.unsqueeze(0).expand_as(masked_input_img_tensor)
-                        masked_input_img_tensor[expanded_mask] = 0.0  # Mask with black
-                        frame.img = masked_input_img_tensor
-                        
+                        print(f"Dynamic mask computed for frame {frame.frame_id} - will filter pointmaps before matching.")
                 else:
-                    print(f"Warning: Computed dynamic mask shape {computed_mask.shape} mismatch with frame image shape {(h,w)}. No processing applied.")
+                    print(f"Warning: Computed dynamic mask shape {computed_mask.shape} mismatch with frame image shape {(h,w)}. No dynamic filtering will be applied.")
                     frame.dynamic_mask = torch.zeros((h, w), dtype=torch.bool, device=frame.img.device)
-                    frame.point_prompts = []
-                    
+
             except Exception as e:
-                print(f"Failed to process dynamic content for frame {frame.frame_id}: {str(e)}")
-                print("Continuing without dynamic processing. Using fallback all-static mask.")
+                print(f"Failed to compute dynamic mask for frame {frame.frame_id}: {str(e)}")
+                print("Continuing without dynamic filtering. Using fallback all-static mask.")
                 frame.dynamic_mask = torch.zeros((h, w), dtype=torch.bool, device=frame.img.device)
-                frame.point_prompts = []
         else:
             frame.dynamic_mask = torch.zeros((h, w), dtype=torch.bool, device=frame.img.device)
-            frame.point_prompts = []
 
+        # === Matching process with pointmap-based dynamic filtering ===
+        if config.get("use_dynamic_mask", False) and frame_dynamic_mask is not None:
+            # Use new pointmap-based dynamic masking
+            idx_f2k, valid_match_k, Xff, Cff, Qff, Xkf, Ckf, Qkf = monst3r_match_asymmetric_with_dynamic_mask(
+                mast3r=self.mast3r, 
+                monst3r=self.monst3r, 
+                frame_i=frame, 
+                frame_j=keyframe, 
+                dynamic_mask_i=frame_dynamic_mask,
+                dynamic_mask_j=keyframe_dynamic_mask,  # Could add keyframe dynamic mask if available
+                idx_i2j_init=self.idx_f2k
+            )
+            print(f"Used pointmap-based dynamic masking for frame {frame.frame_id}")
+        else:
+            # Use standard matching without dynamic filtering
+            idx_f2k, valid_match_k, Xff, Cff, Qff, Xkf, Ckf, Qkf = monst3r_match_asymmetric(
+                mast3r=self.mast3r, monst3r=self.monst3r, frame_i=frame, frame_j=keyframe, idx_i2j_init=self.idx_f2k
+            )
 
-        # --- Debug: Save inpainting results ---
-        if (config.get("debug_save_inpainting", False) and 
-            hasattr(frame, 'inpaint_mask') and frame.inpaint_mask is not None):
-            try:
-                original_img = frame.uimg.cpu().numpy()
-                inpainted_img = (frame.img.squeeze().permute(1, 2, 0).cpu().numpy() + 1.0) / 2.0  # Convert from [-1,1] to [0,1]
-                
-                if original_img.shape[0] == 3:
-                    original_img = np.transpose(original_img, (1, 2, 0))
-                
-                # Create comparison image
-                comparison = np.concatenate([original_img, inpainted_img], axis=1)
-                comparison_pil = PIL.Image.fromarray((comparison * 255).astype(np.uint8))
-                
-                dataset_name = config.get("dataset", {}).get("name", "unknown_dataset")
-                video_name = config.get("dataset", {}).get("sequence", config.get("dataset", {}).get("video", "unknown_video"))
-                save_dir = os.path.join("logs", dataset_name, video_name, "debug_inpainting")
-                os.makedirs(save_dir, exist_ok=True)
-                save_path = os.path.join(save_dir, f"frame_{frame.frame_id:06d}_inpainted.png")
-                comparison_pil.save(save_path)
-            except Exception as e:
-                print(f"Error saving inpainting debug for frame {frame.frame_id}: {e}")
-        #--- End Debug ---
-
-        # === Matching process ===
-        idx_f2k, valid_match_k, Xff, Cff, Qff, Xkf, Ckf, Qkf = mast3r_match_asymmetric(
-            model=self.mast3r, frame_i=frame, frame_j=keyframe, idx_i2j_init=self.idx_f2k
-        )
         print(f"Shape of valid_match_k: {valid_match_k.shape}")
         print(f"Shape of frame.img: {frame.img.shape}")
 
@@ -226,8 +129,8 @@ class FrameTracker2:
         valid_match_k = valid_match_k[0]
         Qk = torch.sqrt(Qff[idx_f2k] * Qkf)
 
-        # --- Debug: Save dynamic mask overlay (This used frame.dynamic_mask, might need adjustment if still desired) ---
-        if config.get("debug_save_dynamic_mask", True) and frame.dynamic_mask is not None: # Check if frame.dynamic_mask exists
+        # --- Debug: Save dynamic mask overlay ---
+        if config.get("debug_save_dynamic_mask", True):
             try:
                 img_to_save = frame.uimg.cpu().numpy()
                 mask_to_save = frame.dynamic_mask.cpu().numpy()
@@ -251,12 +154,12 @@ class FrameTracker2:
                 img_with_mask.save(save_path)
             except Exception as e:
                 print(f"Error saving dynamic mask overlay for frame {frame.frame_id}: {e}")
-        #--- End Debug ---
+        # --- End Debug ---
 
-        frame.update_pointmap(Xff, Cff) # Eq. (9) in paper. Populates frame.X_canon, frame.C_canon
+        frame.update_pointmap(Xff, Cff) # Eq. (9) in paper
 
         use_calib = config["use_calib"]
-        img_size = frame.img.shape[-2:] # Use potentially restored frame.img shape
+        img_size = frame.img.shape[-2:]
         if use_calib:
             K = keyframe.K
         else:
@@ -267,11 +170,12 @@ class FrameTracker2:
         )
 
         valid_Cf = Cf > self.cfg["C_conf"]
-        valid_Ck = Ck > self.cfg["C_conf"] # This check will now implicitly use confidences modified by keyframe_dynamic_mask
+        valid_Ck = Ck > self.cfg["C_conf"]
         valid_Q = Qk > self.cfg["Q_conf"]
 
-        valid_opt_base = valid_match_k & valid_Cf & valid_Ck & valid_Q
-        valid_opt = valid_opt_base.clone()
+        valid_opt = valid_match_k & valid_Cf & valid_Ck & valid_Q
+
+        # No need for additional dynamic filtering here since it's already applied to pointmaps
         
         # --- Debug: Save final valid_opt mask ---
         if config.get("debug_save_final_valid_opt_mask", True):
@@ -349,7 +253,7 @@ class FrameTracker2:
         new_kf = min(match_frac_k, unique_frac_f) < self.cfg["match_frac_thresh"]
 
         # Rest idx if new keyframe
-        if new_kf:        
+        if new_kf:
             self.reset_idx_f2k()
 
         return (

@@ -13,17 +13,17 @@ from mast3r_slam.geometry import (
 )
 from mast3r_slam.nonlinear_optimizer import check_convergence, huber
 from mast3r_slam.config import config
-from mast3r_slam.mast3r_utils import (
-    mast3r_match_asymmetric,
+from mast3r_slam.monst3r_utils import (
+    monst3r_match_asymmetric,
 )
-from mast3r_slam.dynamic_mask_utils import (
+from mast3r_slam.archive.dynamic_mask_utils import (
     get_dynamic_mask,
     build_sam2_video_predictor,
     SAM2_CHECKPOINT_DEFAULT,
     SAM2_MODEL_CONFIG_NAME_FOR_HYDRA,
     SAM2_MODEL_CONFIG_ABSOLUTE_PATH,
 )
-from mast3r_slam.inpainting_utils import InpaintingPipeline
+from mast3r_slam.archive.inpainting_utils import InpaintingPipeline
 from thirdparty.monst3r.third_party.raft import load_RAFT
 
 
@@ -242,7 +242,7 @@ class FrameTracker2:
         ##--- End Debug ---
 
         # === Matching process (uses potentially inpainted frame.img) ===
-        idx_f2k, valid_match_k, Xff, Cff, Qff, Xkf, Ckf, Qkf = mast3r_match_asymmetric(
+        idx_f2k, valid_match_k, Xff, Cff, Qff, Xkf, Ckf, Qkf = monst3r_match_asymmetric(
             model=self.mast3r, frame_i=frame, frame_j=keyframe, idx_i2j_init=self.idx_f2k
         )
         print(f"Shape of valid_match_k: {valid_match_k.shape}")

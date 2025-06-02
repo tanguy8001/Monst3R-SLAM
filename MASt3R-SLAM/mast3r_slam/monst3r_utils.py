@@ -7,6 +7,8 @@ import lietorch
 import os
 from skimage.measure import label, regionprops
 import cv2
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 
 import mast3r.utils.path_to_dust3r  # noqa
 from dust3r.utils.image import ImgNorm
@@ -21,7 +23,7 @@ from thirdparty.monst3r.third_party.raft import load_RAFT
 from thirdparty.monst3r.dust3r.utils.goem_opt import OccMask
 from thirdparty.monst3r.dust3r.model import AsymmetricCroCo3DStereo
 from thirdparty.monst3r.dust3r.utils.goem_opt import DepthBasedWarping
-from thirdparty.monst3r.third_party.sam2.sam2.build_sam import build_sam2_video_predictor
+from thirdparty.monst3r.third_party.sam2.sam2.build_sam import build_sam2_video_predictor as _build_sam2_video_predictor
 
 _MONST3R_UTILS_DIR = os.path.dirname(os.path.abspath(__file__))
 _MONST3R_BASE_PATH = os.path.normpath(os.path.join(_MONST3R_UTILS_DIR, "..", "thirdparty", "monst3r"))
@@ -295,6 +297,173 @@ def monst3r_asymmetric_inference(mast3r, monst3r, frame_i, frame_j):
     return X, C, D, Q
 
 
+def apply_dynamic_mask_to_pointmaps(X, C, dynamic_mask, mask_confidence_value=0.0):
+    """
+    Apply dynamic mask to pointmaps by setting confidence to very low values
+    for dynamic regions, effectively excluding them from matching.
+    
+    Args:
+        X: Point maps tensor of shape (b, h, w, 3)
+        C: Confidence maps tensor of shape (b, h, w)  
+        dynamic_mask: Boolean mask of shape (h, w) where True indicates dynamic content
+        mask_confidence_value: Value to set confidence to for masked regions
+        
+    Returns:
+        X_masked, C_masked: Masked pointmaps and confidence maps
+    """
+    if dynamic_mask is None or not dynamic_mask.any():
+        return X, C
+        
+    # Clone to avoid modifying originals
+    X_masked = X.clone()
+    C_masked = C.clone()
+    
+    # Expand dynamic mask to match batch dimension and apply to confidence
+    # dynamic_mask: (h, w) -> (1, h, w) -> (b, h, w)
+    expanded_mask = dynamic_mask.unsqueeze(0).expand_as(C_masked)
+    
+    # Set confidence to very low value for dynamic regions
+    C_masked[expanded_mask] = mask_confidence_value
+    
+    # Optionally, we could also zero out the 3D points, but setting confidence to 0 should be sufficient
+    # since downstream matching uses confidence for filtering
+    
+    return X_masked, C_masked
+
+
+@torch.inference_mode
+def monst3r_asymmetric_inference_with_dynamic_mask(mast3r, monst3r, frame_i, frame_j, dynamic_mask_i=None, dynamic_mask_j=None):
+    """
+    Asymmetric inference using MonST3R with optional dynamic mask filtering on pointmaps.
+    
+    Args:
+        mast3r: MASt3R model for descriptors
+        monst3r: MonST3R model for 3D points
+        frame_i, frame_j: Frame objects
+        dynamic_mask_i, dynamic_mask_j: Optional dynamic masks for frames (h, w) boolean tensors
+        
+    Returns:
+        X, C, D, Q: Pointmaps, confidence, descriptors, descriptor confidence with dynamic filtering applied
+    """
+    # Perform standard asymmetric inference
+    X, C, D, Q = monst3r_asymmetric_inference(mast3r=mast3r, monst3r=monst3r, frame_i=frame_i, frame_j=frame_j)
+    
+    # Store original pointmaps for visualization
+    X_original = X.clone()
+    C_original = C.clone()
+    
+    # Apply dynamic masks to pointmaps if provided
+    if dynamic_mask_i is not None:
+        # Apply mask to frame_i's pointmaps (first half of batch dimension)
+        b_half = X.shape[0] // 2
+        X_i, C_i = X[:b_half], C[:b_half]
+        X_i_masked, C_i_masked = apply_dynamic_mask_to_pointmaps(X_i, C_i, dynamic_mask_i)
+        X = torch.cat([X_i_masked, X[b_half:]], dim=0)
+        C = torch.cat([C_i_masked, C[b_half:]], dim=0)
+        
+    if dynamic_mask_j is not None:
+        # Apply mask to frame_j's pointmaps (second half of batch dimension)
+        b_half = X.shape[0] // 2  
+        X_j, C_j = X[b_half:], C[b_half:]
+        X_j_masked, C_j_masked = apply_dynamic_mask_to_pointmaps(X_j, C_j, dynamic_mask_j)
+        X = torch.cat([X[:b_half], X_j_masked], dim=0)
+        C = torch.cat([C[:b_half], C_j_masked], dim=0)
+    
+    # Save pointmap visualizations if debug is enabled
+    from mast3r_slam.config import config
+    if config.get("debug_save_pointmap_visualization", False):
+        try:
+            dataset_name = config.get("dataset", {}).get("name", "unknown_dataset")
+            video_name = config.get("dataset", {}).get("sequence", config.get("dataset", {}).get("video", "unknown_video"))
+            save_dir = os.path.join("logs", dataset_name, video_name, "debug_pointmap_visualization")
+            
+            # Save visualization for frame_i if it has a dynamic mask
+            if dynamic_mask_i is not None:
+                b_half = X.shape[0] // 2
+                save_pointmap_visualization(
+                    X_original[:b_half], C_original[:b_half],
+                    X[:b_half], C[:b_half],
+                    frame_i.frame_id, save_dir, f"frame_i_{frame_i.frame_id}"
+                )
+                
+                # Also save confidence overlay
+                save_confidence_overlay(
+                    C_original[0], dynamic_mask_i, frame_i.uimg,
+                    frame_i.frame_id, save_dir, f"conf_overlay_i_{frame_i.frame_id}"
+                )
+                
+                # Save 3D point cloud comparison (optional, can be computationally expensive)
+                if config.get("debug_save_3d_pointclouds", False):
+                    save_3d_pointcloud_comparison(
+                        X_original[:b_half], C_original[:b_half],
+                        X[:b_half], C[:b_half],
+                        frame_i.frame_id, save_dir, f"pointcloud_3d_i_{frame_i.frame_id}"
+                    )
+            
+            # Save visualization for frame_j if it has a dynamic mask  
+            if dynamic_mask_j is not None:
+                b_half = X.shape[0] // 2
+                save_pointmap_visualization(
+                    X_original[b_half:], C_original[b_half:],
+                    X[b_half:], C[b_half:],
+                    frame_j.frame_id, save_dir, f"frame_j_{frame_j.frame_id}"
+                )
+                
+                # Also save confidence overlay
+                save_confidence_overlay(
+                    C_original[1], dynamic_mask_j, frame_j.uimg,
+                    frame_j.frame_id, save_dir, f"conf_overlay_j_{frame_j.frame_id}"
+                )
+                
+                # Save 3D point cloud comparison (optional, can be computationally expensive)
+                if config.get("debug_save_3d_pointclouds", False):
+                    save_3d_pointcloud_comparison(
+                        X_original[b_half:], C_original[b_half:],
+                        X[b_half:], C[b_half:],
+                        frame_j.frame_id, save_dir, f"pointcloud_3d_j_{frame_j.frame_id}"
+                    )
+                
+        except Exception as e:
+            print(f"Error saving pointmap visualization: {e}")
+    
+    return X, C, D, Q
+
+
+def monst3r_match_asymmetric_with_dynamic_mask(mast3r, monst3r, frame_i, frame_j, dynamic_mask_i=None, dynamic_mask_j=None, idx_i2j_init=None):
+    """
+    Asymmetric matching with dynamic mask filtering applied to pointmaps before matching.
+    """
+    X, C, D, Q = monst3r_asymmetric_inference_with_dynamic_mask(
+        mast3r=mast3r, 
+        monst3r=monst3r, 
+        frame_i=frame_i, 
+        frame_j=frame_j,
+        dynamic_mask_i=dynamic_mask_i,
+        dynamic_mask_j=dynamic_mask_j
+    )
+
+    b, h, w = X.shape[:-1]
+    # 2 outputs per inference
+    b = b // 2
+
+    Xii, Xji = X[:b], X[b:]
+    Cii, Cji = C[:b], C[b:]
+    Dii, Dji = D[:b], D[b:]
+    Qii, Qji = Q[:b], Q[b:]
+
+    idx_i2j, valid_match_j = matching.match(
+        Xii, Xji, Dii, Dji, idx_1_to_2_init=idx_i2j_init
+    )
+
+    # How rest of system expects it
+    Xii, Xji = einops.rearrange(X, "b h w c -> b (h w) c")
+    Cii, Cji = einops.rearrange(C, "b h w -> b (h w) 1")
+    Dii, Dji = einops.rearrange(D, "b h w c -> b (h w) c")
+    Qii, Qji = einops.rearrange(Q, "b h w -> b (h w) 1")
+
+    return idx_i2j, valid_match_j, Xii, Cii, Qii, Xji, Cji, Qji
+
+
 def monst3r_match_asymmetric(mast3r, monst3r, frame_i, frame_j, idx_i2j_init=None):
     X, C, D, Q = monst3r_asymmetric_inference(mast3r=mast3r, 
                                               monst3r=monst3r, 
@@ -322,8 +491,9 @@ def monst3r_match_asymmetric(mast3r, monst3r, frame_i, frame_j, idx_i2j_init=Non
 
     return idx_i2j, valid_match_j, Xii, Cii, Qii, Xji, Cji, Qji
 
+
 @torch.inference_mode()
-def get_dynamic_mask(monst3r, raft_model, frame_i, frame_j, threshold=0.35, refine_with_sam2=True, sam2_predictor=None, only_dynamic_points=True):
+def get_dynamic_mask(monst3r, raft_model, frame_i, frame_j, threshold=0.35, refine_with_sam2=True, sam2_predictor=None):
     """
     Get dynamic mask between two frames using MonST3R and RAFT.
     Optionally refines the mask using SAM2.
@@ -505,24 +675,24 @@ def get_dynamic_mask(monst3r, raft_model, frame_i, frame_j, threshold=0.35, refi
 
     dynamic_mask = norm_err_map > threshold # HxW boolean tensor, on device
 
-    # Extract point prompts from dynamic mask (always do this, not just for SAM2)
-    dynamic_mask_np = dynamic_mask.cpu().numpy()
-    labeled = label(dynamic_mask_np)
-    regions = regionprops(labeled)
-    point_prompts = []
-    min_area = 20 # Ignore tiny regions
-    for region in regions:
-        if region.area >= min_area:
-            # centroid gives (row, col) i.e., (y, x)
-            y, x = region.centroid
-            point_prompts.append((int(x), int(y))) # Need (x,y) for inpainting
-
     # 9. SAM2 Refinement using logic from test_sam.py
     if refine_with_sam2 and sam2_predictor is not None and dynamic_mask.any():
         print(f"Attempting SAM2 refinement for frame {frame_i.frame_id}...")
         sam2_predictor.eval()
         refined_successfully = False
         try:
+            dynamic_mask_np = dynamic_mask.cpu().numpy()
+
+            # Extract dynamic points using connected components
+            labeled = label(dynamic_mask_np)
+            regions = regionprops(labeled)
+            point_prompts = []
+            min_area = 20 # Ignore tiny regions
+            for region in regions:
+                if region.area >= min_area:
+                    # centroid gives (row, col) i.e., (y, x)
+                    y, x = region.centroid
+                    point_prompts.append((int(x), int(y))) # Need (x,y) for SAM2
 
             if len(point_prompts) > 0:
                 # Prepare image for SAM2
@@ -530,16 +700,20 @@ def get_dynamic_mask(monst3r, raft_model, frame_i, frame_j, threshold=0.35, refi
                 SAM2_INPUT_SIZE = 512
                 img_resized_sam = resize_img(img_sam_np, SAM2_INPUT_SIZE)["unnormalized_img"]
                 h_sam, w_sam = img_resized_sam.shape[:2]
+
                 # Convert to CHW tensor [0, 1] for SAM2 state init
                 img_tensor_sam = torch.from_numpy(img_resized_sam).permute(2, 0, 1).float().to(device) / 255.0
                 img_tensor_sam = img_tensor_sam.unsqueeze(0) # 1xCxHxW
+
                 # Prepare point prompts (Nx2 tensor) in (x,y) order
                 points_sam = torch.tensor(point_prompts, dtype=torch.float, device=device).unsqueeze(0) # 1xNx2
                 labels_sam = torch.ones(points_sam.shape[1], dtype=torch.int, device=device).unsqueeze(0) # 1xN (all foreground)
+                
                 with torch.no_grad():
                     sam2_refined_mask = None
                     state = sam2_predictor.init_state(video_path=img_tensor_sam)
                     sam2_predictor.add_new_points(state, frame_idx=0, obj_id=1, points=points_sam, labels=labels_sam)
+
                     for out_frame_idx, out_obj_ids, out_mask_logits in sam2_predictor.propagate_in_video(state, start_frame_idx=0):
                         if out_frame_idx == 0 and 1 in out_obj_ids:
                             obj_idx = out_obj_ids.index(1)
@@ -547,11 +721,13 @@ def get_dynamic_mask(monst3r, raft_model, frame_i, frame_j, threshold=0.35, refi
                             if sam2_refined_mask.shape[0] == 1:
                                  sam2_refined_mask = sam2_refined_mask.squeeze(0)
                             break # TODO: Only need the first frame's mask. Need to use the other function for memory!!!
+
                 if sam2_refined_mask is not None:
                     # Resize SAM2 mask back to original frame dimensions (h, w)
                     sam2_refined_mask_np = sam2_refined_mask.cpu().numpy().astype(np.uint8)
                     sam2_refined_mask_resized_np = cv2.resize(sam2_refined_mask_np, (w, h), interpolation=cv2.INTER_NEAREST)
                     sam2_refined_mask_resized = torch.from_numpy(sam2_refined_mask_resized_np).to(device=device, dtype=torch.bool)
+
                     # TODO: Simplify debugging later
                     if sam2_refined_mask_resized.shape != dynamic_mask.shape:
                         print(f"Warning: Resized SAM2 mask shape {sam2_refined_mask_resized.shape} mismatch original {dynamic_mask.shape} for frame {frame_i.frame_id}. Discarding SAM2 output.")
@@ -561,13 +737,14 @@ def get_dynamic_mask(monst3r, raft_model, frame_i, frame_j, threshold=0.35, refi
                         dynamic_mask = sam2_refined_mask_resized
                         print(f"Dynamic mask for frame {frame_i.frame_id} refined with SAM2. Original sum: {original_sum}, Refined sum: {refined_sum}")
                         refined_successfully = True
+
             if not refined_successfully:
                  print(f"Warning: SAM2 refinement not applied for frame {frame_i.frame_id} (no points, SAM2 failed, or shape mismatch).")
 
         except Exception as e_sam:
             print(f"Error during SAM2 refinement for frame {frame_i.frame_id}: {e_sam}")
 
-    return dynamic_mask, point_prompts
+    return dynamic_mask
 
     
 def get_flow(self, sintel_ckpt=False): #TODO: test with gt flow
@@ -648,3 +825,285 @@ def resize_img(img, size, square_ok=False, return_transformation=False):
         return res, (scale_w, scale_h, half_crop_w, half_crop_h)
 
     return res
+
+def build_sam2_video_predictor(config_file, ckpt_path, device="cuda"):
+    """
+    Build SAM2 video predictor from config and checkpoint.
+    """
+    return _build_sam2_video_predictor(config_file, ckpt_path, device=device)
+
+def save_pointmap_visualization(X_before, C_before, X_after, C_after, frame_id, save_dir, prefix="pointmap"):
+    """
+    Save visualization of pointmaps before and after dynamic masking.
+    
+    Args:
+        X_before: Original pointmaps (b, h, w, 3)
+        C_before: Original confidence maps (b, h, w)
+        X_after: Masked pointmaps (b, h, w, 3) 
+        C_after: Masked confidence maps (b, h, w)
+        frame_id: Frame identifier
+        save_dir: Directory to save visualizations
+        prefix: Filename prefix
+    """
+    try:
+        os.makedirs(save_dir, exist_ok=True)
+        
+        # Convert to numpy and handle batch dimension
+        if X_before.dim() == 4 and X_before.shape[0] > 0:
+            X_before_np = X_before[0].detach().cpu().numpy()  # Take first batch element
+            C_before_np = C_before[0].detach().cpu().numpy()
+        else:
+            X_before_np = X_before.detach().cpu().numpy()
+            C_before_np = C_before.detach().cpu().numpy()
+            
+        if X_after.dim() == 4 and X_after.shape[0] > 0:
+            X_after_np = X_after[0].detach().cpu().numpy()  # Take first batch element  
+            C_after_np = C_after[0].detach().cpu().numpy()
+        else:
+            X_after_np = X_after.detach().cpu().numpy()
+            C_after_np = C_after.detach().cpu().numpy()
+        
+        # Extract depth (Z component)
+        depth_before = X_before_np[..., 2]  # (h, w)
+        depth_after = X_after_np[..., 2]    # (h, w)
+        
+        # Create 2x2 subplot
+        fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+        fig.suptitle(f'Pointmap Visualization - Frame {frame_id}', fontsize=14)
+        
+        # Plot original confidence
+        im1 = axes[0, 0].imshow(C_before_np, cmap='viridis', aspect='auto')
+        axes[0, 0].set_title('Original Confidence')
+        axes[0, 0].axis('off')
+        plt.colorbar(im1, ax=axes[0, 0], fraction=0.046, pad=0.04)
+        
+        # Plot masked confidence
+        im2 = axes[0, 1].imshow(C_after_np, cmap='viridis', aspect='auto')
+        axes[0, 1].set_title('Masked Confidence')
+        axes[0, 1].axis('off')
+        plt.colorbar(im2, ax=axes[0, 1], fraction=0.046, pad=0.04)
+        
+        # Plot original depth
+        # Mask invalid depths for better visualization
+        depth_before_vis = np.where(np.abs(depth_before) < 1e-6, np.nan, depth_before)
+        im3 = axes[1, 0].imshow(depth_before_vis, cmap='plasma', aspect='auto')
+        axes[1, 0].set_title('Original Depth')
+        axes[1, 0].axis('off')
+        plt.colorbar(im3, ax=axes[1, 0], fraction=0.046, pad=0.04)
+        
+        # Plot masked depth  
+        depth_after_vis = np.where(np.abs(depth_after) < 1e-6, np.nan, depth_after)
+        im4 = axes[1, 1].imshow(depth_after_vis, cmap='plasma', aspect='auto')
+        axes[1, 1].set_title('Masked Depth')
+        axes[1, 1].axis('off')
+        plt.colorbar(im4, ax=axes[1, 1], fraction=0.046, pad=0.04)
+        
+        # Save the visualization
+        save_path = os.path.join(save_dir, f"{prefix}_frame_{frame_id:06d}.png")
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+        plt.close()
+        
+        # Also save difference visualizations
+        conf_diff = C_before_np - C_after_np
+        depth_diff = depth_before_vis - depth_after_vis
+        
+        fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+        fig.suptitle(f'Pointmap Differences - Frame {frame_id}', fontsize=14)
+        
+        # Confidence difference
+        im1 = axes[0].imshow(conf_diff, cmap='RdBu_r', aspect='auto')
+        axes[0].set_title('Confidence Difference (Original - Masked)')
+        axes[0].axis('off')
+        plt.colorbar(im1, ax=axes[0], fraction=0.046, pad=0.04)
+        
+        # Depth difference
+        im2 = axes[1].imshow(depth_diff, cmap='RdBu_r', aspect='auto')
+        axes[1].set_title('Depth Difference (Original - Masked)')
+        axes[1].axis('off')
+        plt.colorbar(im2, ax=axes[1], fraction=0.046, pad=0.04)
+        
+        diff_save_path = os.path.join(save_dir, f"{prefix}_diff_frame_{frame_id:06d}.png")
+        plt.savefig(diff_save_path, dpi=150, bbox_inches='tight')
+        plt.close()
+        
+        print(f"Pointmap visualizations saved: {save_path} and {diff_save_path}")
+        
+    except Exception as e:
+        print(f"Error saving pointmap visualization for frame {frame_id}: {e}")
+
+
+def save_confidence_overlay(C_map, dynamic_mask, frame_img, frame_id, save_dir, prefix="conf_overlay"):
+    """
+    Save confidence map overlaid on the original frame image with dynamic mask.
+    
+    Args:
+        C_map: Confidence map (h, w)
+        dynamic_mask: Dynamic mask (h, w) boolean
+        frame_img: Original frame image (3, h, w) or (h, w, 3)  
+        frame_id: Frame identifier
+        save_dir: Directory to save visualization
+        prefix: Filename prefix
+    """
+    try:
+        os.makedirs(save_dir, exist_ok=True)
+        
+        # Convert to numpy
+        C_np = C_map.detach().cpu().numpy()
+        mask_np = dynamic_mask.detach().cpu().numpy()
+        
+        # Handle frame image format
+        if isinstance(frame_img, torch.Tensor):
+            img_np = frame_img.detach().cpu().numpy()
+        else:
+            img_np = frame_img
+            
+        # Convert CHW to HWC if needed
+        if img_np.shape[0] == 3:
+            img_np = np.transpose(img_np, (1, 2, 0))
+            
+        # Normalize image to [0, 1]
+        if img_np.max() > 1.0:
+            img_np = img_np / 255.0
+        img_np = np.clip(img_np, 0, 1)
+        
+        # Create overlay visualization
+        fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+        fig.suptitle(f'Confidence Overlay - Frame {frame_id}', fontsize=14)
+        
+        # Original image
+        axes[0].imshow(img_np)
+        axes[0].set_title('Original Image')
+        axes[0].axis('off')
+        
+        # Confidence map
+        im1 = axes[1].imshow(C_np, cmap='viridis', aspect='auto', alpha=0.8)
+        axes[1].imshow(img_np, alpha=0.3)  # Background image
+        axes[1].set_title('Confidence Map Overlay')
+        axes[1].axis('off')
+        plt.colorbar(im1, ax=axes[1], fraction=0.046, pad=0.04)
+        
+        # Dynamic mask overlay  
+        # Create a colored mask overlay
+        mask_colored = np.zeros((*mask_np.shape, 4))  # RGBA
+        mask_colored[mask_np, :] = [1, 0, 0, 0.6]  # Red with transparency
+        
+        axes[2].imshow(img_np)
+        axes[2].imshow(mask_colored, alpha=0.7)
+        axes[2].set_title('Dynamic Mask Overlay')
+        axes[2].axis('off')
+        
+        # Save the visualization
+        save_path = os.path.join(save_dir, f"{prefix}_frame_{frame_id:06d}.png")
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+        plt.close()
+        
+        print(f"Confidence overlay saved: {save_path}")
+        
+    except Exception as e:
+        print(f"Error saving confidence overlay for frame {frame_id}: {e}")
+
+def save_3d_pointcloud_comparison(X_before, C_before, X_after, C_after, frame_id, save_dir, prefix="pointcloud_3d", max_points=10000):
+    """
+    Save 3D point cloud visualization comparing before and after dynamic masking.
+    
+    Args:
+        X_before: Original pointmaps (b, h, w, 3)
+        C_before: Original confidence maps (b, h, w)
+        X_after: Masked pointmaps (b, h, w, 3)
+        C_after: Masked confidence maps (b, h, w) 
+        frame_id: Frame identifier
+        save_dir: Directory to save visualizations
+        prefix: Filename prefix
+        max_points: Maximum number of points to visualize (for performance)
+    """
+    try:
+        os.makedirs(save_dir, exist_ok=True)
+        
+        # Convert to numpy and handle batch dimension
+        if X_before.dim() == 4 and X_before.shape[0] > 0:
+            X_before_np = X_before[0].detach().cpu().numpy()  # (h, w, 3)
+            C_before_np = C_before[0].detach().cpu().numpy()  # (h, w)
+        else:
+            X_before_np = X_before.detach().cpu().numpy()
+            C_before_np = C_before.detach().cpu().numpy()
+            
+        if X_after.dim() == 4 and X_after.shape[0] > 0:
+            X_after_np = X_after[0].detach().cpu().numpy()
+            C_after_np = C_after[0].detach().cpu().numpy()
+        else:
+            X_after_np = X_after.detach().cpu().numpy()
+            C_after_np = C_after.detach().cpu().numpy()
+        
+        h, w = X_before_np.shape[:2]
+        
+        # Flatten to get point clouds
+        points_before = X_before_np.reshape(-1, 3)  # (h*w, 3)
+        conf_before = C_before_np.flatten()         # (h*w,)
+        points_after = X_after_np.reshape(-1, 3)
+        conf_after = C_after_np.flatten()
+        
+        # Filter valid points (confidence > 0 and reasonable depth)
+        valid_before = (conf_before > 0.01) & (np.abs(points_before[:, 2]) > 1e-6) & (np.abs(points_before[:, 2]) < 100)
+        valid_after = (conf_after > 0.01) & (np.abs(points_after[:, 2]) > 1e-6) & (np.abs(points_after[:, 2]) < 100)
+        
+        points_before = points_before[valid_before]
+        conf_before = conf_before[valid_before]
+        points_after = points_after[valid_after]
+        conf_after = conf_after[valid_after]
+        
+        # Subsample if too many points
+        if len(points_before) > max_points:
+            indices = np.random.choice(len(points_before), max_points, replace=False)
+            points_before = points_before[indices]
+            conf_before = conf_before[indices]
+            
+        if len(points_after) > max_points:
+            indices = np.random.choice(len(points_after), max_points, replace=False)
+            points_after = points_after[indices]
+            conf_after = conf_after[indices]
+        
+        # Create 3D scatter plots
+        fig = plt.figure(figsize=(16, 8))
+        
+        # Before masking
+        ax1 = fig.add_subplot(121, projection='3d')
+        scatter1 = ax1.scatter(points_before[:, 0], points_before[:, 1], points_before[:, 2], 
+                              c=conf_before, cmap='viridis', s=1, alpha=0.6)
+        ax1.set_title(f'3D Points Before Masking (Frame {frame_id})')
+        ax1.set_xlabel('X')
+        ax1.set_ylabel('Y')
+        ax1.set_zlabel('Z')
+        plt.colorbar(scatter1, ax=ax1, shrink=0.5, aspect=20)
+        
+        # After masking
+        ax2 = fig.add_subplot(122, projection='3d')
+        scatter2 = ax2.scatter(points_after[:, 0], points_after[:, 1], points_after[:, 2],
+                              c=conf_after, cmap='viridis', s=1, alpha=0.6)
+        ax2.set_title(f'3D Points After Masking (Frame {frame_id})')
+        ax2.set_xlabel('X')
+        ax2.set_ylabel('Y')
+        ax2.set_zlabel('Z')
+        plt.colorbar(scatter2, ax=ax2, shrink=0.5, aspect=20)
+        
+        # Set same viewing angle and limits for comparison
+        if len(points_before) > 0 and len(points_after) > 0:
+            all_points = np.vstack([points_before, points_after])
+            x_lim = [all_points[:, 0].min(), all_points[:, 0].max()]
+            y_lim = [all_points[:, 1].min(), all_points[:, 1].max()]
+            z_lim = [all_points[:, 2].min(), all_points[:, 2].max()]
+            
+            for ax in [ax1, ax2]:
+                ax.set_xlim(x_lim)
+                ax.set_ylim(y_lim)
+                ax.set_zlim(z_lim)
+        
+        # Save the visualization
+        save_path = os.path.join(save_dir, f"{prefix}_frame_{frame_id:06d}.png")
+        plt.savefig(save_path, dpi=120, bbox_inches='tight')
+        plt.close()
+        
+        print(f"3D point cloud visualization saved: {save_path}")
+        print(f"Points before masking: {len(points_before)}, after masking: {len(points_after)}")
+        
+    except Exception as e:
+        print(f"Error saving 3D point cloud visualization for frame {frame_id}: {e}")

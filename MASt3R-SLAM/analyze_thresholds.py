@@ -17,7 +17,7 @@ import os
 # Add the current directory to Python path so we can import from mast3r_slam
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from mast3r_slam.dynamic_mask_utils import analyze_threshold_performance
+from mast3r_slam.archive.dynamic_mask_utils import analyze_threshold_performance
 
 
 def main():

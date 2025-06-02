@@ -10,7 +10,7 @@ import numpy as np
 import PIL.Image
 import os
 
-from mast3r_slam.inpainting_utils import InpaintingPipeline
+from mast3r_slam.archive.inpainting_utils import InpaintingPipeline
 
 def test_inpainting_pipeline():
     """Test the inpainting pipeline with synthetic data."""

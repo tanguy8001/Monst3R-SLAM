@@ -14,13 +14,14 @@ from mast3r_slam.config import load_config, config, set_global_config
 from mast3r_slam.dataloader import Intrinsics, load_dataset
 import mast3r_slam.evaluate as eval
 from mast3r_slam.frame import Mode, SharedKeyframes, SharedStates, create_frame, SharedFramePoses
-from mast3r_slam.mast3r_utils import (
+from mast3r_slam.monst3r_utils import (
     load_mast3r,
+    load_monst3r,
     load_retriever,
-    mast3r_inference_mono,
+    monst3r_inference_mono,
 )
 from mast3r_slam.multiprocess_utils import new_queue, try_get_msg
-from mast3r_slam.tracker2_fixed import FrameTracker2
+from mast3r_slam.tracker2 import FrameTracker2
 from mast3r_slam.visualization import WindowMsg, run_visualization
 import torch.multiprocessing as mp
 
@@ -77,11 +78,11 @@ def relocalization(frame, keyframes, factor_graph, retrieval_database, all_frame
         return successful_loop_closure
 
 
-def run_backend(cfg, mast3r, states, keyframes, K, all_frames=None):
+def run_backend(cfg, mast3r, monst3r, states, keyframes, K, all_frames=None):
     set_global_config(cfg)
 
     device = keyframes.device
-    factor_graph = FactorGraph(mast3r, keyframes, K, device)
+    factor_graph = FactorGraph(mast3r, monst3r, keyframes, K, device)
     retrieval_database = load_retriever(mast3r)
 
     mode = states.get_mode()
@@ -201,7 +202,9 @@ if __name__ == "__main__":
         viz.start()
 
     mast3r = load_mast3r(device=device)
+    monst3r = load_monst3r(device=device)
     mast3r.share_memory()
+    monst3r.share_memory()
 
     has_calib = dataset.has_calib()
     use_calib = config["use_calib"]
@@ -228,11 +231,12 @@ if __name__ == "__main__":
             recon_file.unlink()
 
     tracker = FrameTracker2(mast3r=mast3r, 
+                            monst3r=monst3r, 
                             frames=keyframes, 
                             device=device)
     last_msg = WindowMsg()
 
-    backend = mp.Process(target=run_backend, args=(config, mast3r, states, keyframes, K, all_frames))
+    backend = mp.Process(target=run_backend, args=(config, mast3r, monst3r, states, keyframes, K, all_frames))
     backend.start()
 
     i = 0
@@ -274,7 +278,7 @@ if __name__ == "__main__":
 
         if mode == Mode.INIT:
             # Initialize via mono inference, and encoded features neeed for database
-            X_init, C_init = mast3r_inference_mono(model=mast3r, frame=frame)
+            X_init, C_init = monst3r_inference_mono(monst3r=monst3r, frame=frame)
             frame.update_pointmap(X_init, C_init)
             keyframes.append(frame)
             states.queue_global_optimization(len(keyframes) - 1)
@@ -296,7 +300,7 @@ if __name__ == "__main__":
 
         elif mode == Mode.RELOC:
             # If tracking quality is low, perform relocalization using loop closure
-            X, C = mast3r_inference_mono(model=mast3r, frame=frame)
+            X, C = monst3r_inference_mono(monst3r=monst3r, frame=frame)
             frame.update_pointmap(X, C)
             states.set_frame(frame)
             states.queue_reloc()

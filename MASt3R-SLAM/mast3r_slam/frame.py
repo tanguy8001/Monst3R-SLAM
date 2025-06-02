@@ -29,8 +29,7 @@ class Frame:
     N: int = 0
     N_updates: int = 0
     K: Optional[torch.Tensor] = None
-    #dynamic_mask: Optional[torch.Tensor] = None
-    #keyframe_dynamic_mask: Optional[torch.Tensor] = None
+    dynamic_mask: Optional[torch.Tensor] = None
 
     def __init__(
         self,
@@ -49,8 +48,6 @@ class Frame:
         self.uimg = uimg
         self.T_WC = T_WC
         self.K = K
-        #self.dynamic_mask = None
-        #self.keyframe_dynamic_mask = None
 
     def get_score(self, C):
         filtering_score = config["tracking"]["filtering_score"]
@@ -188,8 +185,8 @@ class SharedStates:
             self.C[:] = frame.C
             self.feat[:] = frame.feat
             self.pos[:] = frame.pos
-            #if frame.dynamic_mask is not None:
-            #    self.dynamic_mask[:] = frame.dynamic_mask
+            if frame.dynamic_mask is not None:
+                self.dynamic_mask[:] = frame.dynamic_mask
 
     def get_frame(self):
         with self.lock:
@@ -205,7 +202,7 @@ class SharedStates:
             frame.C = self.C
             frame.feat = self.feat
             frame.pos = self.pos
-            #frame.dynamic_mask = self.dynamic_mask
+            frame.dynamic_mask = self.dynamic_mask
             return frame
 
     def queue_global_optimization(self, idx):
@@ -297,6 +294,36 @@ class SharedKeyframes:
     def __setitem__(self, idx, value: Frame) -> None:
         with self.lock:
             self.n_size.value = max(idx + 1, self.n_size.value)
+
+            # Check for size compatibility
+            expected_uimg_shape = (self.h, self.w, 3)
+            actual_uimg_shape = value.uimg.shape
+            
+            if actual_uimg_shape != expected_uimg_shape:
+                print(f"Warning: Frame {value.frame_id} uimg shape {actual_uimg_shape} doesn't match expected {expected_uimg_shape}")
+                # Resize uimg to match expected dimensions
+                import torch.nn.functional as F
+                # Convert to tensor for resizing if it's numpy
+                if isinstance(value.uimg, torch.Tensor):
+                    uimg_tensor = value.uimg
+                else:
+                    uimg_tensor = torch.from_numpy(value.uimg)
+                
+                # Resize to expected dimensions - uimg is HxWxC format
+                uimg_resized = F.interpolate(
+                    uimg_tensor.permute(2, 0, 1).unsqueeze(0).float(),  # Convert to BCxHxW
+                    size=(self.h, self.w), 
+                    mode='bilinear', 
+                    align_corners=False
+                ).squeeze(0).permute(1, 2, 0)  # Convert back to HxWxC
+                
+                # Maintain original dtype
+                if value.uimg.dtype == torch.uint8:
+                    uimg_resized = uimg_resized.clamp(0, 255).to(torch.uint8)
+                else:
+                    uimg_resized = uimg_resized.to(value.uimg.dtype)
+                    
+                value.uimg = uimg_resized
 
             # set the attributes
             self.dataset_idx[idx] = value.frame_id

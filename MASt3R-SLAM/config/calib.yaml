@@ -1,31 +1,10 @@
 inherit: "config/base.yaml"
 
-# ============================================================================
-# Calibrated Camera Mode Configuration
-# This config inherits from base.yaml and only overrides necessary settings
-# ============================================================================
-
-# Core calibrated mode setting
 use_calib: True
-
-# Dynamic processing settings (optimized for calibrated cameras)
 use_dynamic_mask: True
-refine_dynamic_mask_with_sam2: False
-
-# Inpainting integration (inherits from base.yaml)
-# use_inpainting: True  # Already enabled in base.yaml
-# All inpainting settings inherited from base.yaml
-
-# Advanced keyframe dynamic masking
-use_dynamic_mask_for_keyframes: True
-dynamic_point_low_confidence: 0.001
-only_dynamic_points: True
-
-# Debug visualization (disable by default for performance)
 debug_save_dynamic_mask: True
-debug_save_new_kf_dynamic_mask: False  
-debug_save_inpainting: True
+refine_dynamic_mask_with_sam2: True
 
-# Dataset configuration for calibrated mode
+dynamic_mask_threshold: 0.35
 dataset:
-  subsample: 2  # Higher subsampling for better accuracy with calibration
+  subsample: 4
