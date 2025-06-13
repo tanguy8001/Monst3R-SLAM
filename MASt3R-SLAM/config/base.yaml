@@ -5,8 +5,8 @@ dynamic_mask_threshold: 0.35
 refine_dynamic_mask_with_sam2: True
 debug_save_dynamic_mask: True
 debug_save_final_valid_opt_mask: False
-debug_save_pointmap_visualization: False
-debug_save_3d_pointclouds: False
+debug_save_pointmap_visualization: True
+debug_save_3d_pointclouds: True
 dataset:
   subsample: 1
   img_downsample: 1

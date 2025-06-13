@@ -3,4 +3,4 @@ description:
 globs: 
 alwaysApply: true
 ---
-Ignore everything in [inpainting_utils.py](mdc:mast3r_slam/archive/inpainting_utils.py), [tracker2_fixed.py](mdc:mast3r_slam/tracker2_fixed.py), [dynamic_mask_utils.py](mdc:mast3r_slam/archive/dynamic_mask_utils.py), [png_to_jpg.py](mdc:mast3r_slam/archive/png_to_jpg.py), [test_sam.py](mdc:mast3r_slam/archive/test_sam.py), [test_sam_video.py](mdc:mast3r_slam/archive/test_sam_video.py)
+Ignore everything in [inpainting_utils.py](mdc:mast3r_slam/archive/inpainting_utils.py), [tracker2_fixed.py](mdc:mast3r_slam/tracker2_fixed.py), [dynamic_mask_utils.py](mdc:mast3r_slam/archive/dynamic_mask_utils.py), [png_to_jpg.py](mdc:mast3r_slam/archive/png_to_jpg.py), [test_sam.py](mdc:mast3r_slam/archive/test_sam.py), [test_sam_video.py](mdc:mast3r_slam/archive/test_sam_video.py).

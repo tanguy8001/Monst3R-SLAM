@@ -297,26 +297,31 @@ def monst3r_asymmetric_inference(mast3r, monst3r, frame_i, frame_j):
     return X, C, D, Q
 
 
-def apply_dynamic_mask_to_pointmaps(X, C, dynamic_mask, mask_confidence_value=0.0):
+def apply_dynamic_mask_to_pointmaps(X, C, dynamic_mask, D=None, Q=None, mask_confidence_value=0.0):
     """
-    Apply dynamic mask to pointmaps by setting confidence to very low values
+    Apply dynamic mask to pointmaps and descriptors by setting confidence to very low values
     for dynamic regions, effectively excluding them from matching.
     
     Args:
         X: Point maps tensor of shape (b, h, w, 3)
         C: Confidence maps tensor of shape (b, h, w)  
         dynamic_mask: Boolean mask of shape (h, w) where True indicates dynamic content
+        D: Optional descriptor maps tensor of shape (b, h, w, descriptor_dim)
+        Q: Optional descriptor confidence maps tensor of shape (b, h, w)
         mask_confidence_value: Value to set confidence to for masked regions
         
     Returns:
-        X_masked, C_masked: Masked pointmaps and confidence maps
+        X_masked, C_masked, D_masked, Q_masked: Masked pointmaps, confidence, descriptors, and descriptor confidence
+        If D or Q are None, they are returned as None
     """
     if dynamic_mask is None or not dynamic_mask.any():
-        return X, C
+        return X, C, D, Q
         
     # Clone to avoid modifying originals
     X_masked = X.clone()
     C_masked = C.clone()
+    D_masked = D.clone() if D is not None else None
+    Q_masked = Q.clone() if Q is not None else None
     
     # Expand dynamic mask to match batch dimension and apply to confidence
     # dynamic_mask: (h, w) -> (1, h, w) -> (b, h, w)
@@ -325,16 +330,20 @@ def apply_dynamic_mask_to_pointmaps(X, C, dynamic_mask, mask_confidence_value=0.
     # Set confidence to very low value for dynamic regions
     C_masked[expanded_mask] = mask_confidence_value
     
-    # Optionally, we could also zero out the 3D points, but setting confidence to 0 should be sufficient
+    # Also mask descriptor confidence if provided
+    if Q_masked is not None:
+        Q_masked[expanded_mask] = mask_confidence_value
+    
+    # Optionally, we could also zero out the 3D points and descriptors, but setting confidence to 0 should be sufficient
     # since downstream matching uses confidence for filtering
     
-    return X_masked, C_masked
+    return X_masked, C_masked, D_masked, Q_masked
 
 
 @torch.inference_mode
 def monst3r_asymmetric_inference_with_dynamic_mask(mast3r, monst3r, frame_i, frame_j, dynamic_mask_i=None, dynamic_mask_j=None):
     """
-    Asymmetric inference using MonST3R with optional dynamic mask filtering on pointmaps.
+    Asymmetric inference using MonST3R with optional dynamic mask filtering on pointmaps and descriptors.
     
     Args:
         mast3r: MASt3R model for descriptors
@@ -352,22 +361,28 @@ def monst3r_asymmetric_inference_with_dynamic_mask(mast3r, monst3r, frame_i, fra
     X_original = X.clone()
     C_original = C.clone()
     
-    # Apply dynamic masks to pointmaps if provided
+    # Apply dynamic masks to pointmaps and descriptors if provided
     if dynamic_mask_i is not None:
-        # Apply mask to frame_i's pointmaps (first half of batch dimension)
+        # Apply mask to frame_i's pointmaps and descriptors (first half of batch dimension)
         b_half = X.shape[0] // 2
         X_i, C_i = X[:b_half], C[:b_half]
-        X_i_masked, C_i_masked = apply_dynamic_mask_to_pointmaps(X_i, C_i, dynamic_mask_i)
+        D_i, Q_i = D[:b_half], Q[:b_half]
+        X_i_masked, C_i_masked, D_i_masked, Q_i_masked = apply_dynamic_mask_to_pointmaps(X_i, C_i, dynamic_mask_i, D_i, Q_i)
         X = torch.cat([X_i_masked, X[b_half:]], dim=0)
         C = torch.cat([C_i_masked, C[b_half:]], dim=0)
+        D = torch.cat([D_i_masked, D[b_half:]], dim=0)
+        Q = torch.cat([Q_i_masked, Q[b_half:]], dim=0)
         
     if dynamic_mask_j is not None:
-        # Apply mask to frame_j's pointmaps (second half of batch dimension)
+        # Apply mask to frame_j's pointmaps and descriptors (second half of batch dimension)
         b_half = X.shape[0] // 2  
         X_j, C_j = X[b_half:], C[b_half:]
-        X_j_masked, C_j_masked = apply_dynamic_mask_to_pointmaps(X_j, C_j, dynamic_mask_j)
+        D_j, Q_j = D[b_half:], Q[b_half:]
+        X_j_masked, C_j_masked, D_j_masked, Q_j_masked = apply_dynamic_mask_to_pointmaps(X_j, C_j, dynamic_mask_j, D_j, Q_j)
         X = torch.cat([X[:b_half], X_j_masked], dim=0)
         C = torch.cat([C[:b_half], C_j_masked], dim=0)
+        D = torch.cat([D[:b_half], D_j_masked], dim=0)
+        Q = torch.cat([Q[:b_half], Q_j_masked], dim=0)
     
     # Save pointmap visualizations if debug is enabled
     from mast3r_slam.config import config
