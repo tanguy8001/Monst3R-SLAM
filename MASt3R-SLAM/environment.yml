@@ -1,0 +1,5 @@
+name: 3dv
+channels:
+  - https://repo.anaconda.com/pkgs/main
+  - https://repo.anaconda.com/pkgs/r
+prefix: /home/tdieudonne/miniconda3/envs/3dv

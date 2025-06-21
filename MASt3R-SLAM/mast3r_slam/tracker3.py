@@ -13,9 +13,10 @@ from mast3r_slam.easi3r_utils import easi3r_match_asymmetric
 
 
 class FrameTracker3:
-    def __init__(self, model, frames, device):
+    def __init__(self, easi3r_model, mast3r_model, frames, device):
         self.cfg = config["tracking"]
-        self.model = model
+        self.easi3r_model = easi3r_model
+        self.mast3r_model = mast3r_model
         self.keyframes = frames
         self.device = device
 
@@ -29,7 +30,7 @@ class FrameTracker3:
         keyframe = self.keyframes.last_keyframe()
 
         idx_f2k, valid_match_k, Xff, Cff, Qff, Xkf, Ckf, Qkf = easi3r_match_asymmetric(
-            self.model, frame, keyframe, idx_i2j_init=self.idx_f2k
+            self.easi3r_model, self.mast3r_model, frame, keyframe, idx_i2j_init=self.idx_f2k
         )
         # Save idx for next
         self.idx_f2k = idx_f2k.clone()

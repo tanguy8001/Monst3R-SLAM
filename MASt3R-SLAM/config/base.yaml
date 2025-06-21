@@ -9,7 +9,7 @@ debug_save_pointmap_visualization: True
 debug_save_3d_pointclouds: True
 dataset:
   subsample: 1
-  img_downsample: 1
+  img_downsample: 2
   center_principle_point: True
 
 matching:

@@ -2,41 +2,34 @@ import PIL
 import numpy as np
 import torch
 import einops
-from tqdm import tqdm
-import lietorch
 import os
-from skimage.measure import label, regionprops
 import cv2
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
 
-import mast3r.utils.path_to_dust3r  # noqa
-from dust3r.utils.image import ImgNorm
-from mast3r.model import AsymmetricMASt3R
+from thirdparty.Easi3R.dust3r.utils.image import ImgNorm
+from thirdparty.Easi3R.dust3r.model import AsymmetricCroCo3DStereo
+from thirdparty.Easi3R.dust3r.inference import inference
+from thirdparty.Easi3R.dust3r.image_pairs import make_pairs
+from thirdparty.Easi3R.dust3r.cloud_opt import global_aligner, GlobalAlignerMode
+
+from thirdparty.mast3r.mast3r.model import AsymmetricMASt3R
 from mast3r_slam.retrieval_database import RetrievalDatabase
 from mast3r_slam.config import config
 import mast3r_slam.matching as matching
 
-from mast3r_slam.mast3r_utils import mast3r_asymmetric_inference
 
-# TODO: check it uses the right dust3r
-from thirdparty.monst3r.dust3r.inference import inference
-from thirdparty.monst3r.dust3r.image_pairs import make_pairs
-from thirdparty.monst3r.third_party.raft import load_RAFT
-from thirdparty.monst3r.dust3r.utils.goem_opt import OccMask
-from thirdparty.monst3r.dust3r.model import AsymmetricCroCo3DStereo
-from thirdparty.monst3r.dust3r.utils.goem_opt import DepthBasedWarping
-from thirdparty.monst3r.third_party.sam2.sam2.build_sam import build_sam2_video_predictor as _build_sam2_video_predictor
+def load_easi3r(path=None, device="cuda"):
+    """Load Easi3R model (based on DUSt3R architecture)"""
+    weights_path = (
+        "thirdparty/Easi3R/checkpoints/DUSt3R_ViTLarge_BaseDecoder_512_dpt.pth"
+        if path is None
+        else path
+    )
+    model = AsymmetricCroCo3DStereo.from_pretrained(weights_path).to(device)
+    return model
 
-_MONST3R_UTILS_DIR = os.path.dirname(os.path.abspath(__file__))
-_MONST3R_BASE_PATH = os.path.normpath(os.path.join(_MONST3R_UTILS_DIR, "..", "thirdparty", "monst3r"))
-SAM2_CHECKPOINT_DEFAULT = os.path.join(_MONST3R_BASE_PATH, "third_party", "sam2", "checkpoints", "sam2.1_hiera_large.pt")
-# Absolute path for existence check
-SAM2_MODEL_CONFIG_ABSOLUTE_PATH = os.path.join(_MONST3R_BASE_PATH, "third_party", "sam2", "sam2", "configs", "sam2.1/sam2.1_hiera_l.yaml")
-# Relative config name for Hydra, assuming build_sam.py initializes with config_path="configs" and expects the .yaml extension
-SAM2_MODEL_CONFIG_NAME_FOR_HYDRA = "configs/sam2.1/sam2.1_hiera_l.yaml"
 
 def load_mast3r(path=None, device="cuda"):
+    """Load MASt3R model for feature extraction"""
     weights_path = (
         "checkpoints/MASt3R_ViTLarge_BaseDecoder_512_catmlpdpt_metric.pth"
         if path is None
@@ -45,16 +38,9 @@ def load_mast3r(path=None, device="cuda"):
     model = AsymmetricMASt3R.from_pretrained(weights_path).to(device)
     return model
 
-def load_easi3r(path=None, device="cuda"):
-    weights_path = (
-        "thirdparty/monst3r/checkpoints/MonST3R_PO-TA-S-W_ViTLarge_BaseDecoder_512_dpt.pth"
-        if path is None
-        else path
-    )
-    model = AsymmetricCroCo3DStereo.from_pretrained(weights_path).to(device)
-    return model
 
 def load_retriever(mast3r_model, retriever_path=None, device="cuda"):
+    """Load retrieval database using MASt3R backbone"""
     retriever_path = (
         "checkpoints/MASt3R_ViTLarge_BaseDecoder_512_catmlpdpt_metric_retrieval_trainingfree.pth"
         if retriever_path is None
@@ -63,52 +49,202 @@ def load_retriever(mast3r_model, retriever_path=None, device="cuda"):
     retriever = RetrievalDatabase(retriever_path, backbone=mast3r_model, device=device)
     return retriever
 
+
+def easi3r_double_inference_pair(easi3r_model, frame_i, frame_j):
+    """
+    Perform Easi3R double inference for a pair of frames
+    Returns pointmaps with dynamic objects removed
+    """
+    # Clear cache before starting
+    torch.cuda.empty_cache()
+    
+    # Prepare images for inference
+    imgs = []
+    
+    # Convert frames to the format expected by Easi3R
+    for idx, frame in enumerate([frame_i, frame_j]):
+        if hasattr(frame, 'unnormalized_img'):
+            img_array = frame.unnormalized_img
+        else:
+            # Convert from normalized image
+            img_array = (frame.img.squeeze(0).permute(1, 2, 0).cpu().numpy() * 255).astype(np.uint8)
+        
+        img_dict = {
+            'img': frame.img,
+            'true_shape': frame.img_true_shape,
+            'idx': idx,
+            'instance': str(idx)
+        }
+        imgs.append(img_dict)
+    
+    # First inference - extract dynamic masks (use smaller batch size)
+    pairs = make_pairs(imgs, scene_graph='complete', prefilter=None, symmetrize=True)
+    preds_first = inference(pairs, easi3r_model, frame_i.img.device, batch_size=1, verbose=False)
+    
+    # Global alignment without flow_loss_weight parameter to extract dynamic masks
+    scene_dynamic = global_aligner(
+        preds_first, 
+        device=frame_i.img.device, 
+        mode=GlobalAlignerMode.PointCloudOptimizer,
+        verbose=False
+    )
+    
+    # Extract dynamic masks
+    dynamic_masks = getattr(scene_dynamic, 'dynamic_masks', None)
+    
+    # Clean up first inference immediately
+    del preds_first, scene_dynamic
+    torch.cuda.empty_cache()
+    
+    # Second inference - apply attention reweighting
+    if dynamic_masks is not None:
+        # Attach masks to images (move to CPU to save GPU memory)
+        for i, img_dict in enumerate(imgs):
+            if i < len(dynamic_masks):
+                img_dict['atten_mask'] = dynamic_masks[i].cpu().unsqueeze(0)
+    
+    # Create new pairs with masks attached
+    pairs = make_pairs(imgs, scene_graph='complete', prefilter=None, symmetrize=True)
+    preds_second = inference(pairs, easi3r_model, frame_i.img.device, batch_size=1, verbose=False)
+    
+    # Final global alignment with attention reweighting
+    scene = global_aligner(
+        preds_second,
+        device=frame_i.img.device,
+        mode=GlobalAlignerMode.PointCloudOptimizer,
+        use_atten_mask=True,  # Enable attention reweighting
+        verbose=False
+    )
+    
+    # Extract filtered pointmaps
+    pts3d = scene.get_pts3d(raw_pts=True)
+    confs = [c for c in scene.im_conf]
+    
+    # Convert to format expected by SLAM system
+    X_i = pts3d[0]  # Points for frame i
+    X_j = pts3d[1]  # Points for frame j
+    C_i = confs[0]  # Confidence for frame i
+    C_j = confs[1]  # Confidence for frame j
+
+    # Final cleanup
+    del preds_second, scene, pts3d, confs
+    torch.cuda.empty_cache()
+
+    return X_i, C_i, X_j, C_j
+
+
+# Process features through the decoder (reused from mast3r_utils)
 @torch.inference_mode
-def mast3r_decoder(mast3r, feat1, feat2, pos1, pos2, shape1, shape2):
-    dec1, dec2 = mast3r._decoder(feat1, pos1, feat2, pos2)
+def decoder(mast3r_model, feat1, feat2, pos1, pos2, shape1, shape2):
+    dec1, dec2 = mast3r_model._decoder(feat1, pos1, feat2, pos2, shape1, shape2)
     with torch.amp.autocast(enabled=False, device_type="cuda"):
-        res1 = mast3r._downstream_head(1, [tok.float() for tok in dec1], shape1)
-        res2 = mast3r._downstream_head(2, [tok.float() for tok in dec2], shape2)
+        res1 = mast3r_model._downstream_head(1, [tok.float() for tok in dec1], shape1)
+        res2 = mast3r_model._downstream_head(2, [tok.float() for tok in dec2], shape2)
     return res1, res2
 
-@torch.inference_mode
-def easi3r_decoder(easi3r, feat1, feat2, pos1, pos2, shape1, shape2):
-    dec1, dec2 = easi3r._decoder(feat1, pos1, feat2, pos2)
-    with torch.amp.autocast(enabled=False, device_type="cuda"):
-        res1 = easi3r._downstream_head(1, [tok.float() for tok in dec1], shape1)
-        res2 = easi3r._downstream_head(2, [tok.float() for tok in dec2], shape2)
-    return res1, res2
 
-
-def mast3r_downsample(X, C, D, Q):
-    downsample = config["dataset"]["img_downsample"]
-    if downsample > 1:
-        # C and Q: (...xHxW)
-        # X and D: (...xHxWxF)
-        X = X[..., ::downsample, ::downsample, :].contiguous()
-        C = C[..., ::downsample, ::downsample].contiguous()
-        D = D[..., ::downsample, ::downsample, :].contiguous()
-        Q = Q[..., ::downsample, ::downsample].contiguous()
+def downsample(X, C, D, Q):
+    """Downsample pointmaps and features"""
+    downsample_factor = config["dataset"]["img_downsample"]
+    if downsample_factor > 1:
+        X = X[..., ::downsample_factor, ::downsample_factor, :].contiguous()
+        C = C[..., ::downsample_factor, ::downsample_factor].contiguous()
+        D = D[..., ::downsample_factor, ::downsample_factor, :].contiguous()
+        Q = Q[..., ::downsample_factor, ::downsample_factor].contiguous()
     return X, C, D, Q
 
-def easi3r_downsample(X, C):
-    downsample = config["dataset"]["img_downsample"]
-    if downsample > 1:
-        # C and Q: (...xHxW)
-        # X and D: (...xHxWxF)
-        X = X[..., ::downsample, ::downsample, :].contiguous()
-        C = C[..., ::downsample, ::downsample].contiguous()
+
+@torch.inference_mode
+def easi3r_inference_mono(easi3r_model, mast3r_model, frame):
+    """
+    Mono inference combining Easi3R filtered pointmaps with MASt3R descriptors
+    """
+    # Clear cache before starting
+    torch.cuda.empty_cache()
+    
+    # Get filtered pointmaps from Easi3R
+    # Prepare single image for inference
+    img_dict = {
+        'img': frame.img,
+        'true_shape': frame.img_true_shape,
+        'idx': 0,
+        'instance': '0'
+    }
+    
+    # For mono inference, we duplicate the image
+    imgs = [img_dict, img_dict.copy()]
+    imgs[1]['idx'] = 1
+    imgs[1]['instance'] = '1'
+    
+    # First inference - extract dynamic masks
+    pairs = make_pairs(imgs, scene_graph='complete', prefilter=None, symmetrize=True)
+    preds_first = inference(pairs, easi3r_model, frame.img.device, batch_size=1, verbose=False)
+    
+    # Global alignment without flow_loss_weight parameter
+    scene_dynamic = global_aligner(
+        preds_first,
+        device=frame.img.device,
+        mode=GlobalAlignerMode.PointCloudOptimizer,
+        verbose=False
+    )
+    
+    # Extract dynamic masks
+    dynamic_masks = getattr(scene_dynamic, 'dynamic_masks', None)
+    
+    # Clean up first inference immediately
+    del preds_first, scene_dynamic
+    torch.cuda.empty_cache()
+    
+    # Second inference with attention reweighting
+    if dynamic_masks is not None:
+        for i, img_dict in enumerate(imgs):
+            if i < len(dynamic_masks):
+                img_dict['atten_mask'] = dynamic_masks[i].cpu().unsqueeze(0)
+    
+    # Create new pairs with masks
+    pairs = make_pairs(imgs, scene_graph='complete', prefilter=None, symmetrize=True)
+    preds_second = inference(pairs, easi3r_model, frame.img.device, batch_size=1, verbose=False)
+    
+    # Final alignment with reweighting
+    scene = global_aligner(
+        preds_second,
+        device=frame.img.device,
+        mode=GlobalAlignerMode.PointCloudOptimizer,
+        use_atten_mask=True,
+        verbose=False
+    )
+    
+    # Extract pointmap for the frame
+    pts3d = scene.get_pts3d(raw_pts=True)[0]  # Take first (same as second for mono)
+    conf = scene.im_conf[0]
+
+    # Convert to format expected by SLAM system
+    # Reshape to (N, 3) and (N, 1) format
+    X = einops.rearrange(pts3d, "h w c -> (h w) c")
+    C = einops.rearrange(conf, "h w -> (h w) 1")
+    
+    # Final cleanup
+    del preds_second, scene, pts3d, conf
+    torch.cuda.empty_cache()
+    
     return X, C
 
 
 @torch.inference_mode
-def monst3r_symmetric_inference(mast3r, monst3r, frame_i, frame_j):
+def easi3r_match_asymmetric(easi3r_model, mast3r_model, frame_i, frame_j, idx_i2j_init=None):
+    """
+    Asymmetric matching with Easi3R filtered pointmaps and MASt3R descriptors
+    """
+    # Get filtered pointmaps from Easi3R double inference
+    X_i_filtered, C_i_filtered, X_j_filtered, C_j_filtered = easi3r_double_inference_pair(easi3r_model, frame_i, frame_j)
+    
+    # Get MASt3R features and descriptors
     if frame_i.feat is None:
-        frame_i.feat, frame_i.pos, _ = monst3r._encode_image(
+        frame_i.feat, frame_i.pos, _ = mast3r_model._encode_image(
             frame_i.img, frame_i.img_true_shape
         )
     if frame_j.feat is None:
-        frame_j.feat, frame_j.pos, _ = monst3r._encode_image(
+        frame_j.feat, frame_j.pos, _ = mast3r_model._encode_image(
             frame_j.img, frame_j.img_true_shape
         )
 
@@ -116,211 +252,51 @@ def monst3r_symmetric_inference(mast3r, monst3r, frame_i, frame_j):
     pos1, pos2 = frame_i.pos, frame_j.pos
     shape1, shape2 = frame_i.img_true_shape, frame_j.img_true_shape
 
-    # MASt3R inference
-    res11, res21 = mast3r_decoder(mast3r, feat1, feat2, pos1, pos2, shape1, shape2)
-    res22, res12 = mast3r_decoder(mast3r, feat2, feat1, pos2, pos1, shape2, shape1)
-    res = [res11, res21, res22, res12]
-    _, _, D, Q = zip(
-        *[(r["pts3d"][0], r["conf"][0], r["desc"][0], r["desc_conf"][0]) for r in res]
-    )
-
-    # MonST3R inference
-    res11, res21 = monst3r_decoder(monst3r, feat1, feat2, pos1, pos2, shape1, shape2)
-    res22, res12 = monst3r_decoder(monst3r, feat2, feat1, pos2, pos1, shape2, shape1)
-    res = [res11, res21, res22, res12]
-    X, C = zip(
-        *[(r["pts3d"][0], r["conf"][0]) for r in res]
-    )
-
-    # 4xhxwxc
-    X, C, D, Q = torch.stack(X), torch.stack(C), torch.stack(D), torch.stack(Q)
-    X, C, D, Q = mast3r_downsample(X, C, D, Q)
-    return X, C, D, Q
-
-
-# NOTE: Assumes img shape the same
-@torch.inference_mode
-def monst3r_decode_symmetric_batch(
-    mast3r, monst3r, feat_i, pos_i, feat_j, pos_j, shape_i, shape_j
-):
-    B = feat_i.shape[0]
-    X, C, D, Q = [], [], [], []
-    for b in range(B):
-        feat1 = feat_i[b][None]
-        feat2 = feat_j[b][None]
-        pos1 = pos_i[b][None]
-        pos2 = pos_j[b][None]
-
-        # MASt3R inference
-        res11, res21 = mast3r_decoder(mast3r, feat1, feat2, pos1, pos2, shape_i[b], shape_j[b])
-        res22, res12 = mast3r_decoder(mast3r, feat2, feat1, pos2, pos1, shape_j[b], shape_i[b])
-        res = [res11, res21, res22, res12]
-        _, _, Db, Qb = zip(
-            *[
-                (r["pts3d"][0], r["conf"][0], r["desc"][0], r["desc_conf"][0])
-                for r in res
-            ]
-        )
-
-        # MonST3R inference
-        res11, res21 = monst3r_decoder(monst3r, feat1, feat2, pos1, pos2, shape_i[b], shape_j[b])
-        res22, res12 = monst3r_decoder(monst3r, feat2, feat1, pos2, pos1, shape_j[b], shape_i[b])
-        res = [res11, res21, res22, res12]
-        Xb, Cb = zip(
-            *[(r["pts3d"][0], r["conf"][0]) for r in res]
-        )
-
-        X.append(torch.stack(Xb, dim=0))
-        C.append(torch.stack(Cb, dim=0))
-        D.append(torch.stack(Db, dim=0))
-        Q.append(torch.stack(Qb, dim=0))
-
-    X, C, D, Q = (
-        torch.stack(X, dim=1),
-        torch.stack(C, dim=1),
-        torch.stack(D, dim=1),
-        torch.stack(Q, dim=1),
-    )
-    X, C, D, Q = mast3r_downsample(X, C, D, Q)
-    return X, C, D, Q
-
-
-@torch.inference_mode
-def monst3r_inference_mono(monst3r, frame):
-    """
-    Mono inference using MonST3R - creates a self-pair for inference
-    """
-    if frame.feat is None:
-        frame.feat, frame.pos, _ = monst3r._encode_image(frame.img, frame.img_true_shape)
-
-    feat = frame.feat
-    pos = frame.pos
-    shape = frame.img_true_shape
-
-    res11, res21 = monst3r_decoder(monst3r, feat, feat, pos, pos, shape, shape)
+    # Get MASt3R descriptors (asymmetric inference)
+    res11, res21 = decoder(mast3r_model, feat1, feat2, pos1, pos2, shape1, shape2)
     res = [res11, res21]
-    X, C = zip(
-        *[(r["pts3d"][0], r["conf"][0]) for r in res]
-    )
-    # 2xhxwxc
-    X, C = torch.stack(X), torch.stack(C)
-    X, C = monst3r_downsample(X, C)
-
-    Xii, Xji = einops.rearrange(X, "b h w c -> b (h w) c")
-    Cii, Cji = einops.rearrange(C, "b h w -> b (h w) 1")
-
-    return Xii, Cii
-
-
-def monst3r_match_symmetric(mast3r, monst3r, feat_i, pos_i, feat_j, pos_j, shape_i, shape_j):
-    X, C, D, Q = monst3r_decode_symmetric_batch(
-        mast3r, monst3r, feat_i, pos_i, feat_j, pos_j, shape_i, shape_j
-    )
-
-    # Ordering 4xbxhxwxc
-    b = X.shape[1]
-
-    Xii, Xji, Xjj, Xij = X[0], X[1], X[2], X[3]
-    Dii, Dji, Djj, Dij = D[0], D[1], D[2], D[3]
-    Qii, Qji, Qjj, Qij = Q[0], Q[1], Q[2], Q[3]
-
-    # Always matching both
-    X11 = torch.cat((Xii, Xjj), dim=0)
-    X21 = torch.cat((Xji, Xij), dim=0)
-    D11 = torch.cat((Dii, Djj), dim=0)
-    D21 = torch.cat((Dji, Dij), dim=0)
-
-    # tic()
-    idx_1_to_2, valid_match_2 = matching.match(X11, X21, D11, D21)
-    # toc("Match")
-
-    # TODO: Avoid this
-    match_b = X11.shape[0] // 2
-    idx_i2j = idx_1_to_2[:match_b]
-    idx_j2i = idx_1_to_2[match_b:]
-    valid_match_j = valid_match_2[:match_b]
-    valid_match_i = valid_match_2[match_b:]
-
-    return (
-        idx_i2j,
-        idx_j2i,
-        valid_match_j,
-        valid_match_i,
-        Qii.view(b, -1, 1),
-        Qjj.view(b, -1, 1),
-        Qji.view(b, -1, 1),
-        Qij.view(b, -1, 1),
-    )
-
-
-@torch.inference_mode
-def easi3r_asymmetric_inference(mast3r, easi3r, frame_i, frame_j):
-    if frame_i.feat is None:
-        frame_i.feat, frame_i.pos, _ = easi3r._encode_image(
-            frame_i.img, frame_i.img_true_shape
-        )
-    if frame_j.feat is None:
-        frame_j.feat, frame_j.pos, _ = easi3r._encode_image(
-            frame_j.img, frame_j.img_true_shape
-        )
-
-    feat1, feat2 = frame_i.feat, frame_j.feat
-    pos1, pos2 = frame_i.pos, frame_j.pos
-    shape1, shape2 = frame_i.img_true_shape, frame_j.img_true_shape
-
-    # Easi3R inference
-    res11, res21 = easi3r_decoder(easi3r, feat1, feat2, pos1, pos2, shape1, shape2)
-    res = [res11, res21]
-    X, C = zip(
-        *[(r["pts3d"][0], r["conf"][0]) for r in res]
-    )
-    X, C = torch.stack(X), torch.stack(C)
-
-    # Using MASt3R's encoded features since MONSt3R doesn't output features
-    res11, res21 = mast3r_decoder(mast3r, feat1, feat2, pos1, pos2, shape1, shape2)
-    res = [res11, res21]
-    _, _, D, Q = zip(
-        *[(r["pts3d"][0], r["conf"][0], r["desc"][0], r["desc_conf"][0]) for r in res]
-    )
-    # Create descriptors from encoded features from MASt3R
+    
+    # Extract descriptors and descriptor confidences from MASt3R
+    D, Q = zip(*[(r["desc"][0], r["desc_conf"][0]) for r in res])
     D, Q = torch.stack(D), torch.stack(Q)
     
-    # Ensure shape compatibility with existing code
-    X, C, D, Q = mast3r_downsample(X, C, D, Q)
+    # Stack the filtered pointmaps from Easi3R
+    X = torch.stack([X_i_filtered, X_j_filtered])
+    C = torch.stack([C_i_filtered, C_j_filtered])
     
-    return X, C, D, Q
-
-
-def easi3r_match_asymmetric(mast3r, easi3r, frame_i, frame_j, idx_i2j_init=None):
-    X, C, D, Q = easi3r_asymmetric_inference(mast3r=mast3r, 
-                                              easi3r=easi3r, 
-                                              frame_i=frame_i, 
-                                              frame_j=frame_j)
+    # Apply downsampling consistently
+    X, C, D, Q = downsample(X, C, D, Q)
 
     b, h, w = X.shape[:-1]
     # 2 outputs per inference
-    b = b // 2
+    b = b // 2 if b > 1 else 1
 
-    Xii, Xji = X[:b], X[b:]
-    Cii, Cji = C[:b], C[b:]
-    Dii, Dji = D[:b], D[b:]
-    Qii, Qji = Q[:b], Q[b:]
+    Xii, Xji = X[:b], X[b:] if b < len(X) else X[:b]
+    Cii, Cji = C[:b], C[b:] if b < len(C) else C[:b]  
+    Dii, Dji = D[:b], D[b:] if b < len(D) else D[:b]
+    Qii, Qji = Q[:b], Q[b:] if b < len(Q) else Q[:b]
 
-    # TODO: remove feature vectors from matching
+    # Perform matching using MASt3R descriptors but Easi3R filtered pointmaps
     idx_i2j, valid_match_j = matching.match(
         Xii, Xji, Dii, Dji, idx_1_to_2_init=idx_i2j_init
     )
 
-    # How rest of system expects it
-    Xii, Xji = einops.rearrange(X, "b h w c -> b (h w) c")
-    Cii, Cji = einops.rearrange(C, "b h w -> b (h w) 1")
-    Dii, Dji = einops.rearrange(D, "b h w c -> b (h w) c")
-    Qii, Qji = einops.rearrange(Q, "b h w -> b (h w) 1")
+    # Reshape to expected format
+    Xii = einops.rearrange(Xii, "b h w c -> b (h w) c")
+    Cii = einops.rearrange(Cii, "b h w -> b (h w) 1")
+    Dii = einops.rearrange(Dii, "b h w c -> b (h w) c")
+    Qii = einops.rearrange(Qii, "b h w -> b (h w) 1")
+    
+    Xji = einops.rearrange(Xji, "b h w c -> b (h w) c")
+    Cji = einops.rearrange(Cji, "b h w -> b (h w) 1")
+    Dji = einops.rearrange(Dji, "b h w c -> b (h w) c")
+    Qji = einops.rearrange(Qji, "b h w -> b (h w) 1")
 
     return idx_i2j, valid_match_j, Xii, Cii, Qii, Xji, Cji, Qji
 
 
 def _resize_pil_image(img, long_edge_size):
+    """Resize PIL image maintaining aspect ratio"""
     S = max(img.size)
     if S > long_edge_size:
         interp = PIL.Image.LANCZOS
@@ -331,6 +307,7 @@ def _resize_pil_image(img, long_edge_size):
 
 
 def resize_img(img, size, square_ok=False, return_transformation=False):
+    """Resize image for model input"""
     assert size == 224 or size == 512
     # numpy to PIL format
     img = PIL.Image.fromarray(np.uint8(img * 255))
@@ -364,4 +341,4 @@ def resize_img(img, size, square_ok=False, return_transformation=False):
         half_crop_h = (H - img.size[1]) / 2
         return res, (scale_w, scale_h, half_crop_w, half_crop_h)
 
-    return res
+    return res 

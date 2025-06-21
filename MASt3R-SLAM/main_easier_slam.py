@@ -150,7 +150,7 @@ def run_backend(cfg, model, states, keyframes, K, all_frames=None):
 
 
 if __name__ == "__main__":
-    mp.set_start_method("spawn")
+    mp.set_start_method("fork")
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.set_grad_enabled(False)
     device = "cuda:0"
@@ -202,8 +202,10 @@ if __name__ == "__main__":
         )
         viz.start()
 
-    model = load_easi3r(device=device)
-    model.share_memory()
+    easi3r_model = load_easi3r(device=device)
+    mast3r_model = load_mast3r(device=device)
+    easi3r_model.share_memory()
+    mast3r_model.share_memory()
 
     has_calib = dataset.has_calib()
     use_calib = config["use_calib"]
@@ -228,10 +230,10 @@ if __name__ == "__main__":
         if recon_file.exists():
             recon_file.unlink()
 
-    tracker = FrameTracker(model, keyframes, device)
+    tracker = FrameTracker3(easi3r_model=easi3r_model, mast3r_model=mast3r_model, frames=keyframes, device=device)
     last_msg = WindowMsg()
 
-    backend = mp.Process(target=run_backend, args=(config, model, states, keyframes, K, all_frames))
+    backend = mp.Process(target=run_backend, args=(config, mast3r_model, states, keyframes, K, all_frames))
     backend.start()
 
     i = 0
@@ -270,11 +272,11 @@ if __name__ == "__main__":
             if i == 0
             else states.get_frame().T_WC
         )
-        frame = create_frame(i, img, T_WC, img_size=dataset.img_size, device=device)
+        frame = create_frame(i, img, T_WC, img_size=224, device=device)
 
         if mode == Mode.INIT:
             # Initialize via mono inference, and encoded features neeed for database
-            X_init, C_init = easi3r_inference_mono(model, frame)
+            X_init, C_init = easi3r_inference_mono(easi3r_model=easi3r_model, mast3r_model=mast3r_model, frame=frame)
             frame.update_pointmap(X_init, C_init)
             keyframes.append(frame)
             states.queue_global_optimization(len(keyframes) - 1)
@@ -296,7 +298,7 @@ if __name__ == "__main__":
 
         elif mode == Mode.RELOC:
             # If tracking quality is low, perform relocalization using loop closure
-            X, C = easi3r_inference_mono(model, frame)
+            X, C = easi3r_inference_mono(easi3r_model=easi3r_model, mast3r_model=mast3r_model, frame=frame)
             frame.update_pointmap(X, C)
             states.set_frame(frame)
             states.queue_reloc()
