@@ -297,10 +297,10 @@ def monst3r_asymmetric_inference(mast3r, monst3r, frame_i, frame_j):
     return X, C, D, Q
 
 
-def apply_dynamic_mask_to_pointmaps(X, C, dynamic_mask, D=None, Q=None, mask_confidence_value=0.0):
+def apply_dynamic_mask_to_pointmaps(X, C, dynamic_mask, D=None, Q=None, mask_confidence_value=0.0, zero_descriptors=True):
     """
     Apply dynamic mask to pointmaps and descriptors by setting confidence to very low values
-    for dynamic regions, effectively excluding them from matching.
+    and zeroing out descriptors for dynamic regions, effectively excluding them from matching.
     
     Args:
         X: Point maps tensor of shape (b, h, w, 3)
@@ -309,6 +309,7 @@ def apply_dynamic_mask_to_pointmaps(X, C, dynamic_mask, D=None, Q=None, mask_con
         D: Optional descriptor maps tensor of shape (b, h, w, descriptor_dim)
         Q: Optional descriptor confidence maps tensor of shape (b, h, w)
         mask_confidence_value: Value to set confidence to for masked regions
+        zero_descriptors: Whether to zero out descriptors for dynamic regions (recommended)
         
     Returns:
         X_masked, C_masked, D_masked, Q_masked: Masked pointmaps, confidence, descriptors, and descriptor confidence
@@ -334,8 +335,17 @@ def apply_dynamic_mask_to_pointmaps(X, C, dynamic_mask, D=None, Q=None, mask_con
     if Q_masked is not None:
         Q_masked[expanded_mask] = mask_confidence_value
     
-    # Optionally, we could also zero out the 3D points and descriptors, but setting confidence to 0 should be sufficient
-    # since downstream matching uses confidence for filtering
+    # IMPORTANT: Zero out the actual descriptors for dynamic regions since the matching backend
+    # doesn't use descriptor confidence - it only looks at descriptor similarity
+    if D_masked is not None and zero_descriptors:
+        # Expand mask to match descriptor dimensions: (h, w) -> (b, h, w, descriptor_dim)
+        expanded_mask_desc = expanded_mask.unsqueeze(-1).expand_as(D_masked)
+        D_masked[expanded_mask_desc] = 0.0
+        
+        # NOTE: This is crucial because the refine_matches CUDA kernel in matching_kernels.cu
+        # only considers descriptor dot product similarity (D21[b][n][k] * D11[b][v][u][k])
+        # and completely ignores descriptor confidence Q. Without zeroing descriptors,
+        # dynamic regions would still participate in matching despite having low confidence.
     
     return X_masked, C_masked, D_masked, Q_masked
 

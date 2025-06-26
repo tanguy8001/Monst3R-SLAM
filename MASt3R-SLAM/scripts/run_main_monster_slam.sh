@@ -10,4 +10,5 @@ conda activate 3dv
 
 echo "Starting main_monster_slam at: $(date)"
 
-python main_monster_slam.py --dataset datasets/tum2/rgbd_dataset_freiburg3_walking_xyz/ --config config/calib.yaml
+#python main_monster_slam.py --dataset datasets/tum2/rgbd_dataset_freiburg3_walking_xyz/ --config config/calib.yaml
+python main_monster_slam.py --dataset datasets/bonn/rgbd_bonn_person_tracking/ --config config/calib.yaml

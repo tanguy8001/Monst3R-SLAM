@@ -55,9 +55,6 @@ def easi3r_double_inference_pair(easi3r_model, frame_i, frame_j):
     Perform Easi3R double inference for a pair of frames
     Returns pointmaps with dynamic objects removed
     """
-    # Clear cache before starting
-    torch.cuda.empty_cache()
-    
     # Prepare images for inference
     imgs = []
     
@@ -77,7 +74,7 @@ def easi3r_double_inference_pair(easi3r_model, frame_i, frame_j):
         }
         imgs.append(img_dict)
     
-    # First inference - extract dynamic masks (use smaller batch size)
+    # First inference - extract dynamic masks
     pairs = make_pairs(imgs, scene_graph='complete', prefilter=None, symmetrize=True)
     preds_first = inference(pairs, easi3r_model, frame_i.img.device, batch_size=1, verbose=False)
     
@@ -92,13 +89,13 @@ def easi3r_double_inference_pair(easi3r_model, frame_i, frame_j):
     # Extract dynamic masks
     dynamic_masks = getattr(scene_dynamic, 'dynamic_masks', None)
     
-    # Clean up first inference immediately
+    # Clean up first inference
     del preds_first, scene_dynamic
     torch.cuda.empty_cache()
     
     # Second inference - apply attention reweighting
     if dynamic_masks is not None:
-        # Attach masks to images (move to CPU to save GPU memory)
+        # Attach masks to images
         for i, img_dict in enumerate(imgs):
             if i < len(dynamic_masks):
                 img_dict['atten_mask'] = dynamic_masks[i].cpu().unsqueeze(0)
@@ -125,10 +122,6 @@ def easi3r_double_inference_pair(easi3r_model, frame_i, frame_j):
     X_j = pts3d[1]  # Points for frame j
     C_i = confs[0]  # Confidence for frame i
     C_j = confs[1]  # Confidence for frame j
-
-    # Final cleanup
-    del preds_second, scene, pts3d, confs
-    torch.cuda.empty_cache()
 
     return X_i, C_i, X_j, C_j
 
@@ -159,9 +152,6 @@ def easi3r_inference_mono(easi3r_model, mast3r_model, frame):
     """
     Mono inference combining Easi3R filtered pointmaps with MASt3R descriptors
     """
-    # Clear cache before starting
-    torch.cuda.empty_cache()
-    
     # Get filtered pointmaps from Easi3R
     # Prepare single image for inference
     img_dict = {
@@ -191,7 +181,7 @@ def easi3r_inference_mono(easi3r_model, mast3r_model, frame):
     # Extract dynamic masks
     dynamic_masks = getattr(scene_dynamic, 'dynamic_masks', None)
     
-    # Clean up first inference immediately
+    # Clean up first inference
     del preds_first, scene_dynamic
     torch.cuda.empty_cache()
     
@@ -222,10 +212,6 @@ def easi3r_inference_mono(easi3r_model, mast3r_model, frame):
     # Reshape to (N, 3) and (N, 1) format
     X = einops.rearrange(pts3d, "h w c -> (h w) c")
     C = einops.rearrange(conf, "h w -> (h w) 1")
-    
-    # Final cleanup
-    del preds_second, scene, pts3d, conf
-    torch.cuda.empty_cache()
     
     return X, C
 

@@ -272,7 +272,7 @@ if __name__ == "__main__":
             if i == 0
             else states.get_frame().T_WC
         )
-        frame = create_frame(i, img, T_WC, img_size=224, device=device)
+        frame = create_frame(i, img, T_WC, img_size=dataset.img_size, device=device)
 
         if mode == Mode.INIT:
             # Initialize via mono inference, and encoded features neeed for database
