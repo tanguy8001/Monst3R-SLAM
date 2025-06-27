@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --account=3dv
+#SBATCH --account=pmlr_jobs
 #SBATCH --partition=jobs
 #SBATCH --time=720
 #SBATCH --output=out/eval_tum2_%j.out

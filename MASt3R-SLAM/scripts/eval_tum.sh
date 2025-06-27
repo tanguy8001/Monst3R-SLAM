@@ -1,24 +1,25 @@
 #!/bin/bash
-#SBATCH --account=3dv
+#SBATCH --account=pmlr_jobs
 #SBATCH --partition=jobs
 #SBATCH --time=720
-#SBATCH --output=results/eval_tum_%j.out
+#SBATCH --output=out/eval_tum_%j.out
 
 cd /work/courses/3dv/24/MASt3R-SLAM
-source /home/tdieudonne/.bashrc
-conda activate slam
+source /work/courses/3dv/24/24_envs/bin/activate
+which conda
+conda activate 3dv
 
 echo "Starting evaluation of TUM dataset at: $(date)"
 
 dataset_path="datasets/tum/"
 datasets=(
-    #rgbd_dataset_freiburg1_360
-    #rgbd_dataset_freiburg1_desk
-    #rgbd_dataset_freiburg1_desk2
-    #rgbd_dataset_freiburg1_floor
-    #rgbd_dataset_freiburg1_plant
-    #rgbd_dataset_freiburg1_room
-    #rgbd_dataset_freiburg1_rpy
+    rgbd_dataset_freiburg1_360
+    rgbd_dataset_freiburg1_desk
+    rgbd_dataset_freiburg1_desk2
+    rgbd_dataset_freiburg1_floor
+    rgbd_dataset_freiburg1_plant
+    rgbd_dataset_freiburg1_room
+    rgbd_dataset_freiburg1_rpy
     rgbd_dataset_freiburg1_teddy
     rgbd_dataset_freiburg1_xyz
 )
@@ -47,7 +48,7 @@ if [ "$print_only" = false ]; then
         if [ "$no_calib" = true ]; then
             python main.py --dataset $dataset_name --no-viz --save-as tum/no_calib/$dataset --config config/eval_no_calib.yaml
         else
-            python main.py --dataset $dataset_name --no-viz --save-as tum/calib/$dataset --config config/eval_calib.yaml
+            python main.py --dataset $dataset_name --no-viz --save-as tum/calib/$dataset --config config/calib.yaml
         fi
     done
 fi

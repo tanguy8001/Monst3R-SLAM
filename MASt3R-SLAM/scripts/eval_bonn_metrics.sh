@@ -1,12 +1,13 @@
 #!/bin/bash
-#SBATCH --account=3dv
+#SBATCH --account=pmlr_jobs
 #SBATCH --partition=jobs
 #SBATCH --time=720
-#SBATCH --output=eval_bonn_metrics_%j.out
+#SBATCH --output=out/eval_bonn_%j.out
 
 cd /work/courses/3dv/24/MASt3R-SLAM
-source /home/tdieudonne/.bashrc
-conda activate slam
+source /work/courses/3dv/24/24_envs/bin/activate
+which conda
+conda activate 3dv
 
 echo "Starting metrics computation of Bonn dataset at: $(date)"
 
@@ -58,24 +59,24 @@ print_only=false
 #    shift
 #done
 
+#for dataset in ${datasets[@]}; do
+#    dataset_name="$dataset_path""$dataset"/
+#    echo ${dataset_name}
+#    if [ "$no_calib" = true ]; then
+#        python scripts/prepare_bonn.py --groundtruth_path $dataset_name/groundtruth.txt --estimated_path logs/bonn/no_calib/$dataset/$dataset.txt --output_path logs/bonn_transformed/no_calib/$dataset/$dataset.txt
+#    else
+#        python scripts/prepare_bonn.py --groundtruth_path $dataset_name/groundtruth.txt --estimated_path logs/bonn/calib/$dataset/$dataset.txt --output_path logs/bonn_transformed/calib/$dataset/$dataset.txt
+#    fi
+#done
+#
+#echo "🎉 All the estimated trajectories have been transformed and saved."
+
 for dataset in ${datasets[@]}; do
     dataset_name="$dataset_path""$dataset"/
     echo ${dataset_name}
     if [ "$no_calib" = true ]; then
-        python scripts/prepare_bonn.py --groundtruth_path $dataset_name/groundtruth.txt --estimated_path logs/bonn/no_calib/$dataset/$dataset.txt --output_path logs/bonn_transformed/no_calib/$dataset/$dataset.txt
+        evo_ape tum $dataset_name/groundtruth.txt logs/bonn/no_calib/$dataset/$dataset.txt -as  --align --pose_relation trans_part
     else
-        python scripts/prepare_bonn.py --groundtruth_path $dataset_name/groundtruth.txt --estimated_path logs/bonn/calib/$dataset/$dataset.txt --output_path logs/bonn_transformed/calib/$dataset/$dataset.txt
-    fi
-done
-
-echo "🎉 All the estimated trajectories have been transformed and saved."
-
-for dataset in ${datasets[@]}; do
-    dataset_name="$dataset_path""$dataset"/
-    echo ${dataset_name}
-    if [ "$no_calib" = true ]; then
-        evo_ape tum $dataset_name/groundtruth.txt logs/bonn_transformed/no_calib/$dataset/$dataset.txt -as  --align --pose_relation trans_part
-    else
-        evo_ape tum $dataset_name/groundtruth.txt logs/bonn_transformed/calib/$dataset/$dataset.txt -as --align --pose_relation trans_part
+        evo_ape tum $dataset_name/groundtruth.txt logs/bonn/calib/$dataset/$dataset.txt -as --align --pose_relation trans_part
     fi
 done
