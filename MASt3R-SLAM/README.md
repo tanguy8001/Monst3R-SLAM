@@ -1,4 +1,4 @@
-# MonST3R-SLAM: Real-Time Dynamic SLAM with Optical Flow Filtering
+# MonST3R-SLAM: Real-Time Dynamic SLAM
 
 A novel SLAM system that integrates MonST3R and MASt3R to achieve robust real-time performance in dynamic environments. Our approach leverages the complementary strengths of these foundation models: MonST3R provides dense 3D pointmaps with confidence estimates, while MASt3R contributes rich feature descriptors and correspondence matching capabilities.
 
@@ -12,7 +12,7 @@ A novel SLAM system that integrates MonST3R and MASt3R to achieve robust real-ti
 
 ## 📋 Prerequisites
 
-- CUDA-capable GPU with at least 8GB VRAM
+- CUDA-capable GPU with at least 12GB VRAM
 - Conda/Miniconda
 - Python 3.8+
 
@@ -21,7 +21,7 @@ A novel SLAM system that integrates MonST3R and MASt3R to achieve robust real-ti
 ### 1. Clone the Repository
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/tanguy8001/Monst3R-SLAM.git
 cd MonST3R-SLAM
 ```
 
@@ -37,24 +37,10 @@ First, follow the official installation instructions for the base repositories:
 **MonST3R Setup:**
 1. Navigate to `thirdparty/monst3r/`
 2. Visit the [official MonST3R repository](https://github.com/Junyi42/monst3r)
-3. Follow their installation instructions within the `thirdparty/monst3r/` directory
+3. Follow their installation instructions within the `thirdparty/monst3r/` directory (you can reuse the same environment)
 4. Download the required MonST3R checkpoints
 
-### 3. Additional Dependencies
-
-Install additional dependencies for dynamic object detection:
-
-```bash
-# RAFT for optical flow
-cd thirdparty/monst3r/third_party/RAFT
-# Follow RAFT installation instructions and download pretrained models
-
-# SAM2 for mask refinement (optional)
-cd thirdparty/monst3r/third_party/sam2
-# Follow SAM2 installation instructions and download checkpoints
-```
-
-### 4. Dataset Setup
+### 3. Dataset Setup
 
 Place your datasets in the `datasets/` directory following the structure:
 ```
@@ -67,10 +53,11 @@ datasets/
 │   └── ...
 └── ...
 ```
+You can use the downloading scripts in scripts/.
 
 ## 🎯 Usage
 
-### Basic SLAM Execution
+### Basic SLAM Execution Example
 
 ```bash
 # Run on TUM dataset
@@ -78,9 +65,6 @@ python main_monster_slam.py --dataset datasets/tum/rgbd_dataset_freiburg1_desk -
 
 # Run on Bonn RGB-D Dynamic dataset
 python main_monster_slam.py --dataset datasets/bonn/removing_nonobstructing_box2 --config config/base.yaml
-
-# Run with calibration
-python main_monster_slam.py --dataset datasets/tum/rgbd_dataset_freiburg1_desk --config config/base.yaml --calib calib.yaml
 ```
 
 ### Configuration Options
@@ -179,10 +163,6 @@ Debug outputs are saved to `logs/{dataset_name}/{sequence_name}/debug_*/`
 - **Information-Preserving Filtering**: Alternative approaches that retain more geometric information
 - **Temporal Consistency**: Enhanced dynamic object tracking across longer sequences
 - **Multi-Object Scenarios**: Improved handling of multiple simultaneous dynamic objects
-
-## 📄 License
-
-This project builds upon MASt3R-SLAM and MonST3R. Please refer to their respective licenses for usage terms.
 
 ## 🙏 Acknowledgments
 
